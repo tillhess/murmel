@@ -11,10 +11,18 @@ man rollt sie Gruppe für Gruppe an ihren Platz, und ein Bild entsteht.
 
 ## Sprache
 
-- Antworten an den Auftraggeber, Commit-Nachrichten, Kommentare, Testnamen, Dokumentation und alle Texte im Spiel
-  sind Deutsch. Bezeichner im Code sind Englisch.
+- Antworten an den Auftraggeber, Commit-Nachrichten, Kommentare, Testnamen und Dokumentation sind Deutsch.
+  Bezeichner im Code sind Englisch.
+- Das Spiel spricht fünf Sprachen: Englisch, Deutsch, Italienisch, Französisch, Spanisch. Deutsch ist die
+  Ausgangssprache. Kein Text für Spieler steht fest im Code oder nur in `index.html`: Jeder neue Text bekommt einen
+  Schlüssel in `src/app/texts/de.ts` und im selben Commit eine Übersetzung in allen vier anderen Wörterbüchern
+  (`en.ts`, `it.ts`, `fr.ts`, `es.ts`), sonst scheitert die Typprüfung. Ein neues Motiv braucht `scene_<Kennung>`.
+  Gelesen wird mit `t('schluessel')` aus `src/app/i18n.ts`, feste Texte der Seite tragen `data-t`.
+- Ton in jeder Sprache: ruhig, knapp, ohne Ausrufezeichen, vertraute Anrede (du, you, tu, tu, tú). Das Spiel heißt
+  überall „Murmel“.
 - Im Spiel und in der Dokumentation heißt es „Murmel“, „Holzbrett“ (die Ablage), „Mulde“ (Platz auf dem Brett),
-  „Loch“ oder „leeres Feld“ (freier Platz im Bild), „Sammlung“ (Startseite). Diese Wörter beibehalten.
+  „Loch“ oder „leeres Feld“ (freier Platz im Bild), „Sammlung“ (Startseite). Diese Wörter beibehalten. Die
+  Entsprechungen der anderen Sprachen stehen oben in jedem Wörterbuch und bleiben ebenso einheitlich.
 
 ## Regeln, die nicht ohne den Auftraggeber geändert werden
 

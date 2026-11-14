@@ -187,6 +187,12 @@ export class BoardView {
     this.baseDirty = true;
   }
 
+  /** Schreibt die Bildunterschrift neu, etwa in einer anderen Sprache. */
+  setTitle(title: string): void {
+    this.title = title;
+    this.redraw();
+  }
+
   /** Wo ein Feld, eine Mulde oder das Holzbrett auf dem Bildschirm liegt (für Tests, die wie ein Mensch tippen). */
   clientPoint(spot: Spot | 'ablage'): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();

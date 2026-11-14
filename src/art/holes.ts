@@ -17,11 +17,6 @@ type Ctx = CanvasRenderingContext2D;
 export type HoleStyle = 'kreuz' | 'schale' | 'ring';
 /** Die Voreinstellung steht vorn. */
 export const HOLE_STYLES: readonly HoleStyle[] = ['schale', 'kreuz', 'ring'];
-export const HOLE_NAMES: Record<HoleStyle, string> = {
-  schale: 'Schälchen',
-  kreuz: 'Kreuz',
-  ring: 'Ring',
-};
 
 const SHADE = '#10142a';
 const LIGHT = '#fff8ea';

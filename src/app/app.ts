@@ -5,6 +5,7 @@ import { SOUND_MODES, Sound, type SoundMode } from '../audio/sound';
 import type { PhotoContrast } from '../core/quantize';
 import { DETAIL_SIZES, type Mood } from '../core/scene';
 import { renderShelf } from './home';
+import { applyTexts, onLanguage, setLanguage, t } from './i18n';
 import { isStandalone, isTopLevel, setupInstall } from './install';
 import {
   addOwn,
@@ -22,13 +23,6 @@ import { store } from './storage';
 import { TEMPO_DEFAULT, TEMPOS } from './view';
 
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
-
-/** Wie die drei Klangstufen heißen und was beim Umschalten kurz dazu gesagt wird */
-const SOUND_TEXT: Record<SoundMode, { label: string; said: string }> = {
-  alles: { label: 'Klang an', said: 'Klang an: Murmeln und Raum.' },
-  murmeln: { label: 'Nur Murmeln', said: 'Nur die Murmeln klingen.' },
-  aus: { label: 'Klang aus', said: 'Still.' },
-};
 
 /** Färbt den Himmel hinter allem in der Stimmung des Bildes. Der alte Verlauf blendet langsam aus. */
 function setMood(mood: Mood): void {
@@ -51,6 +45,10 @@ function setMood(mood: Mood): void {
 }
 
 export function startApp(): void {
+  // Die Sprache steht fest, bevor irgendetwas beschriftet wird: die gewählte, sonst die des Geräts.
+  setLanguage(store.language);
+  applyTexts(document);
+
   const sound = new Sound(store.sound);
   const home = el('home');
   const shelf = el('shelf');
@@ -119,7 +117,7 @@ export function startApp(): void {
   // ---------- Klang ----------
   const showSound = (): void => {
     playSound.dataset.mode = sound.mode;
-    playSound.setAttribute('aria-label', `${SOUND_TEXT[sound.mode].label}. Tippen schaltet um.`);
+    playSound.setAttribute('aria-label', t('sound_toggle', { label: t(`sound_label_${sound.mode}`) }));
   };
   const setSound = (mode: SoundMode): void => {
     sound.setMode(mode);
@@ -135,7 +133,7 @@ export function startApp(): void {
     setSound(next);
     // Der Klang richtet sich nach dem Stummmodus des Geräts. Wer ihn gerade einschaltet und nichts hört,
     // sucht sonst den Fehler im Spiel.
-    play.tell(before === 'aus' ? 'Klang an. Bleibt es still, ist das iPad stummgeschaltet.' : SOUND_TEXT[next].said);
+    play.tell(t(before === 'aus' ? 'sound_muted' : `sound_said_${next}`));
   });
   showSound();
 
@@ -211,10 +209,29 @@ export function startApp(): void {
       },
       sound: () => sound.mode,
       setSound,
+      language: () => store.language,
+      setLanguage: (language) => {
+        store.language = language;
+        setLanguage(language);
+      },
     },
     { detailSizes: DETAIL_SIZES, traySizes: TRAY_SIZES, tempos: TEMPOS },
   );
   for (const id of ['homeSettings', 'playSettings']) el(id).addEventListener('click', () => settings.open());
+
+  // ---------- Sprache ----------
+  // Ein Wechsel gilt sofort: Alles Beschriftete wird neu geschrieben, das Spiel läuft dabei weiter.
+  onLanguage(() => {
+    applyTexts(document);
+    settings.relabel();
+    showSound();
+    play.relabel();
+    if (!home.hidden) fillShelf();
+  });
+  // Ohne eigene Wahl folgt das Spiel dem Gerät, auch wenn dort die Sprache umgestellt wird.
+  window.addEventListener('languagechange', () => {
+    if (!store.language) setLanguage(null);
+  });
 
   // Der Raum atmet im Takt des Himmelslichts: Der Klang richtet sich nach der Uhr der Animation.
   const light = document.querySelector('.sky-light')?.getAnimations?.()[0];

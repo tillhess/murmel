@@ -1,10 +1,12 @@
 <!doctype html>
+<!-- Die Texte hier sind Deutsch, die Ausgangssprache. Beim Start schreibt das Spiel sie aus src/app/texts/ in der
+     Sprache des Geräts in alles, was data-t (Inhalt), data-t-label (aria-label) oder data-t-content trägt. -->
 <html lang="de">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Murmel</title>
-    <meta name="description" content="Glasmurmeln rollen an ihren Platz, und ein Bild entsteht. Ohne Punkte, ohne Eile." />
+    <meta name="description" data-t-content="meta_description" content="Glasmurmeln rollen an ihren Platz, und ein Bild entsteht. Ohne Punkte, ohne Eile." />
     <meta name="theme-color" content="#1a2452" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" href="./icon-180.png" />
@@ -26,18 +28,18 @@
       <section class="home" id="home">
         <header class="home-head">
           <h1 class="wordmark">murmel<canvas class="wordmark-dot" id="dot" width="96" height="96" aria-hidden="true"></canvas></h1>
-          <p class="lede">Murmeln rollen an ihren Platz, und ein Bild entsteht.<br />Ohne Punkte, ohne Eile.</p>
+          <p class="lede" data-t="lede">Murmeln rollen an ihren Platz, und ein Bild entsteht.<br />Ohne Punkte, ohne Eile.</p>
         </header>
-        <nav class="shelf" id="shelf" aria-label="Sammlung der Bilder"></nav>
+        <nav class="shelf" id="shelf" aria-label="Sammlung der Bilder" data-t-label="shelf_label"></nav>
         <footer class="home-foot">
           <div class="foot-row">
-            <button class="quiet" id="homeSettings" type="button">Einstellungen</button>
-            <button class="quiet" id="install" type="button" hidden>App installieren</button>
+            <button class="quiet" id="homeSettings" type="button" data-t="settings">Einstellungen</button>
+            <button class="quiet" id="install" type="button" data-t="install" hidden>App installieren</button>
           </div>
           <!-- Nur auf der eigenen Seite: In der eingebetteten Einzeldatei gibt es die Nachbarseiten nicht. -->
           <div class="foot-row legal" id="legal" hidden>
-            <a class="quiet" href="./impressum.html">Impressum</a>
-            <a class="quiet" href="./datenschutz.html">Datenschutz</a>
+            <a class="quiet" href="./impressum.html" data-t="legal_imprint">Impressum</a>
+            <a class="quiet" href="./datenschutz.html" data-t="legal_privacy">Datenschutz</a>
           </div>
         </footer>
       </section>
@@ -45,15 +47,16 @@
       <section class="play" id="play" hidden>
         <canvas
           id="board"
+          data-t-label="board_label"
           aria-label="Spielbrett. Tippe eine Murmel an, um sie und angrenzende Murmeln gleicher Farbe zu wählen. Tippe dann ein freies Loch dieser Farbe oder die Ablage an."
         ></canvas>
-        <nav class="bar" id="bar" aria-label="Spiel">
-          <button class="quiet" id="back" type="button">Sammlung</button>
+        <nav class="bar" id="bar" aria-label="Spiel" data-t-label="bar_label">
+          <button class="quiet" id="back" type="button" data-t="back">Sammlung</button>
           <p class="whisper" id="whisper" role="status" aria-live="polite"></p>
-          <button class="icon" id="fit" type="button" aria-label="Ganzes Bild zeigen" hidden>
+          <button class="icon" id="fit" type="button" aria-label="Ganzes Bild zeigen" data-t-label="fit" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
           </button>
-          <button class="icon" id="undo" type="button" aria-label="Zug zurücknehmen" disabled>
+          <button class="icon" id="undo" type="button" aria-label="Zug zurücknehmen" data-t-label="undo" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4.5 11.5 9 16M5 11.5h8.5a5 5 0 0 1 0 10H11" /></svg>
           </button>
           <button class="icon" id="sound" type="button" aria-label="Klang an" data-mode="alles">
@@ -64,7 +67,7 @@
               <path class="mute" d="m16 9.5 5 5m0-5-5 5" />
             </svg>
           </button>
-          <button class="icon" id="playSettings" type="button" aria-label="Einstellungen">
+          <button class="icon" id="playSettings" type="button" aria-label="Einstellungen" data-t-label="settings">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 7h8m5 0h3M4 12h2m5 0h9M4 17h10m5 0h1" />
               <circle cx="14.5" cy="7" r="2.2" />
@@ -74,10 +77,10 @@
           </button>
         </nav>
         <div class="finish" id="finish" hidden>
-          <p class="finish-line">Das Bild ist fertig.</p>
+          <p class="finish-line" data-t="finish_line">Das Bild ist fertig.</p>
           <div class="finish-actions">
-            <button class="quiet" id="again" type="button">noch einmal</button>
-            <button class="quiet strong" id="onward" type="button">zur Sammlung</button>
+            <button class="quiet" id="again" type="button" data-t="again">noch einmal</button>
+            <button class="quiet strong" id="onward" type="button" data-t="onward">zur Sammlung</button>
           </div>
         </div>
       </section>
@@ -86,55 +89,59 @@
     <dialog class="sheet" id="settings" aria-labelledby="settingsTitle">
       <div class="sheet-body">
         <!-- Beim Öffnen liegt der Fokus auf der Überschrift, nicht auf der ersten Wahl. -->
-        <h2 class="sheet-title" id="settingsTitle" tabindex="-1" autofocus>Einstellungen</h2>
+        <h2 class="sheet-title" id="settingsTitle" tabindex="-1" autofocus data-t="settings">Einstellungen</h2>
         <fieldset class="setting">
-          <legend>Leere Felder</legend>
+          <legend data-t="set_holes">Leere Felder</legend>
           <div class="choices" data-part="holes"></div>
         </fieldset>
         <fieldset class="setting">
-          <legend>Murmeln</legend>
+          <legend data-t="set_marbles">Murmeln</legend>
           <div class="choices pair" data-part="marbles"></div>
         </fieldset>
         <fieldset class="setting">
-          <legend>Tempo der Murmeln</legend>
+          <legend data-t="set_tempo">Tempo der Murmeln</legend>
           <label class="slider">
-            <span>Ruhig</span>
-            <input type="range" data-part="tempo" aria-label="Tempo der Murmeln" />
-            <span>Schnell</span>
+            <span data-t="tempo_slow">Ruhig</span>
+            <input type="range" data-part="tempo" aria-label="Tempo der Murmeln" data-t-label="set_tempo" />
+            <span data-t="tempo_fast">Schnell</span>
           </label>
         </fieldset>
         <fieldset class="setting">
-          <legend>Detail: Murmeln je Kante</legend>
+          <legend data-t="set_detail">Detail: Murmeln je Kante</legend>
           <div class="choices chips" data-part="detail"></div>
-          <p class="setting-note">Mehr Murmeln geben das Bild genauer wieder und dauern länger. Jede Größe hat ihren eigenen Spielstand.</p>
+          <p class="setting-note" data-t="detail_note">Mehr Murmeln geben das Bild genauer wieder und dauern länger. Jede Größe hat ihren eigenen Spielstand.</p>
         </fieldset>
         <fieldset class="setting">
-          <legend>Holzbrett: Mulden</legend>
+          <legend data-t="set_tray">Holzbrett: Mulden</legend>
           <div class="choices chips" data-part="tray"></div>
-          <p class="setting-note" data-part="trayNote" hidden>
+          <p class="setting-note" data-part="trayNote" data-t="tray_note" hidden>
             Auf dem Brett liegen gerade mehr Murmeln. Die neue Größe gilt ab dem nächsten Bild.
           </p>
         </fieldset>
         <fieldset class="setting">
-          <legend>Eigene Fotos: Farben</legend>
+          <legend data-t="set_contrast">Eigene Fotos: Farben</legend>
           <div class="choices chips" data-part="contrast"></div>
-          <p class="setting-note">Liegen die Farben eines Fotos nah beieinander, hebt „Deutlich“ oder „Kräftig“ die Murmeln stärker voneinander ab. Das fertige Bild bleibt, wie es ist.</p>
+          <p class="setting-note" data-t="contrast_note">Liegen die Farben eines Fotos nah beieinander, hebt „Deutlich“ oder „Kräftig“ die Murmeln stärker voneinander ab. Das fertige Bild bleibt, wie es ist.</p>
         </fieldset>
         <fieldset class="setting">
-          <legend>Klang</legend>
+          <legend data-t="set_sound">Klang</legend>
           <div class="choices" data-part="sound"></div>
-          <p class="setting-note">Der Klang folgt dem Stummmodus des Geräts. So läuft ein Hörbuch ungestört weiter.</p>
+          <p class="setting-note" data-t="sound_note">Der Klang folgt dem Stummmodus des Geräts. So läuft ein Hörbuch ungestört weiter.</p>
         </fieldset>
-        <button class="sheet-done" data-part="done" type="button">Fertig</button>
+        <fieldset class="setting">
+          <legend data-t="set_language">Sprache</legend>
+          <div class="choices" data-part="language"></div>
+        </fieldset>
+        <button class="sheet-done" data-part="done" type="button" data-t="done">Fertig</button>
       </div>
     </dialog>
 
     <dialog class="sheet" id="installHint" aria-labelledby="installTitle">
       <div class="sheet-body">
-        <h2 class="sheet-title" id="installTitle" tabindex="-1" autofocus>Als App installieren</h2>
+        <h2 class="sheet-title" id="installTitle" tabindex="-1" autofocus data-t="install_title">Als App installieren</h2>
         <p class="sheet-text" data-part="how"></p>
-        <p class="setting-note">Die App hat ihren eigenen Speicher. Was du hier im Browser gespielt hast, bleibt im Browser.</p>
-        <button class="sheet-done" data-part="done" type="button">Fertig</button>
+        <p class="setting-note" data-t="install_note">Die App hat ihren eigenen Speicher. Was du hier im Browser gespielt hast, bleibt im Browser.</p>
+        <button class="sheet-done" data-part="done" type="button" data-t="done">Fertig</button>
       </div>
     </dialog>
 

@@ -120,6 +120,20 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Der Name eines Motivs passt in eine Zeile unter dem Blatt. Das prüft ein Browsertest. | Ein zweizeiliger Name macht ein Blatt höher als seine Nachbarn. Unter dem Blatt ist Platz für knapp 13 Geviert; „Heißluftballon über Hügeln“ braucht 12,7. „Leuchtturm in der Dämmerung“ wäre mit 14,3 zu breit gewesen, deshalb heißt das Bild „Leuchtturm im Zwielicht“ (11,3), und aus „Wüste mit Kaktus am Abend“ wurde „Wüste am Abend“. |
 | Neue Formenbausteine: Band entlang einer Kurve, Blatt, Kuppel, Sichel, Wolke, Ringstück, Ballonhülle, Säulenkaktus, runde Blüte. | Zweige, Fischleiber und Kakteen ließen sich bisher nur aus mehreren Stücken zusammensetzen, und jedes Stück würfe seinen Schatten auf das nächste. Ein Baustein ergibt einen einzigen Umriss, also ein einziges Stück Papier. |
 
+## Fünf Sprachen (14.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Das Spiel spricht Englisch, Deutsch, Italienisch, Französisch und Spanisch. Der Name „Murmel“ bleibt in jeder Sprache. | Auftrag vom 14.11.2026: Das Spiel soll in den App Store, und dort wird es in diesen Sprachen angeboten. |
+| Voreingestellt ist die Sprache des Geräts. Spricht das Spiel keine der dort gewünschten Sprachen, gilt Englisch. Es zählt nur die Sprache, nicht das Land. | So muss niemand etwas einstellen. Englisch verstehen die meisten, deren Sprache fehlt. |
+| In den Einstellungen gibt es den Abschnitt „Sprache“ mit „Automatisch“ und den fünf Sprachen. Jede Sprache heißt dort so, wie sie sich selbst nennt. Die Wahl gilt sofort, mitten im Spiel und ohne Neuladen, und bleibt gespeichert. | Wie jede andere Einstellung. Wer in eine fremde Sprache geraten ist, erkennt die eigene in der Liste wieder. |
+| Deutsch ist die Ausgangssprache. Alle Texte stehen in Wörterbüchern in `src/app/texts/`, je Sprache eine Datei. Fehlt ein Text in einer Sprache, scheitert die Typprüfung; ein Test prüft zusätzlich Platzhalter, Motive und dass kein Ausrufezeichen vorkommt. | Kein Text soll in nur einer Sprache erscheinen können. Eine fremde Bibliothek braucht es dafür nicht. |
+| Ton in allen Sprachen: ruhig, knapp, vertraute Anrede. Feste Begriffe je Sprache: Murmel = marble, biglia, bille, canica; Holzbrett = wooden tray, vassoio di legno, plateau en bois, bandeja de madera; Mulde = hollow, incavo, creux, hoyo; Loch = hole, foro, trou, hueco; Sammlung = collection, collezione, collection, colección. | Dieselbe Sache heißt immer gleich, wie im Deutschen. |
+| Die Namen der Motive sind übersetzt und passen in jeder Sprache in eine Zeile unter dem Blatt; das prüft ein Browsertest. Wo die wörtliche Übersetzung zu lang war, ist sie gekürzt (zum Beispiel „Montgolfière et collines“, „Rameau de cerisier“). | Dieselbe Regel wie für die deutschen Namen. |
+| Kennungen im Speicher (`schale`, `kreuz`, `naturnah`, `alles` …) und die Kennungen der Motive bleiben, wie sie sind. Gespeichert wird nur die gewählte Sprache; ohne Wahl steht nichts im Speicher. | Vorhandene Spielstände, eigene Fotos und Einstellungen gelten weiter. |
+| Die Verweise auf Impressum und Datenschutz sind übersetzt, die beiden Seiten selbst bleiben vorerst deutsch. | Sie sind schlichte Dateien ohne Skript. Ob und wie sie übersetzt werden, ist noch nicht entschieden. |
+| `index.html` trägt die deutschen Texte weiter in sich; das Spiel überschreibt sie beim Start. Das Manifest (Name, Beschreibung beim Installieren aus dem Browser) bleibt deutsch. | Ein Manifest kann nur eine Sprache. Im App Store kommen Name und Beschreibung aus dem Store-Eintrag, nicht aus dem Manifest. |
+
 ## Technik
 
 | Entscheidung | Warum |

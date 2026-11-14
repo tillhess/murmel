@@ -13,7 +13,6 @@ type Ctx = CanvasRenderingContext2D;
 export type MarbleStyle = 'glas' | 'matt';
 /** Die Voreinstellung steht vorn. */
 export const MARBLE_STYLES: readonly MarbleStyle[] = ['glas', 'matt'];
-export const MARBLE_NAMES: Record<MarbleStyle, string> = { glas: 'Mit Spiegelung', matt: 'Ohne Spiegelung' };
 
 const SHADOW = '#10142a';
 const LIGHT = '#fff8ea';

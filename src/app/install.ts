@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 /** Das Ereignis, mit dem Chrome, Edge und Android anbieten, die Seite als App zu installieren */
 interface InstallPrompt extends Event {
   prompt(): Promise<void>;
@@ -34,11 +36,6 @@ function manualWay(): 'ios' | 'mac' | null {
   return null;
 }
 
-const HINTS = {
-  ios: 'Tippe auf das Teilen-Symbol (auf dem iPhone steckt es unter „…“) und dann auf „Zum Home-Bildschirm“. Murmel startet danach wie eine App, ohne Adressleiste, und läuft auch ohne Netz.',
-  mac: 'Wähle in Safari oben im Menü „Ablage“ und dann „Zum Dock hinzufügen“. Murmel startet danach wie eine App und läuft auch ohne Netz.',
-} as const;
-
 /**
  * Macht Murmel installierbar: Der Service Worker hält das Spiel für unterwegs ohne Netz bereit, und der Knopf
  * „App installieren“ erscheint, sobald der Browser einen Weg dafür kennt. Chrome, Edge und Android fragen selbst
@@ -67,7 +64,6 @@ export function setupInstall(button: HTMLButtonElement, hint: HTMLDialogElement)
   });
 
   const text = hint.querySelector('[data-part="how"]');
-  if (text && way) text.textContent = HINTS[way];
   hint.querySelector('[data-part="done"]')?.addEventListener('click', () => hint.close());
   hint.addEventListener('click', (e) => {
     if (e.target === hint) hint.close();
@@ -83,6 +79,9 @@ export function setupInstall(button: HTMLButtonElement, hint: HTMLDialogElement)
       button.hidden = outcome === 'accepted' || !way;
       return;
     }
-    if (way && !hint.open) hint.showModal();
+    if (!way || hint.open) return;
+    // erst beim Öffnen geschrieben: So steht die Anleitung in der Sprache, die gerade gilt.
+    if (text) text.textContent = t(way === 'ios' ? 'install_ios' : 'install_mac');
+    hint.showModal();
   });
 }

@@ -3,11 +3,13 @@ import { SCENES } from '../art/scenes';
 import { type Level, makeLevel } from '../core/level';
 import { type PhotoContrast, type PhotoRaster, photoRaster, rasterLevel, sourceColors } from '../core/quantize';
 import { type Mood, type Scene, sceneLevel } from '../core/scene';
+import { sceneName, t } from './i18n';
 import { store } from './storage';
 
 /** Ein spielbares Bild: das Raster für die Murmeln und das fertig gemalte Bild dazu. */
 export interface Picture {
   readonly id: string;
+  /** der Name in der Sprache, die gerade gilt */
   readonly name: string;
   readonly level: Level;
   /** Das fertig gemalte Bild in hoher Auflösung. Es entsteht erst, wenn das Bild geöffnet wird. */
@@ -74,7 +76,9 @@ function fromScene(scene: Scene, size: number | null = null): Picture {
   if (!picture) {
     picture = {
       id: scene.id,
-      name: scene.name,
+      get name() {
+        return sceneName(scene.id, scene.name);
+      },
       level: sceneLevel(scene, n),
       get painting() {
         return paintingOf(scene);
@@ -183,7 +187,7 @@ function rasterOf(id: string, photo: HTMLCanvasElement, cells: number): PhotoRas
 }
 
 /** Das Raster mit Murmelfarben im eingestellten Abstand. Die Felder bleiben dieselben, nur die Farben wechseln. */
-function levelOf(id: string, name: string, photo: HTMLCanvasElement, cells: number): Level | null {
+function levelOf(id: string, photo: HTMLCanvasElement, cells: number): Level | null {
   const key = `${id}@${cells}/${contrast}`;
   const known = ownLevels.get(key);
   if (known) return known;
@@ -193,19 +197,24 @@ function levelOf(id: string, name: string, photo: HTMLCanvasElement, cells: numb
   const saved = store.own().find((r) => r.id === id)?.levels[String(cells)];
   const level =
     contrast === 'naturnah' && saved
-      ? makeLevel(name, cells, cells, saved.palette, raster.target)
-      : rasterLevel(name, cells, cells, raster, contrast);
+      ? makeLevel(id, cells, cells, saved.palette, raster.target)
+      : rasterLevel(id, cells, cells, raster, contrast);
   ownLevels.set(key, level);
   return level;
 }
 
-function ownPicture(id: string, name: string, photo: HTMLCanvasElement, size: number | null): Picture | null {
+/** Wie ein eigenes Bild in der Sammlung heißt: das erste schlicht "Eigenes Bild", weitere mit Nummer. */
+const ownName = (index: number): string => (index === 0 ? t('own_name') : t('own_name_n', { n: index + 1 }));
+
+function ownPicture(id: string, index: number, photo: HTMLCanvasElement, size: number | null): Picture | null {
   const cells = size ?? PHOTO_CELLS;
-  const level = levelOf(id, name, photo, cells);
+  const level = levelOf(id, photo, cells);
   if (!level) return null;
   const picture: Picture = {
     id,
-    name,
+    get name() {
+      return ownName(index);
+    },
     level,
     get painting() {
       return printOf(id, photo);
@@ -215,20 +224,17 @@ function ownPicture(id: string, name: string, photo: HTMLCanvasElement, size: nu
     own: true,
     key: cells === PHOTO_CELLS ? id : `${id}@${cells}`,
     // lässt sich das Foto in der neuen Größe nicht umsetzen, bleibt es, wie es ist
-    atSize: (other) => ownPicture(id, name, photo, other) ?? picture,
+    atSize: (other) => ownPicture(id, index, photo, other) ?? picture,
   };
   return picture;
 }
-
-/** Wie ein eigenes Bild in der Sammlung heißt: das erste schlicht "Eigenes Bild", weitere mit Nummer. */
-const ownName = (index: number): string => (index === 0 ? 'Eigenes Bild' : `Eigenes Bild ${index + 1}`);
 
 /** Die eigenen Bilder der Sammlung, in der Reihenfolge, in der sie dazukamen. */
 export function ownPictures(detail: number | null = null): Picture[] {
   const out: Picture[] = [];
   store.own().forEach((record, index) => {
     const photo = photos.get(record.id);
-    const picture = photo ? ownPicture(record.id, ownName(index), photo, detail) : null;
+    const picture = photo ? ownPicture(record.id, index, photo, detail) : null;
     if (picture) out.push(picture);
   });
   return out;
@@ -282,7 +288,7 @@ export function addOwn(image: HTMLImageElement | HTMLCanvasElement, detail: numb
     return null;
   }
   store.addOwn(id, stored);
-  const picture = ownPicture(id, ownName(index), photo, detail);
+  const picture = ownPicture(id, index, photo, detail);
   if (!picture) removeOwn(id);
   return picture;
 }
