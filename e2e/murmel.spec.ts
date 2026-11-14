@@ -773,3 +773,12 @@ test('In der eingebetteten Einzeldatei fehlen die Verweise auf Nachbarseiten', a
   await expect(frame.locator('#shelf')).toBeVisible();
   await expect(frame.locator('#legal')).toBeHidden();
 });
+
+test('Die Seite bringt ein Symbol für den Browser-Tab mit', async ({ page, request }) => {
+  await page.goto('/');
+  const hrefs = await page
+    .locator('link[rel="icon"]')
+    .evaluateAll((links) => links.map((l) => (l as HTMLLinkElement).href));
+  expect(hrefs.length).toBe(2);
+  for (const href of hrefs) expect((await request.get(href)).status()).toBe(200);
+});
