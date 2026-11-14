@@ -171,6 +171,7 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
 test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Felder lässt sich spielen', async ({
   page,
 }) => {
+  test.slow(); // sechs Entwürfe nacheinander: Der iPad-Browser auf dem Build-Server braucht dafür länger
   const errors = watchErrors(page);
   await page.goto('/');
   await page.locator('#homeSettings').click();
