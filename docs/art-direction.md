@@ -52,7 +52,7 @@ lange Kette klingt als längere Tonfolge, und eine vollendete Farbe bekommt eine
 | Die Farben bleiben auch bei Rot-Grün-Sehschwäche unterscheidbar (nachgebildet nach Machado et al. 2009, ΔE mindestens 20). | Beleg [2.10]: Lesbarkeit entsteht über Helligkeit, Stimmung über Farbton. Folgerung: Etwa jeder zwölfte Mann sieht Rot und Grün schlecht, ein Sortierspiel nach Farben muss das aushalten. | `simulate` in `src/core/color.ts`, Test in `src/art/scenes.test.ts` |
 | Glasmurmeln mit Katzenauge, weichem Schatten und einem kleinen Glanzpunkt. Der Kern dreht sich mit dem gerollten Weg. | Vorgabe (Murmeln aus Glas). Beleg [1.23]: Bewegung deutet Gewicht und Material an. | `src/art/marble.ts` |
 | Helles Holzbrett als Ablage, Maserung der Länge nach. | Vorgabe. Deckt sich mit [2.12] (natürliche Materialien, warmes Licht). | `src/art/materials.ts` |
-| Zwei Schriften: Fraunces kursiv für alles, was zum Bild gehört (Name, Bildunterschrift, leise Sätze), Figtree in Versalien für die wenige Bedienung. | Folgerung: Die Serifenschrift trägt den Charakter eines Drucks, die Bedienung tritt zurück. | `index.html`, `src/app/theme.ts` |
+| Zwei Schriften: Fraunces kursiv für alles, was zum Bild gehört (Name, Bildunterschrift, leise Sätze), Figtree in Versalien für die wenige Bedienung. | Folgerung: Die Serifenschrift trägt den Charakter eines Drucks, die Bedienung tritt zurück. Fraunces läuft mit weichen Enden (Achse SOFT auf 100). | `src/styles.css`, `src/app/theme.ts` |
 
 Das Papierkorn, die Holzmaserung und die Murmeln sind gerechnet, nicht fotografiert. Fotografiertes Material wie bei
 KAMI 2 ([2.11]) wäre der nächste Schritt zu mehr Wärme; es bräuchte eigene Aufnahmen und würde die Einzeldatei

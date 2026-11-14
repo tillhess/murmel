@@ -74,6 +74,10 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
+      # Die Einzeldatei zum Einbetten gehört in den Download oben, aber nicht auf die öffentliche Seite.
+      - name: Einzeldatei aus der Fassung für GitHub Pages nehmen
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.PAGES == 'an'
+        run: rm -f dist/artifact.html
       - name: Build für GitHub Pages bereitstellen
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.PAGES == 'an'
         uses: actions/upload-pages-artifact@v5
