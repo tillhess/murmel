@@ -9,20 +9,20 @@ function drawPreview(canvas: HTMLCanvasElement, picture: Picture): 'neu' | 'bego
   const x = canvas.getContext('2d') as CanvasRenderingContext2D;
   x.imageSmoothingQuality = 'high';
   if (store.isFinished(picture.key)) {
-    x.drawImage(picture.painting, 0, 0, px, px);
+    x.drawImage(picture.thumb, 0, 0, px, px);
     return 'fertig';
   }
   x.fillStyle = PAPER;
   x.fillRect(0, 0, px, px);
   x.globalAlpha = 0.36;
-  x.drawImage(picture.painting, 0, 0, px, px);
+  x.drawImage(picture.thumb, 0, 0, px, px);
   x.globalAlpha = 1;
   const saved = store.progress(picture.key);
   if (!saved) return 'neu';
   // was schon liegt, in voller Farbe
   const { w, h, target } = picture.level;
-  const sw = picture.painting.width / w;
-  const sh = picture.painting.height / h;
+  const sw = picture.thumb.width / w;
+  const sh = picture.thumb.height / h;
   const cw = px / w;
   const ch = px / h;
   let any = false;
@@ -31,7 +31,7 @@ function drawPreview(canvas: HTMLCanvasElement, picture: Picture): 'neu' | 'bego
     any = true;
     const cx = i % w;
     const cy = Math.floor(i / w);
-    x.drawImage(picture.painting, cx * sw, cy * sh, sw, sh, cx * cw, cy * ch, cw + 0.5, ch + 0.5);
+    x.drawImage(picture.thumb, cx * sw, cy * sh, sw, sh, cx * cw, cy * ch, cw + 0.5, ch + 0.5);
   }
   return any ? 'begonnen' : 'neu';
 }

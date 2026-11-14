@@ -10,7 +10,10 @@ export interface Picture {
   readonly id: string;
   readonly name: string;
   readonly level: Level;
+  /** Das fertig gemalte Bild in hoher Auflösung. Es entsteht erst, wenn das Bild geöffnet wird. */
   readonly painting: HTMLCanvasElement;
+  /** Dasselbe Bild klein, für die Sammlung */
+  readonly thumb: HTMLCanvasElement;
   readonly mood: Mood;
   /** ein eigenes Foto: lässt sich aus der Sammlung entfernen */
   readonly own: boolean;
@@ -34,24 +37,51 @@ const PHOTO_COLORS = 7;
 /** So groß (Kantenlänge in Bildpunkten) wird ein eigenes Foto aufbewahrt */
 const PHOTO_PX = 800;
 
+/** Kantenlänge der kleinen Bilder für die Sammlung */
+const THUMB_PX = 480;
+/** So viele große Gemälde bleiben im Speicher. Jedes belegt rund acht Megabyte; ein iPad gibt dafür nicht beliebig viel her. */
+const KEEP_PAINTINGS = 2;
+
 const paintings = new Map<string, HTMLCanvasElement>();
+const thumbs = new Map<string, HTMLCanvasElement>();
 const cache = new Map<string, Picture>();
+
+/** Das große Gemälde einer Szene. Gemalt wird beim ersten Öffnen; die zuletzt gebrauchten bleiben liegen. */
+function paintingOf(scene: Scene): HTMLCanvasElement {
+  let painting = paintings.get(scene.id);
+  if (painting) paintings.delete(scene.id);
+  else painting = paintScene(scene, PAINT_PX);
+  paintings.set(scene.id, painting); // zuletzt gebraucht steht hinten
+  const sceneIds = SCENES.map((s) => s.id);
+  const held = [...paintings.keys()].filter((id) => sceneIds.includes(id));
+  for (const id of held.slice(0, Math.max(0, held.length - KEEP_PAINTINGS))) paintings.delete(id);
+  return painting;
+}
+
+function thumbOf(scene: Scene): HTMLCanvasElement {
+  let thumb = thumbs.get(scene.id);
+  if (!thumb) {
+    thumb = paintScene(scene, THUMB_PX);
+    thumbs.set(scene.id, thumb);
+  }
+  return thumb;
+}
 
 function fromScene(scene: Scene, size: number | null = null): Picture {
   const n = size ?? scene.size;
   const key = n === scene.size ? scene.id : `${scene.id}@${n}`;
   let picture = cache.get(key);
   if (!picture) {
-    let painting = paintings.get(scene.id);
-    if (!painting) {
-      painting = paintScene(scene, PAINT_PX);
-      paintings.set(scene.id, painting);
-    }
     picture = {
       id: scene.id,
       name: scene.name,
       level: sceneLevel(scene, n),
-      painting,
+      get painting() {
+        return paintingOf(scene);
+      },
+      get thumb() {
+        return thumbOf(scene);
+      },
       mood: scene.mood,
       own: false,
       key,
@@ -144,7 +174,10 @@ function ownPicture(id: string, name: string, photo: HTMLCanvasElement, size: nu
     id,
     name,
     level,
-    painting: printOf(id, photo),
+    get painting() {
+      return printOf(id, photo);
+    },
+    thumb: photo,
     mood: DEFAULT_MOOD,
     own: true,
     key: cells === PHOTO_CELLS ? id : `${id}@${cells}`,
