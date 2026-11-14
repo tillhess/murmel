@@ -2,7 +2,7 @@
 #
 #   pruefen     Lint und Format (Biome), Typen (TypeScript), Tests der Spiellogik (Vitest)
 #   bauen       Build, dann Browser-Tests gegen genau diesen Build (Chromium und WebKit im iPad-Format)
-#   ausliefern  veröffentlicht den Build auf GitHub Pages
+#   ausliefern  veröffentlicht den Build auf GitHub Pages und prüft, ob die Seite danach antwortet
 #
 # Die Auslieferung hängt an einem Schalter: Sie läuft nur, wenn in den Repository-Einstellungen die Variable PAGES
 # auf "an" steht (Settings → Secrets and variables → Actions → Variables) und unter Settings → Pages als Quelle
@@ -102,3 +102,18 @@ jobs:
     steps:
       - id: pages
         uses: actions/deploy-pages@v5
+      # Erst wenn die Seite wirklich antwortet, gilt die Auslieferung als gelungen.
+      - name: Prüfen, ob die Seite antwortet
+        env:
+          SEITE: ${{ steps.pages.outputs.page_url }}
+        run: |
+          for versuch in 1 2 3 4 5 6; do
+            if curl -fsSL "$SEITE" | grep -q '<title>Murmel</title>'; then
+              echo "Die Seite antwortet: $SEITE"
+              exit 0
+            fi
+            echo "Versuch $versuch: noch keine Antwort, warte 10 Sekunden"
+            sleep 10
+          done
+          echo "::error::Die Seite antwortet nicht wie erwartet: $SEITE"
+          exit 1

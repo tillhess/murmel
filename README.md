@@ -82,7 +82,10 @@ Auf einem echten iPad ist das Spiel noch nicht geprüft, siehe „Nicht geprüft
 
 1. **pruefen**: Lint und Format, Typen, Tests der Spiellogik
 2. **bauen**: Build, danach Browser-Tests gegen genau diesen Build. Der Build liegt als Download am Lauf.
-3. **ausliefern**: veröffentlicht den Build von `main` auf GitHub Pages
+3. **ausliefern**: veröffentlicht den Build von `main` auf GitHub Pages und prüft, ob die Seite danach antwortet
+
+Gründlicher prüft `node scripts/live-pruefen.mjs` die ausgelieferte Seite: Es bespielt sie in WebKit im iPad-Format
+und meldet, ob etwas von fremden Servern geladen wird.
 
 Die Auslieferung hängt an einem Schalter: Im Repository steht die Variable `PAGES` auf `an` (Settings → Secrets and
 variables → Actions → Variables), und unter Settings → Pages ist als Quelle „GitHub Actions“ gewählt. Wer die
