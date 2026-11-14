@@ -479,6 +479,15 @@ export class BoardView {
   roll(rolls: readonly Roll[]): void {
     if (!rolls.length) return;
     const now = performance.now();
+    if (rolls.some((r) => 'slot' in r.from || 'slot' in r.to)) {
+      // Ein Ablagezug kann Mulden umsortieren. Ältere Ketten dürfen keine alten Mulden verdecken.
+      for (let f = this.flights.length - 1; f >= 0; f--) {
+        const flight = this.flights[f];
+        if (!('slot' in flight.dest)) continue;
+        this.flights.splice(f, 1);
+        this.land(flight, now);
+      }
+    }
     const point = (s: Spot): Pt => ('cell' in s ? this.cellCenter(s.cell) : this.slotCenter(s.slot));
     const paths = rolls.map((r) => [point(r.from), ...r.via.map(point)]);
     const spacing = this.marbleD() * 1.08;
@@ -850,7 +859,7 @@ export class BoardView {
     this.applyCamera(ctx);
 
     // Auswahl: passende Mulden leuchten ruhig auf, gewählte Murmeln schweben über ihren Mulden
-    // Ist nichts im Bild gewählt, sind die Murmeln auf dem Holzbrett am Zug: Dann leuchten die Löcher all ihrer Farben.
+    // Ist das Holzbrett gewählt, leuchten die Löcher all seiner Farben.
     const trayActive = this.finishedAt === 0 && game.trayActive;
     const glow = sel ? new Set([sel.color]) : trayActive ? new Set(state.tray) : null;
     if (glow) {

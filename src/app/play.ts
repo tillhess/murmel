@@ -148,7 +148,7 @@ export class PlayScreen {
   /** Der nächste sinnvolle Zug als zwei Bildschirmpunkte: erst auswählen, dann Ziel (für Tests). */
   nextMove(): { select: { x: number; y: number }; target: { x: number; y: number } } | null {
     const game = this.game;
-    if (game?.selection) {
+    if (game && (game.selection || game.trayActive)) {
       // ein Rest vom vorigen Zug ist noch gewählt: Der vorgeschlagene Zug beginnt mit einer frischen Auswahl
       game.tapOutside();
       this.view.refresh();
@@ -278,6 +278,11 @@ export class PlayScreen {
         if (outcome.hatLoch) this.hint('loch', 'Tippe auf ein leuchtendes Loch.');
         else this.hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Tippe auf eine freie Mulde im Holzbrett.');
         break;
+      case 'ablage-gewählt':
+        this.sound.pick();
+        this.view.refresh();
+        this.hint('brett', 'Tippe auf ein leuchtendes Loch.');
+        break;
       case 'abgewählt':
         this.view.refresh();
         break;
@@ -289,7 +294,7 @@ export class PlayScreen {
         // Nicht alles passte ins Ziel: Der Rest bleibt gewählt und wartet auf das nächste Ziel.
         if (outcome.rest) this.hint('rest', 'Der Rest bleibt gewählt.');
         else if (outcome.ziel === 'ablage')
-          this.hint('brett', 'Murmeln auf dem Holzbrett sind immer gewählt: Tippe auf ein leuchtendes Loch.');
+          this.hint('brett-wählen', 'Tippe auf das Holzbrett, um seine Murmeln zu wählen.');
         break;
       case 'abgelehnt':
         this.sound.nope();

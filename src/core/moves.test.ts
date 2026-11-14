@@ -144,12 +144,12 @@ describe('Ziele, die nur über Eck zusammenhängen', () => {
     expect(Array.from(state.cur)).toEqual([0, 0, 0, 1, 1, 1, 1, 0]);
   });
 
-  it('gelten nicht für die Auswahl: Murmeln hängen nur Kante an Kante zusammen', () => {
+  it('verbinden auch die Auswahl über Eck', () => {
     const level = levelFromRows(['BA', 'AB']);
     // zwei A liegen falsch und berühren sich nur über Eck
     const state = newState(new Int16Array([0, EMPTY, EMPTY, 0]), 4);
     const sel = selectCell(level, state, 0) as Selection & { source: 'board' };
-    expect(sel.cells).toEqual([0]);
+    expect(sel.cells).toEqual([0, 3]);
   });
 });
 

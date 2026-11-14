@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { colorDone, isSolved, remaining } from './grid';
+import { colorDone, components, groupAt, isSolved, remaining } from './grid';
 import { EMPTY } from './level';
 import { levelFromRows } from './testing';
 
@@ -10,6 +10,13 @@ describe('Stand des Bildes', () => {
     expect(remaining(level, new Int16Array([0, 0, 1, 1, 1, 1]))).toBe(0);
     expect(isSolved(level, new Int16Array([0, 0, 1, 1, 1, 1]))).toBe(true);
     expect(remaining(level, new Int16Array([1, 0, 1, 0, EMPTY, 1]))).toBe(3);
+  });
+
+  it('verbindet falsch liegende Murmeln über Ecken und lässt passende Murmeln liegen', () => {
+    const level = levelFromRows(['ABA', 'AAA']);
+    const cur = new Int16Array([1, 1, EMPTY, EMPTY, 1, EMPTY]);
+    expect(groupAt(level, cur, 0)).toEqual([0, 4]);
+    expect(components(level, cur).groups).toEqual([{ color: 1, cells: [0, 4] }]);
   });
 
   it('erkennt, wann eine Farbe vollständig ist', () => {
