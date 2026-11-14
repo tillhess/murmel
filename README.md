@@ -3,6 +3,9 @@
 Ein ruhiges Spiel für das iPad. Auf einem Blatt Papier liegen Glasmurmeln durcheinander. Man rollt sie Gruppe für
 Gruppe an ihren Platz, und dabei entsteht ein Bild. Es gibt keine Punkte, keine Züge, keine Zeit und keine Bestenliste.
 
+Die Sammlung hat 15 Motive, vom Mond über dem See mit 16 × 16 Murmeln bis zum Koi im Teich mit 32 × 32. Eigene Fotos
+kommen als weitere Blätter dazu.
+
 **Spielen:** <https://tillhess.github.io/murmel/>
 
 - Spielregeln und Entscheidungen: [docs/entscheidungen.md](docs/entscheidungen.md)
@@ -53,13 +56,17 @@ und die Darstellung kann sich ändern, ohne dass eine Regel bricht.
 ## Ein Motiv hinzufügen
 
 Ein Motiv ist eine Palette und eine Liste übereinanderliegender Formen in `src/art/scenes.ts`. Aus denselben Daten
-entstehen das Murmelraster und das gemalte Bild. Die Tests in `src/art/scenes.test.ts` prüfen für jedes Motiv:
+entstehen das Murmelraster und das gemalte Bild. Die Formen kommen aus `src/core/shapes.ts`: Hügelkette, Band, Wolke,
+Blatt, Kuppel, Sichel, ein Band entlang einer Kurve (Zweig, Fischleib) und einige mehr. Die Tests in
+`src/art/scenes.test.ts` prüfen für jedes Motiv:
 
 - Die Farben unterscheiden sich klar (ΔE mindestens 27), auch bei Rot-Grün-Sehschwäche (ΔE mindestens 20).
 - Höchstens eine Farbe ist kräftig, und der Himmel hinter dem Bild ist gedämpft.
-- Keine Farbe belegt mehr als 45 % des Bildes.
-- Das Bild beginnt ohne eine richtig liegende Murmel und lässt sich lösen.
+- Jede Farbe belegt mindestens 1,2 % und höchstens 45 % des Bildes.
+- Das Bild beginnt ohne eine richtig liegende Murmel und lässt sich lösen, in der gemalten Größe und in jeder
+  Detailtiefe von 16 × 16 bis 50 × 50.
 
+Die Liste `SCENES` am Ende der Datei ist nach Größe geordnet: So wächst die Sammlung von leicht nach aufwendig.
 `dev/szenen.html` zeigt die Messwerte zu jeder Palette.
 
 ## Auf dem iPad
@@ -74,7 +81,10 @@ beide getrennt speichern.
 - **Einstellungen** (von der Startseite und über das Symbol oben rechts im Spiel): wie leere Felder aussehen,
   Murmeln mit oder ohne Spiegelung, Detailtiefe von 16 × 16 bis 50 × 50 Murmeln, Größe des Holzbretts von 30 bis
   120 Mulden, Klang in drei Stufen.
-- **Eigene Bilder:** Das leere Blatt in der Sammlung nimmt ein Foto auf. Es bleibt dort hängen, mit Spielstand,
+- **Sammlung:** Die Bilder hängen an einer Wand, drei nebeneinander. Sie ist höher als der Bildschirm: Ein Finger
+  schiebt sie nach oben und unten, und ein weicher Auslauf am unteren Rand zeigt, dass es weitergeht. Wer aus einem
+  Bild zurückkommt, steht wieder an derselben Stelle.
+- **Eigene Bilder:** Das leere Blatt am Ende der Sammlung nimmt ein Foto auf. Es bleibt dort hängen, mit Spielstand,
   bis man es über das kleine Kreuz an seiner Ecke entfernt. Foto und Stand verlassen das Gerät nicht.
 - **Vergrößern:** Zwei Finger spreizen das Bild auf, ein Finger verschiebt es. Das Holzbrett bleibt stehen. Das
   Symbol mit den vier Ecken zeigt wieder das ganze Bild.

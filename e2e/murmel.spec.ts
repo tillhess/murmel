@@ -41,6 +41,11 @@ declare global {
 
 const status = (page: Page) => page.evaluate(() => window.murmel.status());
 
+/** So viele Motive bringt das Spiel mit. */
+const MOTIFS = 15;
+/** Blätter in der Sammlung: die Motive und das leere Blatt für ein eigenes Foto */
+const PRINTS = MOTIFS + 1;
+
 /** Fängt Fehler der Seite ab: Ein Test soll scheitern, wenn in der Konsole etwas kaputtgeht. */
 function watchErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -93,28 +98,75 @@ test('Startseite zeigt die Sammlung mit allen Bildern', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/');
   await expect(page.locator('.wordmark')).toContainText('murmel');
-  await expect(page.locator('.print')).toHaveCount(6); // fünf Motive und das leere Blatt für ein eigenes Foto
+  await expect(page.locator('.print')).toHaveCount(PRINTS);
   await expect(page.locator('.print').first()).toContainText('Mond über dem See');
   await expect(page.locator('.print.own')).toContainText('Eigenes Bild');
-  // keine waagerechte Scrollleiste auf der Seite selbst
+  // Die Seite selbst scrollt in keine Richtung, nur die Sammlung in sich.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test('Auf dem Tablet hängen alle Bilder auf einmal an der Wand, hoch wie quer', async ({ page }) => {
+test('Auf dem Tablet hängen die Bilder an einer Wand, die scrollt, hoch wie quer', async ({ page }) => {
   for (const size of [
     { width: 834, height: 1194 },
     { width: 1194, height: 834 },
   ]) {
+    const where = `${size.width} × ${size.height}`;
     await page.setViewportSize(size);
     await page.goto('/');
     const prints = page.locator('.print');
-    await expect(prints).toHaveCount(6);
-    for (let k = 0; k < 6; k++)
-      await expect(prints.nth(k), `${size.width} × ${size.height}`).toBeInViewport({ ratio: 1 });
+    await expect(prints).toHaveCount(PRINTS);
+    // Die ersten beiden Reihen sind ganz zu sehen, das letzte Blatt hängt weiter unten.
+    for (let k = 0; k < 6; k++) await expect(prints.nth(k), where).toBeInViewport({ ratio: 1 });
+    await expect(prints.last(), where).not.toBeInViewport();
     await expect(page.locator('.wordmark')).toBeInViewport({ ratio: 1 });
     await expect(page.locator('#homeSettings')).toBeInViewport({ ratio: 1 });
+    // Jeder Name passt in eine Zeile: Ein zweizeiliger machte sein Blatt höher als die Nachbarn.
+    const wrapped = await page.evaluate(async () => {
+      await document.fonts.ready;
+      return [...document.querySelectorAll('.print .print-name')]
+        .filter((name) => {
+          const range = document.createRange();
+          range.selectNodeContents(name);
+          return range.getClientRects().length > 1;
+        })
+        .map((name) => name.textContent);
+    });
+    expect(wrapped, where).toEqual([]);
+
+    // Die Wand scrollt in sich. Am Ende hängt das letzte Blatt ganz im Bild und über dem weichen Auslauf.
+    const shelf = page.locator('#shelf');
+    await shelf.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+    await expect(prints.last(), where).toBeInViewport({ ratio: 1 });
+    const clear = await shelf.evaluate((el) => {
+      const last = el.lastElementChild as HTMLElement;
+      const fade = Number.parseFloat(getComputedStyle(el).paddingBottom);
+      return { gap: el.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom, fade };
+    });
+    expect(clear.fade, where).toBeGreaterThan(40);
+    expect(clear.gap, where).toBeGreaterThanOrEqual(clear.fade - 12); // ein schief hängendes Blatt ragt etwas tiefer
+    await expect(prints.first(), where).not.toBeInViewport();
+    // Name und Einstellungen bleiben stehen: Die Seite selbst ist nicht gescrollt.
+    await expect(page.locator('.wordmark')).toBeInViewport({ ratio: 1 });
+    await expect(page.locator('#homeSettings')).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
   }
+});
+
+test('Nach einem Bild steht die Wand wieder dort, wo man sie verlassen hat', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.setViewportSize({ width: 834, height: 1194 });
+  await page.goto('/');
+  const last = page.locator('.print:not(.own)').last();
+  await expect(last).not.toBeInViewport();
+  await last.click(); // der Tipp holt das Blatt erst ins Bild
+  await expect(page.locator('#board')).toBeVisible();
+  expect((await status(page))?.id).toBe(await last.getAttribute('data-id'));
+  await page.locator('#back').click();
+  await expect(last).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.print').first()).not.toBeInViewport();
+  expect(errors).toEqual([]);
 });
 
 test('Der Klang hat drei Stufen und merkt sich die gewählte', async ({ page }) => {
@@ -325,8 +377,9 @@ test('Ein angefangenes Bild wird nach dem Neuladen fortgesetzt', async ({ page }
   const parked = (await status(page))?.inTray;
 
   await page.reload();
-  await expect(page.locator('.print').nth(1)).toContainText('Nebelberge');
-  await page.locator('.print').nth(1).click();
+  const print = page.locator('.print[data-id="nebel"]');
+  await expect(print).toContainText('Nebelberge');
+  await print.click();
   await expect.poll(async () => (await status(page))?.inTray).toBe(parked);
 });
 
@@ -334,7 +387,7 @@ test('Alle Bilder lassen sich öffnen und vollständig lösen', async ({ page })
   const errors = watchErrors(page);
   await page.goto('/');
   const ids = await page.evaluate(() => window.murmel.ids());
-  expect(ids.length).toBeGreaterThanOrEqual(5);
+  expect(ids.length).toBe(MOTIFS);
   for (const id of ids) {
     await page.evaluate((x) => window.murmel.open(x), id);
     await page.evaluate(() => window.murmel.solve());
@@ -368,7 +421,7 @@ test('Die Einzeldatei läuft eingebettet und ohne Speicher', async ({ page }) =>
      <style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}</style>
      </head><body>${fragment}</body></html>`,
   );
-  await expect(page.locator('.print')).toHaveCount(6);
+  await expect(page.locator('.print')).toHaveCount(PRINTS);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
 
   await page.locator('.print').first().click();
@@ -382,7 +435,7 @@ test('Die Einzeldatei läuft eingebettet und ohne Speicher', async ({ page }) =>
   await page.evaluate(() => window.murmel.solve());
   await expect(page.locator('#finish')).toBeVisible({ timeout: 15_000 });
   await page.locator('#onward').click();
-  await expect(page.locator('.print')).toHaveCount(6);
+  await expect(page.locator('.print')).toHaveCount(PRINTS);
   expect(errors).toEqual([]);
 });
 
@@ -578,9 +631,9 @@ test('Ein eigenes, angefangenes Bild bleibt in der Sammlung, bis man es entfernt
   await expect(mine).toHaveCount(1);
   await remove.click();
   await expect(mine).toHaveCount(0);
-  await expect(page.locator('.print')).toHaveCount(6);
+  await expect(page.locator('.print')).toHaveCount(PRINTS);
   await page.reload();
-  await expect(page.locator('.print')).toHaveCount(6);
+  await expect(page.locator('.print')).toHaveCount(PRINTS);
   await expect(mine).toHaveCount(0);
   expect(errors).toEqual([]);
 });

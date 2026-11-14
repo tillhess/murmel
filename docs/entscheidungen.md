@@ -38,6 +38,10 @@ Gemessen an den fünf Motiven (je fünf Partien des Lösers, Stand 14.11.2026): 
 14 bis 26 Murmeln, ein Zug bewegt 4 bis 5, die größten Züge 19 bis 24. Ein Bild braucht je nach Größe etwa 55
 (Mond über dem See) bis 165 Züge (Fuchs im Schnee).
 
+Die zehn Motive vom 14.11.2026 reihen sich ein (ebenfalls je fünf Partien des Lösers): von etwa 60 Zügen (Segelboot
+im Abendlicht, 16 × 16) bis etwa 240 (Koi im Teich, 32 × 32). Ihr Raster ist nicht stärker zerstückelt als das der
+ersten fünf: Das unruhigste hat 28 zusammenhängende Flächen (Pilze im Moos), bei den Birken sind es 42.
+
 Eine Folge der Regeln: Es gibt immer genau so viele freie Löcher, wie Murmeln in der Ablage liegen. Große Züge
 entstehen also erst, wenn vorher bewusst abgelegt wurde. Die Ablage ist der Vorrat für große Züge.
 
@@ -96,9 +100,21 @@ Warum, steht in [art-direction.md](art-direction.md).
 
 | Entscheidung | Warum |
 | --- | --- |
-| Auf dem Tablet zeigt die Sammlung alle Bilder auf einmal, im Querformat rechts neben dem Namen. | Vorher stand im Querformat die halbe Seite leer, und man sah nur zwei Bilder. |
+| Auf dem Tablet hängt die Sammlung als Wand mit drei Spalten, im Querformat rechts neben dem Namen. | Vorher stand im Querformat die halbe Seite leer, und man sah nur zwei Bilder. Solange es sechs Blätter waren, hingen alle auf einmal an der Wand; seit es 16 sind, scrollt sie (siehe unten). |
 | Als App auf dem Home-Bildschirm reicht der Himmel bis unter die Statusleiste (`black-translucent`). | Ein durchgehender Himmel statt eines Balkens. Der Stil wird beim Hinzufügen festgehalten: Wer ihn später ändert, muss die App löschen und neu hinzufügen. |
 | Maße der Startseite hängen an der Spielfläche (`cqw`, `cqh`), nicht am Browserfenster (`vh`). | In Home-Bildschirm-Apps meldet iPadOS die Fensterhöhe teils falsch (WebKit-Fehler 316008). |
+
+## Zehn weitere Motive und eine Sammlung, die scrollt (14.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Die Sammlung hat 15 Motive. Neu sind Segelboot im Abendlicht (16 × 16), Heißluftballon über Hügeln (18), Wüste am Abend (20), Kirschblütenzweig (22), Bergsee mit Boot (24), Lavendelfeld (26), Pilze im Moos (28), Leuchtturm im Zwielicht (28), Wal unter Sternen (30) und Koi im Teich (32). | Wunsch des Auftraggebers: zehn weitere. Sie unterscheiden sich in Tageszeit, Farbwelt und Gegenstand von den ersten fünf und voneinander. Die Größen liegen zwischen den bisherigen und darüber, damit die Sammlung von leicht nach aufwendig wächst. |
+| Ein Motiv darf jede Kantenlänge haben, nicht nur die sechs Stufen der Detailtiefe. | Ein Motiv ist für eine Größe gemalt: so viele Murmeln, wie seine feinste Form braucht. Die Detailtiefe in den Einstellungen bleibt bei ihren Stufen, und jedes neue Motiv ist in allen sechs als lösbar getestet. |
+| Auf dem Tablet scrollt die Wand senkrecht. Die Blätter bleiben so groß wie bei zwei Reihen. | 16 Blätter passen nicht auf eine Seite. Die frühere Regel, die Blätter ab dem siebten zusammenzurücken, hätte sie bei sechs Reihen unkenntlich klein gemacht. |
+| Ein weicher Auslauf am unteren Rand der Wand zeigt, dass es weitergeht. Oben verschwinden die Blätter ebenso weich. | Die Wand hat keine Scrollleiste. Der Auslauf macht aus der angeschnittenen dritten Reihe ein Zeichen statt einer harten Kante. |
+| Die Sammlung merkt sich, wie weit sie gescrollt war. | Wer aus einem Bild zurückkommt, steht wieder davor, statt oben neu zu suchen. Das gilt auch für das Regal auf schmalen Bildschirmen. |
+| Der Name eines Motivs passt in eine Zeile unter dem Blatt. Das prüft ein Browsertest. | Ein zweizeiliger Name macht ein Blatt höher als seine Nachbarn. Unter dem Blatt ist Platz für knapp 13 Geviert; „Heißluftballon über Hügeln“ braucht 12,7. „Leuchtturm in der Dämmerung“ wäre mit 14,3 zu breit gewesen, deshalb heißt das Bild „Leuchtturm im Zwielicht“ (11,3), und aus „Wüste mit Kaktus am Abend“ wurde „Wüste am Abend“. |
+| Neue Formenbausteine: Band entlang einer Kurve, Blatt, Kuppel, Sichel, Wolke, Ringstück, Ballonhülle, Säulenkaktus, runde Blüte. | Zweige, Fischleiber und Kakteen ließen sich bisher nur aus mehreren Stücken zusammensetzen, und jedes Stück würfe seinen Schatten auf das nächste. Ein Baustein ergibt einen einzigen Umriss, also ein einziges Stück Papier. |
 
 ## Technik
 

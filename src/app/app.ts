@@ -76,11 +76,14 @@ export function startApp(): void {
         fillShelf();
       },
     });
+  // Die Sammlung ist länger als der Bildschirm. Wer aus einem Bild zurückkommt, steht wieder an derselben Stelle.
+  let shelfAt = { left: 0, top: 0 };
   const showHome = (): void => {
     setMood(DEFAULT_MOOD);
     sound.setRoot(DEFAULT_MOOD.root);
     fillShelf();
     home.hidden = false;
+    shelf.scrollTo(shelfAt.left, shelfAt.top);
   };
   const play = new PlayScreen(
     {
@@ -99,6 +102,7 @@ export function startApp(): void {
     showHome,
   );
   function open(picture: Picture, fresh = false): void {
+    if (!home.hidden) shelfAt = { left: shelf.scrollLeft, top: shelf.scrollTop };
     home.hidden = true;
     setMood(picture.mood);
     play.open(picture, fresh);
