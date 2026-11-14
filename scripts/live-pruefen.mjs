@@ -29,7 +29,8 @@ page.on('request', (r) => {
 const response = await page.goto(url, { waitUntil: 'networkidle' });
 check(response?.status() === 200, `Die Seite antwortet (${response?.status()}): ${url}`);
 check((await page.title()) === 'Murmel', 'Der Titel ist „Murmel“');
-check((await page.locator('.print').count()) === 6, 'Die Sammlung zeigt fünf Bilder und das leere Blatt');
+const prints = await page.locator('.print').count();
+check(prints === 16, `Die Sammlung zeigt 15 Bilder und das leere Blatt (${prints} Karten)`);
 const fonts = await page.evaluate(async () => {
   await document.fonts.ready;
   return [...document.fonts].map((f) => `${f.family} ${f.status}`);
