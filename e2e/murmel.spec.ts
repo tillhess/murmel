@@ -475,7 +475,10 @@ test('Das Bild lässt sich vergrößern, das Holzbrett bleibt dabei stehen', asy
   // Ziehen verschiebt das Bild und wählt nichts aus.
   await page.mouse.move(first.x, first.y);
   await page.mouse.down();
-  await page.mouse.move(first.x + 60, first.y + 40, { steps: 4 });
+  // Zur Bildmitte hin ziehen: So bleibt die Gruppe sicher im Rahmen, auch wenn sie am Rand liegt.
+  const dx = first.x < board.x + board.width / 2 ? 60 : -60;
+  const dy = first.y < board.y + board.height * 0.4 ? 40 : -40;
+  await page.mouse.move(first.x + dx, first.y + dy, { steps: 4 });
   await page.mouse.up();
   expect((await status(page))?.selected).toBe(0);
   const moved = await page.evaluate(() => window.murmel.group());
