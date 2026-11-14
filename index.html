@@ -30,7 +30,10 @@
         </header>
         <nav class="shelf" id="shelf" aria-label="Sammlung der Bilder"></nav>
         <footer class="home-foot">
-          <button class="quiet" id="homeSettings" type="button">Einstellungen</button>
+          <div class="foot-row">
+            <button class="quiet" id="homeSettings" type="button">Einstellungen</button>
+            <button class="quiet" id="install" type="button" hidden>App installieren</button>
+          </div>
         </footer>
       </section>
 
@@ -109,6 +112,15 @@
           <div class="choices" data-part="sound"></div>
           <p class="setting-note">Der Klang folgt dem Stummmodus des Geräts. So läuft ein Hörbuch ungestört weiter.</p>
         </fieldset>
+        <button class="sheet-done" data-part="done" type="button">Fertig</button>
+      </div>
+    </dialog>
+
+    <dialog class="sheet" id="installHint" aria-labelledby="installTitle">
+      <div class="sheet-body">
+        <h2 class="sheet-title" id="installTitle" tabindex="-1" autofocus>Als App installieren</h2>
+        <p class="sheet-text" data-part="how"></p>
+        <p class="setting-note">Die App hat ihren eigenen Speicher. Was du hier im Browser gespielt hast, bleibt im Browser.</p>
         <button class="sheet-done" data-part="done" type="button">Fertig</button>
       </div>
     </dialog>

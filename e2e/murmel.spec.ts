@@ -680,3 +680,33 @@ test('Die Farben eines eigenen Fotos lassen sich stärker voneinander abheben', 
   expect((await status(page))?.remaining).toBe(before?.remaining);
   expect(errors).toEqual([]);
 });
+
+test('Murmel lässt sich als App installieren und läuft danach ohne Netz', async ({ page, context, browserName }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await expect(page.locator('.print')).toHaveCount(PRINTS);
+  const manifest = await (await page.request.get('/manifest.webmanifest')).json();
+  expect(manifest.display).toBe('standalone');
+  expect(manifest.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true);
+
+  if (browserName === 'webkit') {
+    // iPad: Safari fragt nicht selbst, der Knopf zeigt den Weg über das Teilen-Menü.
+    await page.locator('#install').click();
+    await expect(page.locator('#installHint')).toBeVisible();
+    await expect(page.locator('#installHint')).toContainText('Zum Home-Bildschirm');
+    await page.locator('#installHint [data-part="done"]').click();
+    await expect(page.locator('#installHint')).toBeHidden();
+  } else {
+    // Ohne Netz startet das Spiel aus dem Zwischenspeicher des Service Workers.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.locator('.print')).toHaveCount(PRINTS);
+    await page.locator('.print').first().click();
+    await expect(page.locator('#board')).toBeVisible();
+    await context.setOffline(false);
+  }
+  expect(errors).toEqual([]);
+});
