@@ -167,6 +167,7 @@ export class PlayScreen {
     selected: number;
     /** wo die gewählten Murmeln liegen */
     selectedOn: 'board' | 'tray' | null;
+    trayActive: boolean;
     /** wie stark das Bild vergrößert ist (1 = ganz zu sehen) */
     zoom: number;
     /** Murmeln je Kante und Mulden auf dem Holzbrett */
@@ -183,6 +184,7 @@ export class PlayScreen {
       inTray: trayCount(this.game.state),
       selected: this.game.selection ? selectionSize(this.game.selection) : 0,
       selectedOn: this.game.selection?.source ?? null,
+      trayActive: this.game.trayActive,
       zoom: this.view.zoom,
       size: this.game.level.w,
       tray: this.game.state.tray.length,
@@ -199,6 +201,8 @@ export class PlayScreen {
     wood: { x: number; y: number };
     group: { x: number; y: number } | null;
     slot: { x: number; y: number } | null;
+    /** ein freies Loch, in das eine Farbe vom Holzbrett gehört */
+    trayHole: { x: number; y: number } | null;
   } | null {
     const game = this.game;
     if (!game) return null;
@@ -209,10 +213,12 @@ export class PlayScreen {
       .sort((a, b) => a.cells.length - b.cells.length)[0];
     const cell = group?.cells[0];
     const slot = state.tray.findIndex((c) => c >= 0 && !(selection?.source === 'board' && selection.color === c));
+    const hole = level.cells.find((i) => state.cur[i] < 0 && state.tray.includes(level.target[i]));
     return {
       wood: this.view.clientPoint('ablage'),
       group: cell === undefined ? null : this.view.clientPoint({ cell }),
       slot: slot < 0 ? null : this.view.clientPoint({ slot }),
+      trayHole: hole === undefined ? null : this.view.clientPoint({ cell: hole }),
     };
   }
 
@@ -269,12 +275,8 @@ export class PlayScreen {
       case 'gewählt':
         this.sound.pick();
         this.view.refresh();
-        if (outcome.selection.source === 'board') {
-          if (outcome.hatLoch) this.hint('loch', 'Tippe auf ein leuchtendes Loch.');
-          else this.hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Tippe auf eine freie Mulde im Holzbrett.');
-        } else if (!outcome.hatLoch) {
-          this.say('Für diese Farbe ist noch kein Loch frei.');
-        }
+        if (outcome.hatLoch) this.hint('loch', 'Tippe auf ein leuchtendes Loch.');
+        else this.hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Tippe auf eine freie Mulde im Holzbrett.');
         break;
       case 'abgewählt':
         this.view.refresh();
@@ -286,6 +288,8 @@ export class PlayScreen {
         this.updateUndo();
         // Nicht alles passte ins Ziel: Der Rest bleibt gewählt und wartet auf das nächste Ziel.
         if (outcome.rest) this.hint('rest', 'Der Rest bleibt gewählt.');
+        else if (outcome.ziel === 'ablage')
+          this.hint('brett', 'Murmeln auf dem Holzbrett sind immer gewählt: Tippe auf ein leuchtendes Loch.');
         break;
       case 'abgelehnt':
         this.sound.nope();

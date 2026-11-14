@@ -31,11 +31,11 @@ import { DISPLAY_FONT } from './theme';
 
 const VARIANTS = 6;
 /** Rolltempo in Feldern pro Sekunde: ruhig genug zum Zusehen. Weiterspielen kann man, während die Kette noch rollt. */
-const SPEED = 9;
+const SPEED = 13;
 /** Auf dem letzten Stück vor ihrem Ziel rollt eine Murmel aus (in Feldern). */
 const EASE_CELLS = 0.8;
 /** So lange sinken gewählte Murmeln zurück auf das Papier, bevor sie losrollen */
-const SETTLE_MS = 180;
+const SETTLE_MS = 130;
 /** Ein Atemzug der Auswahl: Ringe und leuchtende Löcher schwellen in vier Sekunden an und ab */
 const PULSE_MS = 4000;
 /** So lange braucht eine eingerastete Murmel, um im Bild aufzugehen */
@@ -850,11 +850,14 @@ export class BoardView {
     this.applyCamera(ctx);
 
     // Auswahl: passende Mulden leuchten ruhig auf, gewählte Murmeln schweben über ihren Mulden
-    if (sel) {
+    // Ist nichts im Bild gewählt, sind die Murmeln auf dem Holzbrett am Zug: Dann leuchten die Löcher all ihrer Farben.
+    const trayActive = this.finishedAt === 0 && game.trayActive;
+    const glow = sel ? new Set([sel.color]) : trayActive ? new Set(state.tray) : null;
+    if (glow) {
       for (let gy = gy0; gy <= gy1; gy++) {
         for (let gx = gx0; gx <= gx1; gx++) {
           const i = gy * level.w + gx;
-          if (state.cur[i] !== EMPTY || level.target[i] !== sel.color || this.pendCells.has(i)) continue;
+          if (state.cur[i] !== EMPTY || !glow.has(level.target[i]) || this.pendCells.has(i)) continue;
           const [x, y] = this.cellCenter(i);
           ctx.beginPath();
           ctx.arc(x, y, cell * 0.43, 0, Math.PI * 2);
@@ -869,7 +872,7 @@ export class BoardView {
         }
       }
       ctx.globalAlpha = 1;
-      if (sel.source === 'board') {
+      if (sel?.source === 'board') {
         const d = Math.round(cell * 0.88);
         const lift = cell * 0.13 + pulse * cell * 0.03;
         for (const i of sel.cells) {
@@ -962,7 +965,7 @@ export class BoardView {
       const c = state.tray[k];
       if (c === EMPTY || this.pendSlots.has(k)) continue;
       const [x, y] = this.slotCenter(k);
-      const lifted = sel?.source === 'tray' && sel.color === c;
+      const lifted = trayActive;
       Sprites.blit(ctx, this.marbleSprite(level.palette[c], td, k % VARIANTS), x, y - (lifted ? 5 + pulse * 2 : 0), td);
     }
     ctx.restore();

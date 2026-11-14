@@ -154,7 +154,27 @@ describe('Ziele, die nur über Eck zusammenhängen', () => {
 });
 
 describe('In die Ablage legen', () => {
-  it('nimmt die ersten freien Mulden und die Murmeln, die der Ablage am nächsten liegen', () => {
+  it('ordnet das Brett nach Farben: Neue Murmeln kommen zu ihrer Farbe, die anderen rücken zusammen', () => {
+    const level = levelFromRows(['BBB', 'AAA']);
+    const state = newState(new Int16Array([0, 0, 0, EMPTY, EMPTY, EMPTY]), 8);
+    // auf dem Brett liegen verstreut: A, Lücke, B, B, Lücke, C
+    state.tray.set([0, EMPTY, 1, 1, EMPTY, 2]);
+    const result = park(level, state, selectCell(level, state, 0) as Selection);
+    if (!result.ok) throw new Error('abgelehnt');
+    expect(Array.from(state.tray)).toEqual([0, 0, 0, 0, 1, 1, 2, EMPTY]);
+    expect(result.rolls.map((r) => ('slot' in r.to ? r.to.slot : -1)).sort()).toEqual([1, 2, 3]);
+  });
+
+  it('legt eine Farbe, die noch nicht auf dem Brett liegt, hinten an', () => {
+    const level = levelFromRows(['BB', 'AA']);
+    const state = newState(new Int16Array([0, 0, EMPTY, EMPTY]), 6);
+    state.tray.set([EMPTY, 1, EMPTY, 1]);
+    const result = park(level, state, selectCell(level, state, 0) as Selection);
+    if (!result.ok) throw new Error('abgelehnt');
+    expect(Array.from(state.tray)).toEqual([1, 1, 0, 0, EMPTY, EMPTY]);
+  });
+
+  it('nimmt die Murmeln, die der Ablage am nächsten liegen, wenn nicht für alle Platz ist', () => {
     const level = levelFromRows(['BB', 'BB', 'AA', 'AA']);
     const state = newState(new Int16Array([0, 0, 0, 0, 1, 1, 1, 1]), 3);
     state.tray[0] = 1; // schon belegt (für den Test ohne Rücksicht auf die Murmelbilanz)

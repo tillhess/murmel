@@ -10,7 +10,7 @@ import {
   remainder,
   type Selection,
   selectCell,
-  selectSlot,
+  selectColor,
 } from './moves';
 import type { Rng } from './random';
 
@@ -35,7 +35,8 @@ const NOTHING: Outcome = { type: 'nichts' };
 
 /**
  * Spielsteuerung. Ein Zug hat zwei Schritte: erst eine Gruppe wählen, dann ein Ziel antippen
- * (ein freies Loch derselben Farbe oder die Ablage). Passt die Gruppe nicht ganz ins Ziel, bleibt der Rest gewählt.
+ * (ein freies Loch derselben Farbe oder die Ablage). Murmeln auf der Ablage sind immer gewählt: Für sie
+ * genügt der Tipp auf ein freies Loch ihrer Farbe. Passt die Gruppe nicht ganz ins Ziel, bleibt der Rest gewählt.
  * Es wird nichts gezählt und nichts bewertet.
  */
 export class Game {
@@ -73,8 +74,14 @@ export class Game {
     const here = state.cur[cell];
     if (here === EMPTY) {
       const selection = this.selection;
-      if (!selection) return { type: 'abgelehnt', reason: 'nichts-gewählt' };
-      return this.roll('bild', selection, (s) => place(level, s, selection, cell));
+      if (selection && selection.color === level.target[cell]) {
+        return this.roll('bild', selection, (s) => place(level, s, selection, cell));
+      }
+      // Das Holzbrett ist immer mit gewählt: Ein Tipp auf ein freies Loch holt die passende Farbe von dort.
+      // Eine im Bild gewählte Gruppe anderer Farbe bleibt dabei gewählt.
+      const fromTray = selectColor(state, level.target[cell]);
+      if (fromTray) return this.roll('bild', fromTray, (s) => place(level, s, fromTray, cell), true);
+      return { type: 'abgelehnt', reason: selection ? 'falsche-farbe' : 'nichts-gewählt' };
     }
     if (here === level.target[cell]) return { type: 'liegt-richtig', cell };
     if (this.selection?.source === 'board' && this.selection.cells.includes(cell)) return this.deselect();
@@ -84,22 +91,22 @@ export class Game {
   /**
    * Tipp auf die Ablage. `slot` ist die getroffene Mulde oder null für das Brett daneben.
    *
-   * Es gilt dieselbe Logik wie im Bild: Eine Murmel antippen heißt wählen, eine freie Stelle antippen heißt
-   * dorthin rollen. Ist eine Gruppe aus dem Bild gewählt, legt ein Tipp auf eine freie Mulde, auf das Holz oder
-   * auf eine Murmel derselben Farbe sie ab. Ein Tipp auf eine Murmel anderer Farbe wählt stattdessen diese.
-   * So kommt man auch bei vollem Brett und mit einem noch gewählten Rest an die Murmeln auf dem Brett heran.
+   * Die Murmeln auf dem Brett muss man nie eigens wählen: Sie gelten immer als gewählt, alle Farben zugleich
+   * (siehe `tapCell`). Ist eine Gruppe aus dem Bild gewählt, legt ein Tipp auf eine freie Mulde, auf das Holz oder
+   * auf eine Murmel derselben Farbe sie ab. Ein Tipp auf eine Murmel anderer Farbe hebt die Auswahl im Bild auf.
    */
   tapTray(slot: number | null): Outcome {
     const { level, state } = this;
     const selection = this.selection;
+    if (!selection) return NOTHING;
     const here = slot === null ? EMPTY : (state.tray[slot] ?? EMPTY);
-    if (selection?.source === 'board') {
-      if (slot !== null && here !== EMPTY && here !== selection.color) return this.select(selectSlot(state, slot));
-      return this.roll('ablage', selection, (s) => park(level, s, selection, this.trayAt ?? undefined));
-    }
-    if (slot === null || here === EMPTY) return this.tapOutside();
-    if (selection?.source === 'tray' && selection.color === here) return this.deselect();
-    return this.select(selectSlot(state, slot));
+    if (here !== EMPTY && here !== selection.color) return this.deselect();
+    return this.roll('ablage', selection, (s) => park(level, s, selection, this.trayAt ?? undefined));
+  }
+
+  /** Solange nichts im Bild gewählt ist, sind die Murmeln auf dem Brett am Zug. */
+  get trayActive(): boolean {
+    return this.selection === null && this.state.tray.some((c) => c !== EMPTY);
   }
 
   tapOutside(): Outcome {
@@ -120,7 +127,6 @@ export class Game {
     if (size > old.length) tray.set(old);
     else tray.set(marbles);
     this.state = { cur: this.state.cur, tray };
-    if (this.selection?.source === 'tray') this.selection = null;
     this.history = [];
     return true;
   }
@@ -144,15 +150,21 @@ export class Game {
     return { type: 'abgewählt' };
   }
 
-  private roll(ziel: 'bild' | 'ablage', selection: Selection, move: (s: State) => ReturnType<typeof place>): Outcome {
+  private roll(
+    ziel: 'bild' | 'ablage',
+    selection: Selection,
+    move: (s: State) => ReturnType<typeof place>,
+    keep = false,
+  ): Outcome {
     const before = cloneState(this.state);
     const result = move(this.state);
     if (!result.ok) return { type: 'abgelehnt', reason: result.reason };
     this.history.push(before);
     if (this.history.length > 200) this.history.shift();
     // Was nicht mitrollen konnte, bleibt gewählt.
-    const rest = remainder(selection, result.rolls);
-    this.selection = rest;
+    // Kam der Zug vom Holzbrett, bleibt die Auswahl im Bild unberührt.
+    const rest = keep ? null : remainder(selection, result.rolls);
+    if (!keep) this.selection = rest;
     return { type: 'gerollt', ziel, color: result.color, rolls: result.rolls, fertig: this.solved, rest };
   }
 }

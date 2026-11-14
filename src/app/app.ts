@@ -234,6 +234,7 @@ export function startApp(): void {
       wood: () => play.points()?.wood,
       group: () => play.points()?.group ?? null,
       slot: () => play.points()?.slot ?? null,
+      trayHole: () => play.points()?.trayHole ?? null,
       holes: (style: HoleStyle) => setHoles(style),
       marbles: (style: MarbleStyle) => setMarbles(style),
       detail: (size: number | null) => setDetail(size),

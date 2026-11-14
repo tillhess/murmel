@@ -50,13 +50,18 @@ export function selectCell(level: Level, state: State, cell: number): Selection 
   return { source: 'board', color: state.cur[cell], cells: groupAt(level, state.cur, cell) };
 }
 
-/** Tippt man eine Murmel in der Ablage an, sind alle Murmeln dieser Farbe in der Ablage gewählt. */
+/** Alle Murmeln einer Farbe in der Ablage, oder null, wenn dort keine liegt. */
+export function selectColor(state: State, color: number): Selection | null {
+  const slots: number[] = [];
+  for (let s = 0; s < state.tray.length; s++) if (state.tray[s] === color) slots.push(s);
+  return slots.length ? { source: 'tray', color, slots } : null;
+}
+
+/** Alle Murmeln in der Ablage, die dieselbe Farbe haben wie die in Mulde `slot`. */
 export function selectSlot(state: State, slot: number): Selection | null {
   const color = state.tray[slot];
   if (color === undefined || color === EMPTY) return null;
-  const slots: number[] = [];
-  for (let s = 0; s < state.tray.length; s++) if (state.tray[s] === color) slots.push(s);
-  return { source: 'tray', color, slots };
+  return selectColor(state, color);
 }
 
 export function freeSlots(state: State): number[] {
@@ -156,8 +161,10 @@ export function place(level: Level, state: State, sel: Selection, hole: number):
 }
 
 /**
- * Die Auswahl rollt in die Ablage, in die ersten freien Mulden. Ist nicht für alle Platz, rollen die Murmeln,
- * die der Ablage am nächsten liegen; der Rest bleibt. `toward` ist die Lage der Ablage in Rasterkoordinaten
+ * Die Auswahl rollt in die Ablage. Dabei ordnet sich das Brett nach Farben: Gleiche Farben liegen immer
+ * beieinander, lückenlos von vorn. Die neuen Murmeln kommen zu ihrer Farbe; gibt es die noch nicht, ans Ende.
+ * Murmeln, die schon lagen, rücken dafür still zusammen. Ist nicht für alle Platz, rollen die Murmeln, die der
+ * Ablage am nächsten liegen; der Rest bleibt. `toward` ist die Lage der Ablage in Rasterkoordinaten
  * (ohne Angabe: unter dem Bild).
  */
 export function park(
@@ -167,14 +174,36 @@ export function park(
   toward: readonly [number, number] = [(level.w - 1) / 2, level.h + 1],
 ): MoveResult {
   if (sel.source === 'tray') return { ok: false, reason: 'liegt-schon-in-ablage' };
-  const free = freeSlots(state);
-  const n = Math.min(sel.cells.length, free.length);
+  const n = Math.min(sel.cells.length, freeSlots(state).length);
   if (n === 0) return { ok: false, reason: 'ablage-voll' };
 
-  const slots = free.slice(0, n);
+  // Farben in der Reihenfolge, in der sie bisher auf dem Brett liegen; die neue Farbe notfalls hinten an
+  const order: number[] = [];
+  const count = new Map<number, number>();
+  for (const c of state.tray) {
+    if (c === EMPTY) continue;
+    if (!count.has(c)) order.push(c);
+    count.set(c, (count.get(c) ?? 0) + 1);
+  }
+  if (!count.has(sel.color)) order.push(sel.color);
+  const before = count.get(sel.color) ?? 0;
+  count.set(sel.color, before + n);
+
+  state.tray.fill(EMPTY);
+  const slots: number[] = [];
+  let at = 0;
+  for (const c of order) {
+    const k = count.get(c) ?? 0;
+    for (let j = 0; j < k; j++) {
+      state.tray[at] = c;
+      // die letzten n Plätze dieser Farbe sind die neuen
+      if (c === sel.color && j >= before) slots.push(at);
+      at++;
+    }
+  }
+
   const cells = nearest(level, sel.cells, toward[0], toward[1], n);
   for (const c of cells) state.cur[c] = EMPTY;
-  for (const s of slots) state.tray[s] = sel.color;
 
   const rolls = cells.map((cell, k): Roll => {
     const q = n - 1 - k;

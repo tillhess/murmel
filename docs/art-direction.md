@@ -68,7 +68,7 @@ Blau-Gelb-Schwäche ist nicht abgesichert (Seerosen 14,3), ebenso wenig die 17 F
 | Regel | Worauf sie beruht | Wo umgesetzt |
 | --- | --- | --- |
 | Das Rollen der Kette ist die eine Bewegung, die stimmen muss. Die Murmeln folgen einander in festem Abstand durch einen gemeinsamen Einstieg. | Vorgabe (Kette statt Wolke). Beleg K4, [1.28]: Die häufigste Handlung muss sich am besten anfühlen. | `src/core/chain.ts` |
-| Ruhiges Tempo: 9 Felder in der Sekunde. Auf dem letzten Stück rollt jede Murmel aus und kommt mit zwei Fünfteln ihres Tempos an. | Beleg [1.2] (langsameres Tempo), [1.23] (Gewicht). Die Zahlen sind eigene Festlegung. | `SPEED`, `EASE_CELLS` in `src/app/view.ts`, `ARRIVE` in `src/core/chain.ts` |
+| Ruhiges Tempo: 13 Felder in der Sekunde (zuerst 9; dem Auftraggeber war das am 14.11.2026 etwas zu langsam). Auf dem letzten Stück rollt jede Murmel aus und kommt mit zwei Fünfteln ihres Tempos an. | Beleg [1.2] (langsameres Tempo), [1.23] (Gewicht). Die Zahlen sind eigene Festlegung. | `SPEED`, `EASE_CELLS` in `src/app/view.ts`, `ARRIVE` in `src/core/chain.ts` |
 | Niemand wartet auf eine Bewegung. Man kann weitertippen, während die Kette noch rollt. | Folgerung aus K3: Kontrolle statt Druck, das Tempo bestimmt die Spielerin. | `PlayScreen.tap` |
 | Gewählte Murmeln schweben leicht und sinken zurück, bevor sie rollen. Passende Löcher leuchten in einem langsamen Puls von vier Sekunden. | Beleg [1.23]: Jede Berührung bekommt sofort Rückmeldung. | `BoardView.draw` |
 | Kein Glitzern. Höchstens zwei Lichter wandern gleichzeitig langsam über Murmeln. | Beleg [1.28]: Keine Animation darf die Ruhe stören. K1: Grelle Reize zerstören Behaglichkeit. | `spawnTwinkle` |

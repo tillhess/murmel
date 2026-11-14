@@ -15,6 +15,7 @@ interface Murmel {
     inTray: number;
     selected: number;
     selectedOn: 'board' | 'tray' | null;
+    trayActive: boolean;
     zoom: number;
     size: number;
     tray: number;
@@ -28,6 +29,7 @@ interface Murmel {
   group(): { x: number; y: number } | null;
   /** eine Murmel auf dem Holzbrett, deren Farbe gerade nicht im Bild gewählt ist */
   slot(): { x: number; y: number } | null;
+  trayHole(): { x: number; y: number } | null;
   detail(size: number | null): void;
   tray(size: number): boolean;
 }
@@ -228,14 +230,20 @@ test('Bei vollem Holzbrett lässt sich trotz gewähltem Rest eine Farbe auf dem 
   }
   expect((await status(page))?.selectedOn).toBe('board');
 
-  // Früher kam hier bei jedem Tipp nur "Das Holzbrett ist voll". Jetzt wählt der Tipp die Murmeln auf dem Brett.
+  // Früher kam hier bei jedem Tipp nur "Das Holzbrett ist voll". Jetzt gibt der Tipp die Auswahl im Bild auf,
+  // und die Murmeln auf dem Brett sind wieder am Zug.
   const slot = await page.evaluate(() => window.murmel.slot());
   if (!slot) throw new Error('keine Murmel auf dem Holzbrett gefunden');
   await page.mouse.click(slot.x, slot.y);
   await expect(page.locator('#whisper')).not.toContainText('Das Holzbrett ist voll');
   const chosen = await status(page);
-  expect(chosen?.selected).toBeGreaterThan(0);
-  expect(chosen?.selectedOn).toBe('tray');
+  expect(chosen?.selected).toBe(0);
+  expect(chosen?.trayActive).toBe(true);
+  // Der nächste Zug kommt vom Brett: ein Tipp auf ein Loch genügt.
+  const hole = await page.evaluate(() => window.murmel.trayHole());
+  if (!hole) throw new Error('kein Loch für eine Farbe vom Holzbrett gefunden');
+  await page.mouse.click(hole.x, hole.y);
+  expect((await status(page))?.inTray).toBeLessThan(30);
   expect(errors).toEqual([]);
 });
 
@@ -249,8 +257,8 @@ test('Passt eine Gruppe nicht ganz ins Ziel, bleibt der Rest gewählt', async ({
     if (!move) break;
     await page.mouse.click(move.select.x, move.select.y);
     const chosen = (await status(page))?.selected ?? 0;
-    expect(chosen).toBeGreaterThan(0);
     await page.mouse.click(move.target.x, move.target.y);
+    if (chosen === 0) continue; // ein Zug vom Holzbrett: Dort ist immer alles gewählt
     rest = (await status(page))?.selected ?? 0;
     if (rest > 0) expect(rest).toBeLessThan(chosen);
   }
