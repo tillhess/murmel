@@ -1,11 +1,11 @@
 import { HOLE_STYLES, type HoleStyle } from '../art/holes';
-import { marble } from '../art/marble';
+import { MARBLE_STYLES, type MarbleStyle, marble } from '../art/marble';
 import { grainCanvas } from '../art/paint';
 import { SOUND_MODES, Sound, type SoundMode } from '../audio/sound';
-import type { Mood } from '../core/scene';
+import { DETAIL_SIZES, type Mood } from '../core/scene';
 import { renderShelf } from './home';
-import { DEFAULT_MOOD, fromPhoto, type Picture, pictures } from './library';
-import { PlayScreen } from './play';
+import { addOwn, DEFAULT_MOOD, loadOwn, ownPictures, type Picture, pictures, removeOwn } from './library';
+import { PlayScreen, TRAY_DEFAULT, TRAY_SIZES } from './play';
 import { SettingsSheet } from './settings';
 import { store } from './storage';
 
@@ -63,10 +63,23 @@ export function startApp(): void {
   const dot = el<HTMLCanvasElement>('dot').getContext('2d');
   if (dot) marble(dot, 46, 44, 34, '#e6782a', 0.6);
 
+  // Detailtiefe: Murmeln je Kante für alle Bilder; null lässt jedem Bild die Größe, für die es gemalt wurde
+  let detail: number | null = store.detail;
+  // Die Sammlung: erst die mitgelieferten Bilder, dann die eigenen, dann das leere Blatt für ein neues Foto.
+  const collection = (): Picture[] => [...pictures(detail), ...ownPictures(detail)];
+  const fillShelf = (): void =>
+    renderShelf(shelf, collection(), {
+      open,
+      choosePhoto: () => photo.click(),
+      remove: (picture) => {
+        removeOwn(picture.id);
+        fillShelf();
+      },
+    });
   const showHome = (): void => {
     setMood(DEFAULT_MOOD);
     sound.setRoot(DEFAULT_MOOD.root);
-    renderShelf(shelf, pictures(), { open, choosePhoto: () => photo.click() });
+    fillShelf();
     home.hidden = false;
   };
   const play = new PlayScreen(
@@ -76,6 +89,7 @@ export function startApp(): void {
       bar: el('bar'),
       back: el<HTMLButtonElement>('back'),
       undo: el<HTMLButtonElement>('undo'),
+      fit: el<HTMLButtonElement>('fit'),
       whisper: el('whisper'),
       finish: el('finish'),
       again: el<HTMLButtonElement>('again'),
@@ -120,15 +134,50 @@ export function startApp(): void {
     play.setHoleStyle(style);
   };
   setHoles(holes);
-  const settings = new SettingsSheet(el<HTMLDialogElement>('settings'), {
-    holes: () => holes,
-    setHoles: (style) => {
-      store.holes = style;
-      setHoles(style);
+  let marbles: MarbleStyle = store.marbles ?? MARBLE_STYLES[0];
+  const setMarbles = (style: MarbleStyle): void => {
+    marbles = style;
+    play.setMarbleStyle(style);
+  };
+  setMarbles(marbles);
+  let traySize = store.tray ?? TRAY_DEFAULT;
+  play.setTraySize(traySize);
+  const setDetail = (size: number | null): void => {
+    detail = size;
+    const now = play.current;
+    // Im Spiel wechselt das offene Bild sofort in die neue Größe; sein Stand in der alten bleibt gespeichert.
+    if (home.hidden && now) open(now.picture.atSize(size));
+    else fillShelf();
+  };
+  const settings = new SettingsSheet(
+    el<HTMLDialogElement>('settings'),
+    {
+      holes: () => holes,
+      setHoles: (style) => {
+        store.holes = style;
+        setHoles(style);
+      },
+      marbles: () => marbles,
+      setMarbles: (style) => {
+        store.marbles = style;
+        setMarbles(style);
+      },
+      detail: () => detail,
+      setDetail: (size) => {
+        store.detail = size;
+        setDetail(size);
+      },
+      tray: () => traySize,
+      setTray: (size) => {
+        traySize = size;
+        store.tray = size;
+        return play.setTraySize(size);
+      },
+      sound: () => sound.mode,
+      setSound,
     },
-    sound: () => sound.mode,
-    setSound,
-  });
+    { detailSizes: DETAIL_SIZES, traySizes: TRAY_SIZES },
+  );
   for (const id of ['homeSettings', 'playSettings']) el(id).addEventListener('click', () => settings.open());
 
   // Der Raum atmet im Takt des Himmelslichts: Der Klang richtet sich nach der Uhr der Animation.
@@ -154,7 +203,7 @@ export function startApp(): void {
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
-      const picture = fromPhoto(image);
+      const picture = addOwn(image, detail);
       URL.revokeObjectURL(url);
       if (picture) open(picture, true);
     };
@@ -163,13 +212,17 @@ export function startApp(): void {
   });
 
   showHome();
+  // Eigene Fotos muss der Browser erst entpacken: Sie erscheinen einen Augenblick später in der Sammlung.
+  void loadOwn().then(() => {
+    if (!home.hidden && ownPictures(detail).length) fillShelf();
+  });
 
   // Zugang für automatische Tests und zum Vorführen (in der Konsole: murmel.open('mond'); murmel.solve())
   Object.assign(window, {
     murmel: {
-      ids: () => pictures().map((p) => p.id),
+      ids: () => pictures(detail).map((p) => p.id),
       open: (id: string, fresh = true) => {
-        const picture = pictures().find((p) => p.id === id);
+        const picture = collection().find((p) => p.id === id);
         if (picture) open(picture, fresh);
         return Boolean(picture);
       },
@@ -178,7 +231,16 @@ export function startApp(): void {
       status: () => play.status(),
       home: () => play.close(),
       sound: () => sound.mode,
+      wood: () => play.points()?.wood,
+      group: () => play.points()?.group ?? null,
+      slot: () => play.points()?.slot ?? null,
       holes: (style: HoleStyle) => setHoles(style),
+      marbles: (style: MarbleStyle) => setMarbles(style),
+      detail: (size: number | null) => setDetail(size),
+      tray: (size: number) => {
+        traySize = size;
+        return play.setTraySize(size);
+      },
     },
   });
 }

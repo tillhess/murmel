@@ -36,7 +36,8 @@ in jeder Farbe neben der passenden Murmel.
 ## Aufbau
 
 ```
-src/core/    Spielregeln als reine Funktionen, ohne Bildschirm: Raster, Startaufstellung, Züge, Kette, Löser
+src/core/    Spielregeln als reine Funktionen, ohne Bildschirm: Raster, Startaufstellung, Züge, Kette, Löser,
+             Bildausschnitt
 src/art/     Motive als Daten und alles Gezeichnete: Papierschnitt, Murmeln, Papier, Holz
 src/audio/   Klang, im Browser erzeugt: Tonvorrat und Tonfolge als Rechnung, Wiedergabe über Web Audio
 src/app/     Bildschirme und Ablauf: Sammlung, Spiel, Speicherstand
@@ -70,8 +71,13 @@ beide getrennt speichern.
 
 - **Kein Ton?** Der Klang richtet sich nach dem Stummmodus des iPad (Glocke im Kontrollzentrum). Das ist Absicht:
   Nur so läuft ein Hörbuch ungestört weiter.
-- **Einstellungen:** wie leere Felder aussehen (Schälchen, Ring oder Gestanzt) und der Klang in drei Stufen (alles,
-  nur die Murmeln, still). Sie öffnen sich von der Startseite und über das Symbol oben rechts im Spiel.
+- **Einstellungen** (von der Startseite und über das Symbol oben rechts im Spiel): wie leere Felder aussehen,
+  Murmeln mit oder ohne Spiegelung, Detailtiefe von 16 × 16 bis 50 × 50 Murmeln, Größe des Holzbretts von 30 bis
+  120 Mulden, Klang in drei Stufen.
+- **Eigene Bilder:** Das leere Blatt in der Sammlung nimmt ein Foto auf. Es bleibt dort hängen, mit Spielstand,
+  bis man es über das kleine Kreuz an seiner Ecke entfernt. Foto und Stand verlassen das Gerät nicht.
+- **Vergrößern:** Zwei Finger spreizen das Bild auf, ein Finger verschiebt es. Das Holzbrett bleibt stehen. Das
+  Symbol mit den vier Ecken zeigt wieder das ganze Bild.
 - Aufnahmen aus WebKit im iPad-Format: `npm run build && npm run preview`, dann in einem zweiten Fenster
   `node scripts/aufnahmen.mjs <Zielordner>`.
 

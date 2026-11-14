@@ -42,6 +42,9 @@
         <nav class="bar" id="bar" aria-label="Spiel">
           <button class="quiet" id="back" type="button">Sammlung</button>
           <p class="whisper" id="whisper" role="status" aria-live="polite"></p>
+          <button class="icon" id="fit" type="button" aria-label="Ganzes Bild zeigen" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
+          </button>
           <button class="icon" id="undo" type="button" aria-label="Zug zurücknehmen" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4.5 11.5 9 16M5 11.5h8.5a5 5 0 0 1 0 10H11" /></svg>
           </button>
@@ -79,6 +82,22 @@
         <fieldset class="setting">
           <legend>Leere Felder</legend>
           <div class="choices" data-part="holes"></div>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Murmeln</legend>
+          <div class="choices pair" data-part="marbles"></div>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Detail: Murmeln je Kante</legend>
+          <div class="choices chips" data-part="detail"></div>
+          <p class="setting-note">Mehr Murmeln geben das Bild genauer wieder und dauern länger. Jede Größe hat ihren eigenen Spielstand.</p>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Holzbrett: Mulden</legend>
+          <div class="choices chips" data-part="tray"></div>
+          <p class="setting-note" data-part="trayNote" hidden>
+            Auf dem Brett liegen gerade mehr Murmeln. Die neue Größe gilt ab dem nächsten Bild.
+          </p>
         </fieldset>
         <fieldset class="setting">
           <legend>Klang</legend>

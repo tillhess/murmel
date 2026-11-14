@@ -71,12 +71,15 @@ function rolledAfter(run: Run, u: number, speed: number): number {
   return run.length - e + speed * tau - (speed * (1 - ARRIVE) * tau * tau) / (2 * brake);
 }
 
-/** Wo ist die Murmel zur Zeit t (ms nach Beginn des Zugs)? `rolled` ist der zurückgelegte Weg. */
+/**
+ * Wo ist die Murmel zur Zeit t (ms nach Beginn des Zugs)? `rolled` ist der zurückgelegte Weg.
+ * `from`, `to` und `part` nennen das Wegstück, auf dem sie gerade rollt, und wie weit sie darauf ist (0..1).
+ */
 export function runPosition(
   run: Run,
   t: number,
   speed: number,
-): { x: number; y: number; rolled: number; done: boolean } {
+): { x: number; y: number; rolled: number; done: boolean; from: Pt; to: Pt; part: number } {
   const rolled = Math.max(0, Math.min(run.length, rolledAfter(run, t - run.start, speed)));
   let i = 1;
   while (i < run.cum.length - 1 && run.cum[i] < rolled) i++;
@@ -89,6 +92,9 @@ export function runPosition(
     y: a[1] + (b[1] - a[1]) * f,
     rolled,
     done: t - run.start >= runDuration(run, speed),
+    from: a,
+    to: b,
+    part: f,
   };
 }
 

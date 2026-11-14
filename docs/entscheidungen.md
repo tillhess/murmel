@@ -10,11 +10,12 @@ Was für Murmel festgelegt ist und warum. Neue Entscheidungen kommen unten dazu,
 | Ein Zug hat zwei Schritte: Gruppe wählen, dann Ziel antippen. | Vom Auftraggeber so festgelegt (14.11.2026). Man entscheidet in Ruhe, statt dass die Murmel sofort springt. |
 | Gewählt ist die angetippte Murmel samt allen angrenzenden Murmeln derselben Farbe, die noch falsch liegen. | So bewegt ein Tipp eine ganze Fläche. |
 | Ziel ist ein freies Loch derselben Farbe oder die Ablage. | |
+| Es gilt überall dasselbe: Eine Murmel antippen heißt wählen, eine freie Stelle antippen heißt dorthin rollen. Auf dem Holzbrett legt ein Tipp auf eine freie Mulde, auf das Holz oder auf eine Murmel derselben Farbe die gewählte Gruppe ab; ein Tipp auf eine Murmel anderer Farbe wählt diese. | Festgelegt am 14.11.2026 nach einem Fehler: Seit der Rest einer Auswahl gewählt bleibt, galt jeder Tipp aufs Holzbrett als Ablegen. Bei vollem Brett kam man so nicht mehr an die Murmeln darauf heran. Freie Mulden leuchten, solange eine Gruppe gewählt ist. |
 | Gefüllt wird nur der zusammenhängende Bereich um das angetippte Loch. Was nicht hineinpasst, bleibt liegen. | Vom Auftraggeber so festgelegt: kein Weiterfließen in andere Löcher. Der Zug tut genau, was man angetippt hat. |
 | Zusammenhängend heißt beim Ziel auch: über Eck. Ein Bereich füllt sich diagonal weiter. | Vom Auftraggeber so festgelegt (14.11.2026). Die Kette rollt geradeaus, wo es geht, und über Eck nur, wo es sein muss. Für die Auswahl gilt weiter nur Kante an Kante. |
 | Was nicht hineinpasst, bleibt gewählt. Das gilt auch, wenn auf dem Holzbrett nicht für alle Platz ist. | Vom Auftraggeber so festgelegt (14.11.2026). Man tippt gleich das nächste Ziel an, statt die Gruppe neu zu wählen. Ein Tipp daneben oder auf den Rest hebt die Auswahl auf. |
 | Es rollen die Murmeln, die dem Ziel am nächsten liegen. | Ergibt kurze, nachvollziehbare Wege. |
-| Die Ablage hat 30 feste Mulden. | Vom Auftraggeber festgelegt. Mulden sind feste Plätze, nichts rutscht nach. |
+| Die Ablage hat 30 Mulden, in den Einstellungen wählbar bis 120. Mulden sind feste Plätze, nichts rutscht nach. | Die 30 hat der Auftraggeber festgelegt, am 14.11.2026 dann die Wahl: Große Bilder brauchen mehr Vorrat. Im laufenden Spiel wächst das Brett sofort; kleiner wird es nur, wenn alle Murmeln darauf noch Platz haben. |
 | Es gibt keine Sackgasse. | Liegen Murmeln in der Ablage, gibt es genauso viele freie Löcher, und für mindestens eins passt immer eine Murmel. Das ist als Test abgesichert. |
 
 ## Reine Meditation
@@ -73,9 +74,21 @@ Warum, steht in [art-direction.md](art-direction.md).
 
 | Entscheidung | Warum |
 | --- | --- |
-| Ein leeres Feld ist ein Schälchen: flach, matt, in aufgehellter Zielfarbe mit Rand in der vollen Farbe. | Vom Auftraggeber aus drei Entwürfen gewählt. Die früheren dunklen Mulden waren von dunklen Murmeln kaum zu unterscheiden. |
-| Die beiden anderen Entwürfe (Ring, Gestanzt) bleiben wählbar. | Wunsch des Auftraggebers: Wer mag, stellt es in den Einstellungen um. |
-| Es gibt ein Einstellungen-Blatt mit zwei Fragen: leere Felder und Klang. Es öffnet sich von der Startseite und über ein Symbol in der Spielleiste. | Jede Wahl gilt sofort und bleibt gespeichert. Der Klang lässt sich im Spiel zusätzlich mit einem Tipp auf das Lautsprecher-Symbol umschalten. |
+| Für das leere Feld gibt es sechs Entwürfe zur Wahl. Voreingestellt ist „Gestanzt“: ein dunkles Loch mit heller Schnittkante in einem Kragen in der Zielfarbe. | Die ersten dunklen Mulden waren von dunklen Murmeln kaum zu unterscheiden. Von den drei Entwürfen danach (Schälchen, Ring, Gestanzt) ging „Gestanzt“ laut Auftraggeber am besten, die Farben waren ihm aber noch zu wenig zu ahnen. |
+| Drei weitere Entwürfe zeigen unter dem leeren Feld schon das fertige Bild in voller Farbe: „Im Bild“ (rundes Loch), „Kreuz“ (Kreuzschnitt), „Gerissen“ (gezacktes Loch). | Vorschläge vom 14.11.2026 auf den Wunsch nach deutlicheren Löchern und Farben, Kreuz und Splitter waren Ideen des Auftraggebers. Welcher Entwurf Voreinstellung wird, entscheidet er nach dem Ausprobieren. |
+| Murmeln gibt es mit und ohne Spiegelung. | Wunsch des Auftraggebers: Die Glasmurmeln zeigen durch ihre Spiegelungen viele Farbtöne. Ohne Spiegelung ist jede Murmel eine matte Kugel in genau einer Farbe. |
+| Es gibt ein Einstellungen-Blatt: leere Felder, Murmeln, Detail, Holzbrett, Klang. Es öffnet sich von der Startseite und über ein Symbol in der Spielleiste. | Jede Wahl gilt sofort und bleibt gespeichert. Der Klang lässt sich im Spiel zusätzlich mit einem Tipp auf das Lautsprecher-Symbol umschalten. |
+| Jedes Bild lässt sich in sechs Detailtiefen spielen, von 16 × 16 bis 50 × 50 Murmeln, oder so, wie es gemalt wurde. | Wunsch des Auftraggebers: dasselbe Bild einmal leichter, einmal aufwendiger und dafür genauer. Jede Größe hat ihren eigenen Spielstand. Alle Bilder sind in allen Größen als lösbar getestet. |
+| Das Bild lässt sich mit zwei Fingern vergrößern und mit einem Finger verschieben. Das Holzbrett bleibt dabei stehen. | Wunsch des Auftraggebers: Bei vielen kleinen Murmeln muss man näher herankommen. Deshalb gilt ein Tipp jetzt beim Loslassen des Fingers, nicht mehr beim Aufsetzen: Nur so lässt sich Tippen von Ziehen unterscheiden. |
+
+## Eigene Bilder (14.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Ein eigenes Foto bleibt in der Sammlung, mit Spielstand, auch nach dem Schließen. | Wunsch des Auftraggebers. Vorher war ein eigenes Bild weg, sobald man es verließ. |
+| Aufbewahrt werden das zugeschnittene Foto (800 Bildpunkte Kantenlänge, JPEG), das Raster je Detailtiefe und der Spielstand. Alles bleibt auf dem Gerät. | Das Raster wird mitgespeichert, weil ein Spielstand nur zu genau dem Raster passt, mit dem er begonnen wurde. Neu gerechnet könnte es je nach Gerät leicht anders ausfallen. |
+| Jedes Foto liegt unter einem eigenen Namen im Speicher des Browsers, getrennt vom übrigen Spielstand. | Passt ein Foto nicht mehr in den Speicher, bleibt es nur bis zum Schließen der Seite erhalten, und der Rest geht nicht verloren. |
+| Ein eigenes Bild lässt sich aus der Sammlung entfernen. Der Knopf fragt beim ersten Tipp nach. | Sonst füllt sich der Speicher ohne Ausweg. |
 
 ## Oberfläche (14.11.2026)
 

@@ -81,20 +81,48 @@ export class Game {
     return this.select(selectCell(level, state, cell));
   }
 
-  /** Tipp auf die Ablage. `slot` ist die getroffene Mulde oder null für das Brett daneben. */
+  /**
+   * Tipp auf die Ablage. `slot` ist die getroffene Mulde oder null für das Brett daneben.
+   *
+   * Es gilt dieselbe Logik wie im Bild: Eine Murmel antippen heißt wählen, eine freie Stelle antippen heißt
+   * dorthin rollen. Ist eine Gruppe aus dem Bild gewählt, legt ein Tipp auf eine freie Mulde, auf das Holz oder
+   * auf eine Murmel derselben Farbe sie ab. Ein Tipp auf eine Murmel anderer Farbe wählt stattdessen diese.
+   * So kommt man auch bei vollem Brett und mit einem noch gewählten Rest an die Murmeln auf dem Brett heran.
+   */
   tapTray(slot: number | null): Outcome {
     const { level, state } = this;
     const selection = this.selection;
+    const here = slot === null ? EMPTY : (state.tray[slot] ?? EMPTY);
     if (selection?.source === 'board') {
+      if (slot !== null && here !== EMPTY && here !== selection.color) return this.select(selectSlot(state, slot));
       return this.roll('ablage', selection, (s) => park(level, s, selection, this.trayAt ?? undefined));
     }
-    if (slot === null || state.tray[slot] === undefined || state.tray[slot] === EMPTY) return this.tapOutside();
-    if (this.selection?.source === 'tray' && this.selection.color === state.tray[slot]) return this.deselect();
+    if (slot === null || here === EMPTY) return this.tapOutside();
+    if (selection?.source === 'tray' && selection.color === here) return this.deselect();
     return this.select(selectSlot(state, slot));
   }
 
   tapOutside(): Outcome {
     return this.selection ? this.deselect() : NOTHING;
+  }
+
+  /**
+   * Ändert die Zahl der Mulden auf dem Holzbrett. Größer geht immer: Die Murmeln bleiben, wo sie liegen, neue
+   * Mulden kommen hinten dazu. Kleiner geht nur, solange alle Murmeln noch Platz haben; sie rücken dann zusammen.
+   * Danach lässt sich nichts mehr zurücknehmen, denn frühere Stände hatten eine andere Brettgröße.
+   */
+  resizeTray(size: number): boolean {
+    const old = this.state.tray;
+    if (size === old.length) return true;
+    const marbles = Array.from(old).filter((c) => c !== EMPTY);
+    if (size < 1 || marbles.length > size) return false;
+    const tray = new Int16Array(size).fill(EMPTY);
+    if (size > old.length) tray.set(old);
+    else tray.set(marbles);
+    this.state = { cur: this.state.cur, tray };
+    if (this.selection?.source === 'tray') this.selection = null;
+    this.history = [];
+    return true;
   }
 
   undo(): boolean {

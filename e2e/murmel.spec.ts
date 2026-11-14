@@ -14,10 +14,22 @@ interface Murmel {
     remaining: number;
     inTray: number;
     selected: number;
+    selectedOn: 'board' | 'tray' | null;
+    zoom: number;
+    size: number;
+    tray: number;
     busy: boolean;
     finishShown: boolean;
   } | null;
   home(): void;
+  /** eine Stelle auf dem Holz des Bretts, die keine Mulde trifft */
+  wood(): { x: number; y: number };
+  /** die kleinste noch nicht gewählte Gruppe falsch liegender Murmeln im Bild */
+  group(): { x: number; y: number } | null;
+  /** eine Murmel auf dem Holzbrett, deren Farbe gerade nicht im Bild gewählt ist */
+  slot(): { x: number; y: number } | null;
+  detail(size: number | null): void;
+  tray(size: number): boolean;
 }
 declare global {
   interface Window {
@@ -35,6 +47,39 @@ function watchErrors(page: Page): string[] {
     if (m.type() === 'error') errors.push(m.text());
   });
   return errors;
+}
+
+/**
+ * Zwei Finger, die sich um den Punkt (x, y) herum von `from` auf `to` Bildschirmpunkte Abstand spreizen
+ * (oder zusammenziehen). Die Berührungen werden direkt an das Spielbrett gemeldet, wie es ein iPad täte.
+ */
+async function pinch(page: Page, x: number, y: number, from: number, to: number): Promise<void> {
+  await page.evaluate(
+    ({ x, y, from, to }) => {
+      const board = document.getElementById('board') as HTMLElement;
+      const fire = (type: string, id: number, half: number) =>
+        board.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: id,
+            pointerType: 'touch',
+            isPrimary: id === 11,
+            clientX: x + (id === 11 ? -half : half),
+            clientY: y,
+            bubbles: true,
+          }),
+        );
+      fire('pointerdown', 11, from / 2);
+      fire('pointerdown', 12, from / 2);
+      for (let k = 1; k <= 8; k++) {
+        const half = (from + ((to - from) * k) / 8) / 2;
+        fire('pointermove', 11, half);
+        fire('pointermove', 12, half);
+      }
+      fire('pointerup', 11, to / 2);
+      fire('pointerup', 12, to / 2);
+    },
+    { x, y, from, to },
+  );
 }
 
 test.beforeEach(async ({ page }) => {
@@ -104,7 +149,7 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
   const sheet = page.locator('#settings');
   await expect(sheet).toBeVisible();
   const choices = sheet.locator('[data-part="holes"] .choice');
-  await expect(choices).toHaveText(['Schälchen', 'Ring', 'Gestanzt']);
+  await expect(choices).toHaveText(['Gestanzt', 'Im Bild', 'Kreuz', 'Gerissen', 'Schälchen', 'Ring']);
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true'); // Voreinstellung
   await choices.nth(1).click();
   await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
@@ -120,6 +165,76 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
   // Ein Tipp neben das Blatt schließt es.
   await page.mouse.click(4, 4);
   await expect(sheet).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Felder lässt sich spielen', async ({
+  page,
+}) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.locator('#homeSettings').click();
+  const marbles = page.locator('#settings [data-part="marbles"] .choice');
+  await expect(marbles).toHaveText(['Mit Spiegelung', 'Ohne Spiegelung']);
+  await expect(marbles.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  await marbles.nth(1).click();
+  await expect(marbles.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#settings [data-part="done"]').click();
+
+  // Jeder Entwurf wird einmal gewählt und einen Zug lang gespielt: Dabei darf nichts kaputtgehen.
+  await page.evaluate(() => window.murmel.open('mond'));
+  const holes = page.locator('#settings [data-part="holes"] .choice');
+  for (let k = 0; k < 6; k++) {
+    await page.locator('#playSettings').click();
+    await holes.nth(k).click();
+    await expect(holes.nth(k)).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#settings [data-part="done"]').click();
+    const move = await page.evaluate(() => window.murmel.next());
+    if (!move) throw new Error('kein Zug gefunden');
+    await page.mouse.click(move.select.x, move.select.y);
+    await page.mouse.click(move.target.x, move.target.y);
+  }
+  expect((await status(page))?.remaining).toBeLessThanOrEqual(256);
+
+  // Die Wahl der Murmeln bleibt nach dem Neuladen.
+  await page.reload();
+  await page.locator('#homeSettings').click();
+  await expect(marbles.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  expect(errors).toEqual([]);
+});
+
+test('Bei vollem Holzbrett lässt sich trotz gewähltem Rest eine Farbe auf dem Brett wählen', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('fuchs'));
+  // Kleine Gruppen ablegen, bis das Holzbrett voll ist. Was nicht mehr passt, bleibt im Bild gewählt.
+  const wood = await page.evaluate(() => window.murmel.wood());
+  const nextGroup = async () => {
+    const group = await page.evaluate(() => window.murmel.group());
+    if (!group) throw new Error('keine Gruppe gefunden');
+    return group;
+  };
+  for (let k = 0; k < 60 && ((await status(page))?.inTray ?? 0) < 30; k++) {
+    const group = await nextGroup();
+    await page.mouse.click(group.x, group.y);
+    await page.mouse.click(wood.x, wood.y);
+  }
+  expect((await status(page))?.inTray).toBe(30);
+  // Ging die letzte Gruppe genau auf, ist nichts mehr gewählt: Dann eine Gruppe wählen, die keinen Platz mehr hat.
+  if ((await status(page))?.selected === 0) {
+    const group = await nextGroup();
+    await page.mouse.click(group.x, group.y);
+  }
+  expect((await status(page))?.selectedOn).toBe('board');
+
+  // Früher kam hier bei jedem Tipp nur "Das Holzbrett ist voll". Jetzt wählt der Tipp die Murmeln auf dem Brett.
+  const slot = await page.evaluate(() => window.murmel.slot());
+  if (!slot) throw new Error('keine Murmel auf dem Holzbrett gefunden');
+  await page.mouse.click(slot.x, slot.y);
+  await expect(page.locator('#whisper')).not.toContainText('Das Holzbrett ist voll');
+  const chosen = await status(page);
+  expect(chosen?.selected).toBeGreaterThan(0);
+  expect(chosen?.selectedOn).toBe('tray');
   expect(errors).toEqual([]);
 });
 
@@ -226,7 +341,7 @@ test('Ein eigenes Foto wird zu einem spielbaren Bild', async ({ page }) => {
   // Als Foto dient das App-Icon: orange Murmel vor blauem Grund
   await page.locator('#photo').setInputFiles('public/icon-512.png');
   await expect(page.locator('#board')).toBeVisible();
-  await expect.poll(async () => (await status(page))?.id).toBe('eigenes');
+  await expect.poll(async () => (await status(page))?.id).toMatch(/^eigenes-/);
   expect((await status(page))?.remaining).toBe(24 * 24);
   await page.evaluate(() => window.murmel.solve());
   await expect.poll(async () => (await status(page))?.remaining).toBe(0);
@@ -259,5 +374,201 @@ test('Die Einzeldatei läuft eingebettet und ohne Speicher', async ({ page }) =>
   await expect(page.locator('#finish')).toBeVisible({ timeout: 15_000 });
   await page.locator('#onward').click();
   await expect(page.locator('.print')).toHaveCount(6);
+  expect(errors).toEqual([]);
+});
+
+test('Die Detailtiefe lässt sich für alle Bilder wählen, jede Größe hat ihren eigenen Stand', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await expect(page.locator('.print').first()).toContainText('16 × 16');
+  await page.locator('#homeSettings').click();
+  const detail = page.locator('#settings [data-part="detail"] .choice');
+  await expect(detail).toHaveText(['Wie gemalt', '16 × 16', '20 × 20', '24 × 24', '28 × 28', '36 × 36', '50 × 50']);
+  await expect(detail.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  await detail.nth(5).click();
+  await page.locator('#settings [data-part="done"]').click();
+  // Die Sammlung zeigt jetzt jedes Bild in der gewählten Größe.
+  await expect(page.locator('.print').first()).toContainText('36 × 36');
+  await expect(page.locator('.print').nth(4)).toContainText('36 × 36');
+
+  await page.locator('.print').first().click();
+  expect((await status(page))?.size).toBe(36);
+  expect((await status(page))?.remaining).toBe(36 * 36);
+  const move = await page.evaluate(() => window.murmel.next());
+  if (!move) throw new Error('kein Zug gefunden');
+  await page.mouse.click(move.select.x, move.select.y);
+  await page.mouse.click(move.target.x, move.target.y);
+  const parked = (await status(page))?.inTray ?? 0;
+  expect(parked).toBeGreaterThan(0);
+
+  // Im Spiel umgestellt, wechselt das offene Bild sofort die Größe. Der Stand der alten bleibt liegen.
+  await page.locator('#playSettings').click();
+  await detail.nth(0).click();
+  await page.locator('#settings [data-part="done"]').click();
+  expect((await status(page))?.size).toBe(16);
+  expect((await status(page))?.inTray).toBe(0);
+  await page.locator('#playSettings').click();
+  await detail.nth(5).click();
+  await page.locator('#settings [data-part="done"]').click();
+  expect((await status(page))?.size).toBe(36);
+  expect((await status(page))?.inTray).toBe(parked);
+  expect(errors).toEqual([]);
+});
+
+test('Das Holzbrett lässt sich vergrößern und verkleinern', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('seerosen'));
+  expect((await status(page))?.tray).toBe(30);
+  await page.locator('#playSettings').click();
+  const tray = page.locator('#settings [data-part="tray"] .choice');
+  await expect(tray).toHaveText(['30', '45', '60', '90', '120']);
+  await tray.nth(2).click();
+  await expect(tray.nth(2)).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#settings [data-part="done"]').click();
+  expect((await status(page))?.tray).toBe(60);
+
+  // Mehr als 30 Murmeln ablegen: Danach passt das Brett nicht mehr auf 30 zurück, und das wird gesagt.
+  const wood = await page.evaluate(() => window.murmel.wood());
+  for (let k = 0; k < 80 && ((await status(page))?.inTray ?? 0) <= 30; k++) {
+    const group = await page.evaluate(() => window.murmel.group());
+    if (!group) throw new Error('keine Gruppe gefunden');
+    await page.mouse.click(group.x, group.y);
+    await page.mouse.click(wood.x, wood.y);
+  }
+  expect((await status(page))?.inTray).toBeGreaterThan(30);
+  await page.locator('#playSettings').click();
+  await tray.nth(0).click();
+  await expect(page.locator('#settings [data-part="trayNote"]')).toBeVisible();
+  await page.locator('#settings [data-part="done"]').click();
+  expect((await status(page))?.tray).toBe(60);
+
+  // Ein neues Bild beginnt mit der zuletzt gewählten Größe, auch nach dem Neuladen.
+  await page.reload();
+  await page.evaluate(() => window.murmel.open('mond'));
+  expect((await status(page))?.tray).toBe(30);
+  expect(errors).toEqual([]);
+});
+
+test('Das Bild lässt sich vergrößern, das Holzbrett bleibt dabei stehen', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('fuchs'));
+  const wood = await page.evaluate(() => window.murmel.wood());
+  const first = await page.evaluate(() => window.murmel.group());
+  if (!first) throw new Error('keine Gruppe gefunden');
+  const board = await page.locator('#board').boundingBox();
+  if (!board) throw new Error('kein Spielbrett');
+  await expect(page.locator('#fit')).toBeHidden();
+
+  // Zwei Finger spreizen sich über dem Bild.
+  await pinch(page, first.x, first.y, 20, 160);
+  await expect.poll(async () => (await status(page))?.zoom).toBeGreaterThan(1.5);
+  await expect(page.locator('#fit')).toBeVisible();
+  // Das Holzbrett liegt, wo es lag; die Stelle unter dem Zeiger ist dieselbe Murmel geblieben.
+  expect(await page.evaluate(() => window.murmel.wood())).toEqual(wood);
+  const zoomed = await page.evaluate(() => window.murmel.group());
+  expect(Math.abs((zoomed?.x ?? 0) - first.x)).toBeLessThan(1);
+  expect(Math.abs((zoomed?.y ?? 0) - first.y)).toBeLessThan(1);
+
+  // Ziehen verschiebt das Bild und wählt nichts aus.
+  await page.mouse.move(first.x, first.y);
+  await page.mouse.down();
+  await page.mouse.move(first.x + 60, first.y + 40, { steps: 4 });
+  await page.mouse.up();
+  expect((await status(page))?.selected).toBe(0);
+  const moved = await page.evaluate(() => window.murmel.group());
+  expect(Math.hypot((moved?.x ?? 0) - first.x, (moved?.y ?? 0) - first.y)).toBeGreaterThan(20);
+
+  // Ein Tipp ohne Ziehen wählt die Murmel unter dem Finger, auch vergrößert.
+  await page.mouse.click(moved?.x ?? 0, moved?.y ?? 0);
+  expect((await status(page))?.selected).toBeGreaterThan(0);
+
+  // Das Holzbrett nimmt die Gruppe wie immer auf.
+  await page.mouse.click(wood.x, wood.y);
+  expect((await status(page))?.inTray).toBeGreaterThan(0);
+
+  await page.locator('#fit').click();
+  expect((await status(page))?.zoom).toBe(1);
+  await expect(page.locator('#fit')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('Ein großes Bild mit 50 × 50 Murmeln lässt sich spielen und lösen', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.evaluate(() => {
+    window.murmel.detail(50);
+    window.murmel.tray(120);
+    window.murmel.open('fuchs');
+  });
+  const begin = await status(page);
+  expect(begin?.size).toBe(50);
+  expect(begin?.tray).toBe(120);
+  expect(begin?.remaining).toBe(2500);
+  await page.evaluate(() => window.murmel.solve());
+  await expect.poll(async () => (await status(page))?.remaining, { timeout: 20_000 }).toBe(0);
+  await expect(page.locator('#finish')).toBeVisible({ timeout: 20_000 });
+  expect(errors).toEqual([]);
+});
+
+test('Mit dem Mausrad lässt sich das Bild ebenfalls vergrößern', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'ein Tablet hat kein Mausrad');
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('fuchs'));
+  const group = await page.evaluate(() => window.murmel.group());
+  if (!group) throw new Error('keine Gruppe gefunden');
+  await page.mouse.move(group.x, group.y);
+  await page.mouse.wheel(0, -600);
+  await expect.poll(async () => (await status(page))?.zoom).toBeGreaterThan(1.5);
+  // Zwei Finger zusammengezogen bringen das ganze Bild zurück.
+  await pinch(page, group.x, group.y, 200, 10);
+  expect((await status(page))?.zoom).toBe(1);
+});
+
+test('Ein eigenes, angefangenes Bild bleibt in der Sammlung, bis man es entfernt', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.locator('#photo').setInputFiles('public/icon-512.png');
+  await expect(page.locator('#board')).toBeVisible();
+  // zwei Züge: erst ablegen, dann die ersten Murmeln an ihren Platz
+  for (let k = 0; k < 2; k++) {
+    const move = await page.evaluate(() => window.murmel.next());
+    if (!move) throw new Error('kein Zug gefunden');
+    await page.mouse.click(move.select.x, move.select.y);
+    await page.mouse.click(move.target.x, move.target.y);
+  }
+  const before = await status(page);
+  expect(before?.remaining).toBeLessThan(24 * 24);
+
+  // Zurück in der Sammlung hängt das eigene Bild neben den anderen, als begonnen markiert.
+  await page.locator('#back').click();
+  const mine = page.locator('.print-wrap');
+  await expect(mine).toHaveCount(1);
+  await expect(mine.locator('.print')).toContainText('Eigenes Bild');
+  await expect(mine.locator('.print')).toContainText('begonnen');
+  await expect(page.locator('.print.own')).toContainText('Noch ein Bild');
+
+  // Auch nach dem Schließen und Wiederöffnen ist es da, und das Spiel geht dort weiter, wo es stand.
+  await page.reload();
+  await expect(mine).toHaveCount(1);
+  await mine.locator('.print').click();
+  const after = await status(page);
+  expect(after?.id).toBe(before?.id);
+  expect(after?.remaining).toBe(before?.remaining);
+  expect(after?.inTray).toBe(before?.inTray);
+
+  // Entfernen fragt erst nach und nimmt das Bild dann aus der Sammlung, dauerhaft.
+  await page.locator('#back').click();
+  const remove = mine.locator('.print-remove');
+  await remove.click();
+  await expect(remove).toHaveText('entfernen?');
+  await expect(mine).toHaveCount(1);
+  await remove.click();
+  await expect(mine).toHaveCount(0);
+  await expect(page.locator('.print')).toHaveCount(6);
+  await page.reload();
+  await expect(page.locator('.print')).toHaveCount(6);
+  await expect(mine).toHaveCount(0);
   expect(errors).toEqual([]);
 });

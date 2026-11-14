@@ -11,3 +11,6 @@ coverage/
 .claude/settings.local.json
 # Abschrift des Erklärvideos: gesprochene Worte einer dritten Person, bleibt lokal
 notizen/transkript-video.txt
+
+# Vergleichsbilder zu Entwürfen, nur lokal
+entwuerfe/

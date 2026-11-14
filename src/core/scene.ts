@@ -98,9 +98,10 @@ function bounds(shape: Shape | 'full'): [number, number, number, number] {
 /**
  * Zielraster eines Motivs: Jedes Feld bekommt die Farbe, die in ihm die größte Fläche einnimmt
  * (ermittelt über samples × samples Stichproben je Feld). Felder ohne jede Lage bleiben -1.
+ * `size` ist die Kantenlänge des Rasters: Dasselbe Motiv lässt sich grob oder fein auflösen.
  */
-export function rasterize(scene: Scene, samples = 4): Int16Array {
-  const n = scene.size;
+export function rasterize(scene: Scene, size = scene.size, samples = 4): Int16Array {
+  const n = size;
   const layers = scene.layers.filter((l) => l.ink === undefined);
   const boxes = layers.map((l) => bounds(l.shape));
   const target = new Int16Array(n * n).fill(-1);
@@ -136,8 +137,12 @@ export function rasterize(scene: Scene, samples = 4): Int16Array {
   return target;
 }
 
-export function sceneLevel(scene: Scene): Level {
-  return makeLevel(scene.name, scene.size, scene.size, scene.palette, rasterize(scene));
+/** Kantenlängen, in denen sich jedes Motiv spielen lässt: von wenigen großen bis zu vielen kleinen Murmeln. */
+export const DETAIL_SIZES: readonly number[] = [16, 20, 24, 28, 36, 50];
+
+/** Das Motiv als Spielbrett. Ohne `size` gilt die Größe, für die es gemalt wurde. */
+export function sceneLevel(scene: Scene, size = scene.size): Level {
+  return makeLevel(scene.name, size, size, scene.palette, rasterize(scene, size));
 }
 
 /** Anteil jeder Palettenfarbe am Raster (0..1). */

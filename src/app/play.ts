@@ -1,17 +1,21 @@
 import type { HoleStyle } from '../art/holes';
+import type { MarbleStyle } from '../art/marble';
 import type { Sound } from '../audio/sound';
 import { Game, type Outcome } from '../core/game';
-import { colorDone, remaining } from '../core/grid';
+import { colorDone, components, remaining } from '../core/grid';
 import { newState } from '../core/level';
 import { selectionSize, trayCount } from '../core/moves';
 import { makeRng } from '../core/random';
 import { suggest } from '../core/solver';
+import { watchGestures } from './gestures';
 import type { Picture } from './library';
 import { store } from './storage';
 import { BoardView } from './view';
 
-/** Mulden auf dem Holzbrett */
-const TRAY_SLOTS = 30;
+/** Mulden auf dem Holzbrett, solange in den Einstellungen nichts anderes gewählt ist */
+export const TRAY_DEFAULT = 30;
+/** Größen des Holzbretts, die die Einstellungen anbieten: große Bilder brauchen mehr Vorrat */
+export const TRAY_SIZES: readonly number[] = [30, 45, 60, 90, 120];
 
 export interface PlayElements {
   root: HTMLElement;
@@ -19,6 +23,8 @@ export interface PlayElements {
   bar: HTMLElement;
   back: HTMLButtonElement;
   undo: HTMLButtonElement;
+  /** zeigt wieder das ganze Bild; nur sichtbar, solange es vergrößert ist */
+  fit: HTMLButtonElement;
   whisper: HTMLElement;
   finish: HTMLElement;
   again: HTMLButtonElement;
@@ -36,6 +42,7 @@ export class PlayScreen {
   private readonly probe = document.createElement('div');
   private whisperTimer = 0;
   private finishTimer = 0;
+  private traySize = TRAY_DEFAULT;
 
   constructor(
     private readonly el: PlayElements,
@@ -58,10 +65,14 @@ export class PlayScreen {
         }
       },
       finished: () => this.finished(),
+      zoomed: (on) => {
+        el.fit.hidden = !on;
+      },
     });
     this.probe.className = 'probe';
     el.root.append(this.probe);
-    el.canvas.addEventListener('pointerdown', (e) => this.tap(e));
+    watchGestures(el.canvas, this.view, (x, y) => this.tap(x, y));
+    el.fit.addEventListener('click', () => this.view.resetZoom());
     el.undo.addEventListener('click', () => this.undo());
     el.back.addEventListener('click', () => this.close());
     el.onward.addEventListener('click', () => this.close());
@@ -87,16 +98,18 @@ export class PlayScreen {
     clearTimeout(this.finishTimer);
     this.el.finish.hidden = true;
     this.picture = picture;
-    const saved = fresh || picture.own ? undefined : store.progress(picture.id);
-    if (!fresh && !picture.own && store.isFinished(picture.id) && !saved) {
+    const saved = fresh ? undefined : store.progress(picture.key);
+    if (!fresh && store.isFinished(picture.key) && !saved) {
       // schon fertig: das Bild zeigen, wie es ist
-      this.game = new Game(level, newState(level.target.slice(), TRAY_SLOTS));
+      this.game = new Game(level, newState(level.target.slice(), this.traySize));
       window.setTimeout(() => this.showFinish(), 0);
-    } else if (saved && saved.cur.length === level.target.length && saved.tray.length === TRAY_SLOTS) {
+    } else if (saved && saved.cur.length === level.target.length && saved.tray.length > 0) {
       this.game = new Game(level, { cur: Int16Array.from(saved.cur), tray: Int16Array.from(saved.tray) });
+      // Das Brett kann inzwischen anders eingestellt sein. Passt nicht mehr alles darauf, bleibt es, wie es war.
+      this.game.resizeTray(this.traySize);
     } else {
-      if (fresh) store.clearProgress(picture.id);
-      this.game = Game.start(level, makeRng(Date.now() >>> 0), TRAY_SLOTS);
+      if (fresh) store.clearProgress(picture.key);
+      this.game = Game.start(level, makeRng(Date.now() >>> 0), this.traySize);
     }
     this.settled.clear();
     this.sound.setRoot(picture.mood.root);
@@ -105,7 +118,11 @@ export class PlayScreen {
     this.view.show(this.game, picture.painting, picture.name);
     this.view.start();
     this.updateUndo();
-    if (!this.game.solved) this.hint('anfang', 'Tippe auf eine Murmel.');
+    if (!this.game.solved) {
+      // Bei vielen kleinen Murmeln hilft es zu wissen, dass sich das Bild vergrößern lässt.
+      if (this.view.cellSize < 24) this.hint('zoom', 'Mit zwei Fingern lässt sich das Bild vergrößern.');
+      else this.hint('anfang', 'Tippe auf eine Murmel.');
+    }
   }
 
   close(): void {
@@ -148,6 +165,13 @@ export class PlayScreen {
     inTray: number;
     /** wie viele Murmeln gerade gewählt sind */
     selected: number;
+    /** wo die gewählten Murmeln liegen */
+    selectedOn: 'board' | 'tray' | null;
+    /** wie stark das Bild vergrößert ist (1 = ganz zu sehen) */
+    zoom: number;
+    /** Murmeln je Kante und Mulden auf dem Holzbrett */
+    size: number;
+    tray: number;
     busy: boolean;
     finishShown: boolean;
   } | null {
@@ -158,14 +182,64 @@ export class PlayScreen {
       remaining: remaining(this.game.level, this.game.state.cur),
       inTray: trayCount(this.game.state),
       selected: this.game.selection ? selectionSize(this.game.selection) : 0,
+      selectedOn: this.game.selection?.source ?? null,
+      zoom: this.view.zoom,
+      size: this.game.level.w,
+      tray: this.game.state.tray.length,
       busy: this.view.busy,
       finishShown: !this.el.finish.hidden,
+    };
+  }
+
+  /**
+   * Bildschirmpunkte für Tests, die wie ein Mensch tippen: das Holz des Bretts, die kleinste noch nicht gewählte
+   * Gruppe im Bild und eine Murmel auf dem Brett, deren Farbe gerade nicht im Bild gewählt ist.
+   */
+  points(): {
+    wood: { x: number; y: number };
+    group: { x: number; y: number } | null;
+    slot: { x: number; y: number } | null;
+  } | null {
+    const game = this.game;
+    if (!game) return null;
+    const { level, state, selection } = game;
+    const taken = selection?.source === 'board' ? new Set(selection.cells) : null;
+    const group = components(level, state.cur)
+      .groups.filter((g) => !taken?.has(g.cells[0]))
+      .sort((a, b) => a.cells.length - b.cells.length)[0];
+    const cell = group?.cells[0];
+    const slot = state.tray.findIndex((c) => c >= 0 && !(selection?.source === 'board' && selection.color === c));
+    return {
+      wood: this.view.clientPoint('ablage'),
+      group: cell === undefined ? null : this.view.clientPoint({ cell }),
+      slot: slot < 0 ? null : this.view.clientPoint({ slot }),
     };
   }
 
   /** Wählt den Entwurf für leere Felder im Bild. */
   setHoleStyle(style: HoleStyle): void {
     this.view.setHoleStyle(style);
+  }
+
+  /** Wählt, ob die Murmeln spiegeln. */
+  setMarbleStyle(style: MarbleStyle): void {
+    this.view.setMarbleStyle(style);
+  }
+
+  /**
+   * Stellt die Zahl der Mulden auf dem Holzbrett ein. Im laufenden Spiel gilt das sofort, außer es liegen mehr
+   * Murmeln auf dem Brett, als das kleinere fassen würde: Dann bleibt es bis zum nächsten Bild beim alten.
+   */
+  setTraySize(size: number): boolean {
+    this.traySize = size;
+    const game = this.game;
+    if (!game || game.solved || game.state.tray.length === size) return true;
+    if (!game.resizeTray(size)) return false;
+    this.view.calm();
+    this.view.resize();
+    this.save();
+    this.updateUndo();
+    return true;
   }
 
   /** Sagt einen Satz in der Leiste, der nach ein paar Sekunden wieder verschwindet. */
@@ -181,10 +255,10 @@ export class PlayScreen {
     this.view.setInsets(Math.max(40, top), bottom);
   }
 
-  private tap(e: PointerEvent): void {
+  private tap(clientX: number, clientY: number): void {
     const game = this.game;
     if (!game || game.solved) return;
-    const hit = this.view.hit(e.clientX, e.clientY);
+    const hit = this.view.hit(clientX, clientY);
     const outcome =
       hit.type === 'cell' ? game.tapCell(hit.cell) : hit.type === 'tray' ? game.tapTray(hit.slot) : game.tapOutside();
     this.respond(outcome);
@@ -197,7 +271,7 @@ export class PlayScreen {
         this.view.refresh();
         if (outcome.selection.source === 'board') {
           if (outcome.hatLoch) this.hint('loch', 'Tippe auf ein leuchtendes Loch.');
-          else this.hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Lege sie auf dem Holzbrett ab.');
+          else this.hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Tippe auf eine freie Mulde im Holzbrett.');
         } else if (!outcome.hatLoch) {
           this.say('Für diese Farbe ist noch kein Loch frei.');
         }
@@ -246,14 +320,14 @@ export class PlayScreen {
 
   private save(): void {
     const { game, picture } = this;
-    if (!game || !picture || picture.own || game.solved) return;
-    store.saveProgress(picture.id, { cur: Array.from(game.state.cur), tray: Array.from(game.state.tray) });
+    if (!game || !picture || game.solved) return;
+    store.saveProgress(picture.key, { cur: Array.from(game.state.cur), tray: Array.from(game.state.tray) });
   }
 
   private finished(): void {
     const picture = this.picture;
     if (!picture) return;
-    if (!picture.own) store.markFinished(picture.id);
+    store.markFinished(picture.key);
     this.sound.finish();
     this.updateUndo();
     // dem fertigen Bild einen Moment allein lassen, dann erst die beiden Wege anbieten

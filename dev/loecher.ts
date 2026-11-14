@@ -1,5 +1,6 @@
-// Entwicklungsansicht: die Entwürfe für das leere Feld als Musterblatt, jede Farbe neben ihrer Murmel.
-import { HOLE_NAMES, HOLE_STYLES, hole } from '../src/art/holes';
+// Entwicklungsansicht: die Entwürfe für das leere Feld als Musterblatt, jede Farbe neben ihrer Murmel
+// (mit und ohne Spiegelung).
+import { HOLE_NAMES, HOLE_STYLES, hole, holeVariants, showsPicture } from '../src/art/holes';
 import { marble } from '../src/art/marble';
 import { PAPER } from '../src/art/materials';
 import { SCENES } from '../src/art/scenes';
@@ -16,7 +17,8 @@ for (const scene of SCENES) {
   for (const style of HOLE_STYLES) {
     const sizes = [46, 27];
     const colors = scene.palette;
-    const width = colors.length * 3 * sizes[0] + 20;
+    const group = 4; // zwei Murmeln, zwei leere Felder
+    const width = colors.length * group * sizes[0] + 20;
     const height = sizes[0] + sizes[1] + 34;
     const canvas = document.createElement('canvas');
     canvas.width = width * dpr;
@@ -30,13 +32,16 @@ for (const scene of SCENES) {
     let top = 10;
     for (const cell of sizes) {
       colors.forEach((color, k) => {
-        const left = 10 + k * 3 * sizes[0];
-        // blasse Vorzeichnung in der Zielfarbe, wie im Spiel
+        const left = 10 + k * group * sizes[0];
+        // unter den Murmeln die blasse Vorzeichnung; unter den leeren Feldern je nach Entwurf schon das Bild
         x.fillStyle = mix(PAPER, color, 0.36);
-        x.fillRect(left, top, cell * 3, cell);
-        marble(x, left + cell / 2, top + cell / 2, cell * 0.82 * 0.48, color, k);
-        hole(x, left + cell * 1.5, top + cell / 2, cell, color, style);
-        hole(x, left + cell * 2.5, top + cell / 2, cell, color, style);
+        x.fillRect(left, top, cell * 2, cell);
+        x.fillStyle = showsPicture(style) ? color : mix(PAPER, color, 0.36);
+        x.fillRect(left + cell * 2, top, cell * 2, cell);
+        marble(x, left + cell / 2, top + cell / 2, cell * 0.82 * 0.48, color, k, 'glas');
+        marble(x, left + cell * 1.5, top + cell / 2, cell * 0.82 * 0.48, color, k, 'matt');
+        hole(x, left + cell * 2.5, top + cell / 2, cell, color, style, 0);
+        hole(x, left + cell * 3.5, top + cell / 2, cell, color, style, 1 % holeVariants(style));
       });
       top += cell + 14;
     }

@@ -312,6 +312,47 @@ button:focus-visible,
   color: rgb(43 39 51 / 0.5);
 }
 
+/* ein eigenes Bild: derselbe Druck, dazu ein leiser Knopf zum Entfernen in der Ecke */
+.print-wrap {
+  position: relative;
+  flex: none;
+  width: var(--print-w);
+  scroll-snap-align: center;
+}
+
+.print-wrap .print {
+  width: 100%;
+}
+
+.print-remove {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 15px;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 0 4px 12px rgb(8 10 28 / 0.4);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.82;
+  transition: opacity 0.25s;
+}
+
+.print-remove:hover,
+.print-remove.asking {
+  opacity: 1;
+}
+
+.print-remove.asking {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* leeres Blatt für ein eigenes Foto */
 .print.own canvas {
   outline-style: dashed;
@@ -342,6 +383,13 @@ button:focus-visible,
     scroll-snap-type: none;
     padding: 20px var(--gutter-right) 20px var(--gutter-left);
     touch-action: pan-y;
+  }
+}
+
+/* Kommen eigene Bilder dazu, werden es drei Reihen: Die Drucke rücken dann etwas zusammen. */
+@container app (min-width: 700px) and (min-height: 900px) {
+  .shelf:has(> :nth-child(7)) {
+    --print-w: min(280px, calc((100cqw - 104px) / 3), calc((100cqh - 590px) / 2.85));
   }
 }
 
@@ -392,6 +440,10 @@ button:focus-visible,
     grid-row: 2;
     align-items: flex-start;
     padding-left: calc(var(--edge) - 14px);
+  }
+
+  .shelf:has(> :nth-child(7)) {
+    --print-w: min(280px, calc((62cqw - 104px) / 3), calc((100cqh - 290px) / 2.85));
   }
 }
 
@@ -526,6 +578,16 @@ button:focus-visible,
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+/* viele kurze Möglichkeiten: so viele nebeneinander, wie hinpassen */
+.choices.chips {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+
+/* zwei Möglichkeiten nebeneinander statt drei */
+.choices.pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .choice {

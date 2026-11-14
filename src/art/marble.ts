@@ -4,13 +4,28 @@ import { luminance, mix, rgba } from '../core/color';
  * Glasmurmel in drei Schichten: unten Schatten und Glaskörper, in der Mitte der farbige Kern (er dreht sich beim
  * Rollen), oben die Spiegelungen. Das Licht kommt wie im Papierschnitt von oben links.
  * Alle Funktionen zeichnen um den Mittelpunkt (cx, cy) mit Radius r.
+ *
+ * Wer die vielen Farbtöne der Spiegelungen als unruhig empfindet, stellt in den Einstellungen auf "ohne Spiegelung":
+ * Dann ist jede Murmel eine matte Kugel in genau einer Farbe, nur sanft schattiert, damit sie rund bleibt.
  */
 type Ctx = CanvasRenderingContext2D;
+
+export type MarbleStyle = 'glas' | 'matt';
+/** Die Voreinstellung steht vorn. */
+export const MARBLE_STYLES: readonly MarbleStyle[] = ['glas', 'matt'];
+export const MARBLE_NAMES: Record<MarbleStyle, string> = { glas: 'Mit Spiegelung', matt: 'Ohne Spiegelung' };
 
 const SHADOW = '#10142a';
 const LIGHT = '#fff8ea';
 
-export function marbleUnder(x: Ctx, cx: number, cy: number, r: number, color: string): void {
+export function marbleUnder(
+  x: Ctx,
+  cx: number,
+  cy: number,
+  r: number,
+  color: string,
+  style: MarbleStyle = 'glas',
+): void {
   // Schatten nach unten rechts
   const sx = cx + r * 0.26;
   const sy = cy + r * 0.36;
@@ -22,6 +37,19 @@ export function marbleUnder(x: Ctx, cx: number, cy: number, r: number, color: st
   x.beginPath();
   x.ellipse(sx, sy, r * 1.1, r * 1.02, 0, 0, Math.PI * 2);
   x.fill();
+  if (style === 'matt') {
+    // matte Kugel: fast überall die reine Farbe, zum Licht hin etwas heller, zum Rand hin etwas dunkler
+    g = x.createRadialGradient(cx - r * 0.32, cy - r * 0.38, r * 0.05, cx - r * 0.1, cy - r * 0.12, r * 1.1);
+    g.addColorStop(0, mix(color, '#ffffff', 0.2));
+    g.addColorStop(0.45, color);
+    g.addColorStop(0.8, mix(color, '#000000', 0.1));
+    g.addColorStop(1, mix(color, '#000000', 0.3));
+    x.fillStyle = g;
+    x.beginPath();
+    x.arc(cx, cy, r, 0, Math.PI * 2);
+    x.fill();
+    return;
+  }
   // gebündeltes Licht im Schatten: daran erkennt man Glas
   const kx = cx + r * 0.7;
   const ky = cy + r * 0.84;
@@ -44,8 +72,16 @@ export function marbleUnder(x: Ctx, cx: number, cy: number, r: number, color: st
   x.fill();
 }
 
-/** Katzenauge: drei schmale, gedrehte Farbbänder im Glas. */
-export function marbleCore(x: Ctx, cx: number, cy: number, r: number, color: string): void {
+/** Katzenauge: drei schmale, gedrehte Farbbänder im Glas. Die matte Murmel hat keins. */
+export function marbleCore(
+  x: Ctx,
+  cx: number,
+  cy: number,
+  r: number,
+  color: string,
+  style: MarbleStyle = 'glas',
+): void {
+  if (style === 'matt') return;
   // heller als das Glas; bei sehr hellen Murmeln bläulich, damit das Band sichtbar bleibt
   const light = luminance(color) > 215 ? mix(color, '#7f9dbd', 0.55) : mix(color, '#ffffff', 0.46);
   const deep = mix(color, '#000000', 0.3);
@@ -73,11 +109,20 @@ export function marbleCore(x: Ctx, cx: number, cy: number, r: number, color: str
   }
 }
 
-export function marbleTop(x: Ctx, cx: number, cy: number, r: number, color: string): void {
+export function marbleTop(x: Ctx, cx: number, cy: number, r: number, color: string, style: MarbleStyle = 'glas'): void {
   const circle = () => {
     x.beginPath();
     x.arc(cx, cy, r, 0, Math.PI * 2);
   };
+  if (style === 'matt') {
+    // nur ein feiner dunkler Rand, der die Kugel von ähnlich hellem Grund abhebt
+    x.strokeStyle = rgba(mix(color, '#000000', 0.55), 0.4);
+    x.lineWidth = Math.max(0.6, r * 0.05);
+    x.beginPath();
+    x.arc(cx, cy, r * 0.985, 0, Math.PI * 2);
+    x.stroke();
+    return;
+  }
   // Glas über dem Kern: zum Rand und nach oben dunkler, so liegt der Kern im Glas
   let g = x.createRadialGradient(cx + r * 0.18, cy + r * 0.22, r * 0.3, cx, cy, r);
   g.addColorStop(0, rgba(color, 0));
@@ -133,14 +178,22 @@ export function marbleTop(x: Ctx, cx: number, cy: number, r: number, color: stri
 }
 
 /** Ganze Murmel; `turn` dreht den Kern (Bogenmaß). */
-export function marble(x: Ctx, cx: number, cy: number, r: number, color: string, turn = 0): void {
-  marbleUnder(x, cx, cy, r, color);
+export function marble(
+  x: Ctx,
+  cx: number,
+  cy: number,
+  r: number,
+  color: string,
+  turn = 0,
+  style: MarbleStyle = 'glas',
+): void {
+  marbleUnder(x, cx, cy, r, color, style);
   x.save();
   x.translate(cx, cy);
   x.rotate(turn);
-  marbleCore(x, 0, 0, r, color);
+  marbleCore(x, 0, 0, r, color, style);
   x.restore();
-  marbleTop(x, cx, cy, r, color);
+  marbleTop(x, cx, cy, r, color, style);
 }
 
 /**

@@ -4,7 +4,7 @@ import { deal } from '../core/deal';
 import { isSolved } from '../core/grid';
 import { newState } from '../core/level';
 import { makeRng } from '../core/random';
-import { colorShares, sceneLevel } from '../core/scene';
+import { colorShares, DETAIL_SIZES, sceneLevel } from '../core/scene';
 import { autoplay } from '../core/solver';
 import { SCENES } from './scenes';
 
@@ -52,6 +52,22 @@ describe.each(SCENES.map((s) => [s.name, s] as const))('Motiv %s', (_name, scene
     const cur = deal(level, makeRng(scene.size * 13));
     expect(level.cells.filter((i) => cur[i] === level.target[i]).length).toBe(0);
     const state = newState(cur, 30);
+    autoplay(level, state);
+    expect(isSolved(level, state.cur)).toBe(true);
+  });
+});
+
+describe.each(SCENES.map((s) => [s.name, s] as const))('Motiv %s in anderer Detailtiefe', (_name, scene) => {
+  it.each(DETAIL_SIZES.map((n) => [n]))('ist mit %i × %i Murmeln spielbar', (size) => {
+    const level = sceneLevel(scene, size);
+    expect(level.cells.length).toBe(size * size);
+    // keine Farbe darf mehr als die Hälfte belegen, sonst ließe sich nicht jede Murmel auf ein fremdes Feld legen
+    const shares = colorShares(level);
+    expect(Math.max(...shares)).toBeLessThan(0.5);
+    const cur = deal(level, makeRng(size * 7 + 1));
+    expect(level.cells.filter((i) => cur[i] === level.target[i]).length).toBe(0);
+    // ein großes Bild bekommt ein großes Holzbrett, wie es die Einstellungen anbieten
+    const state = newState(cur, size > 30 ? 90 : 30);
     autoplay(level, state);
     expect(isSolved(level, state.cur)).toBe(true);
   });

@@ -139,6 +139,97 @@ describe('Spielsteuerung', () => {
     });
   });
 
+  describe('Tipp auf das Holzbrett, während eine Gruppe aus dem Bild gewählt ist', () => {
+    /** Oben liegen zwei B und ein A falsch; auf dem Holzbrett liegen ein A und ein B, eine Mulde ist frei. */
+    function withTray(traySize = 3): Game {
+      const level = levelFromRows(['AAB', 'BBA']);
+      const game = new Game(level, newState(new Int16Array([1, 1, 0, EMPTY, 0, EMPTY]), traySize));
+      game.state.tray.set([0, 1]);
+      return game;
+    }
+
+    it('legt die Gruppe ab, wenn man eine freie Mulde oder das Holz antippt', () => {
+      const game = withTray();
+      game.tapCell(0);
+      expect(game.tapTray(2)).toMatchObject({ type: 'gerollt', ziel: 'ablage' });
+      expect(trayCount(game.state)).toBe(3);
+    });
+
+    it('legt die Gruppe zu den Murmeln derselben Farbe, wenn man eine davon antippt', () => {
+      const game = withTray();
+      game.tapCell(0); // zwei B gewählt
+      expect(game.tapTray(1)).toMatchObject({ type: 'gerollt', ziel: 'ablage', color: 1 });
+    });
+
+    it('wählt stattdessen die Murmeln auf dem Holzbrett, wenn man eine andere Farbe antippt', () => {
+      const game = withTray();
+      game.tapCell(0); // zwei B gewählt
+      const out = game.tapTray(0); // ein A auf dem Holzbrett
+      expect(out).toMatchObject({ type: 'gewählt', selection: { source: 'tray', color: 0, slots: [0] } });
+      expect(trayCount(game.state)).toBe(2); // nichts wurde abgelegt
+    });
+
+    it('lässt bei vollem Holzbrett und gewähltem Rest trotzdem eine Farbe auf dem Brett wählen', () => {
+      // Der gemeldete Fehler: Das Brett ist voll, ein Rest ist noch gewählt, und jeder Tipp auf das Brett
+      // wurde als Ablegen verstanden und mit "Das Holzbrett ist voll" beantwortet.
+      const game = withTray();
+      game.tapCell(0); // zwei B gewählt, aber nur eine Mulde frei
+      expect(game.tapTray(null)).toMatchObject({ type: 'gerollt', rest: { source: 'board', color: 1 } });
+      expect(trayCount(game.state)).toBe(3);
+      expect(game.tapTray(0)).toMatchObject({ type: 'gewählt', selection: { source: 'tray', color: 0 } });
+      // die gewählten A lassen sich danach ins Bild legen
+      expect(game.tapCell(5)).toMatchObject({ type: 'gerollt', ziel: 'bild' });
+    });
+
+    it('lehnt bei vollem Holzbrett nur das Ablegen ab', () => {
+      const game = withTray(2);
+      game.tapCell(0);
+      expect(game.tapTray(null)).toEqual({ type: 'abgelehnt', reason: 'ablage-voll' });
+      expect(game.tapTray(1)).toEqual({ type: 'abgelehnt', reason: 'ablage-voll' }); // dieselbe Farbe: gemeint ist Ablegen
+      expect(game.selection).toMatchObject({ source: 'board', color: 1 });
+    });
+  });
+
+  describe('Größe des Holzbretts', () => {
+    function parked(): Game {
+      const level = levelFromRows(['AAB', 'BBA']);
+      const game = new Game(level, newState(new Int16Array([EMPTY, 1, 0, EMPTY, 0, EMPTY]), 4));
+      game.state.tray.set([EMPTY, 0, EMPTY, 1]);
+      return game;
+    }
+
+    it('wächst, ohne dass eine Murmel ihren Platz verliert', () => {
+      const game = parked();
+      expect(game.resizeTray(6)).toBe(true);
+      expect(Array.from(game.state.tray)).toEqual([EMPTY, 0, EMPTY, 1, EMPTY, EMPTY]);
+    });
+
+    it('schrumpft, solange alle Murmeln Platz haben, und rückt sie dabei zusammen', () => {
+      const game = parked();
+      expect(game.resizeTray(2)).toBe(true);
+      expect(Array.from(game.state.tray)).toEqual([0, 1]);
+      expect(trayCount(game.state)).toBe(2);
+    });
+
+    it('schrumpft nicht unter die Zahl der Murmeln, die darauf liegen', () => {
+      const game = parked();
+      expect(game.resizeTray(1)).toBe(false);
+      expect(game.state.tray).toHaveLength(4);
+    });
+
+    it('hebt eine Auswahl auf dem Brett auf und vergisst frühere Stände', () => {
+      const game = parked();
+      game.tapCell(1);
+      game.tapTray(0); // freie Mulde: ablegen
+      expect(game.canUndo).toBe(true);
+      game.tapTray(1); // die A auf dem Brett wählen
+      expect(game.selection?.source).toBe('tray');
+      expect(game.resizeTray(8)).toBe(true);
+      expect(game.selection).toBeNull();
+      expect(game.canUndo).toBe(false);
+    });
+  });
+
   it('nimmt Züge zurück', () => {
     const game = swapped();
     expect(game.canUndo).toBe(false);

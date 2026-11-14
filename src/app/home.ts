@@ -8,7 +8,7 @@ function drawPreview(canvas: HTMLCanvasElement, picture: Picture): 'neu' | 'bego
   canvas.width = canvas.height = px;
   const x = canvas.getContext('2d') as CanvasRenderingContext2D;
   x.imageSmoothingQuality = 'high';
-  if (store.isFinished(picture.id)) {
+  if (store.isFinished(picture.key)) {
     x.drawImage(picture.painting, 0, 0, px, px);
     return 'fertig';
   }
@@ -17,7 +17,7 @@ function drawPreview(canvas: HTMLCanvasElement, picture: Picture): 'neu' | 'bego
   x.globalAlpha = 0.36;
   x.drawImage(picture.painting, 0, 0, px, px);
   x.globalAlpha = 1;
-  const saved = store.progress(picture.id);
+  const saved = store.progress(picture.key);
   if (!saved) return 'neu';
   // was schon liegt, in voller Farbe
   const { w, h, target } = picture.level;
@@ -41,6 +41,8 @@ const TILTS = [-1.6, 1.1, -0.7, 1.5, -1.2, 0.8];
 export interface HomeHandlers {
   open(picture: Picture): void;
   choosePhoto(): void;
+  /** nimmt ein eigenes Bild aus der Sammlung */
+  remove(picture: Picture): void;
 }
 
 /** Baut die Sammlung auf der Startseite neu auf. */
@@ -63,7 +65,34 @@ export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeH
     label.textContent = state === 'neu' ? size : `${state} · ${size}`;
     card.append(canvas, name, label);
     card.addEventListener('click', () => handlers.open(picture));
-    shelf.append(card);
+    if (!picture.own) {
+      shelf.append(card);
+      return;
+    }
+    // Ein eigenes Bild lässt sich wieder entfernen. Der erste Tipp fragt nach, erst der zweite entfernt.
+    const wrap = document.createElement('div');
+    wrap.className = 'print-wrap';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'print-remove';
+    remove.setAttribute('aria-label', `${picture.name} entfernen`);
+    remove.textContent = '×';
+    let asked = 0;
+    remove.addEventListener('click', () => {
+      if (!remove.classList.contains('asking')) {
+        remove.classList.add('asking');
+        remove.textContent = 'entfernen?';
+        asked = window.setTimeout(() => {
+          remove.classList.remove('asking');
+          remove.textContent = '×';
+        }, 3200);
+        return;
+      }
+      clearTimeout(asked);
+      handlers.remove(picture);
+    });
+    wrap.append(card, remove);
+    shelf.append(wrap);
   });
 
   // leeres Blatt: ein eigenes Foto
@@ -87,7 +116,7 @@ export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeH
   x.stroke();
   const name = document.createElement('span');
   name.className = 'print-name';
-  name.textContent = 'Eigenes Bild';
+  name.textContent = list.some((p) => p.own) ? 'Noch ein Bild' : 'Eigenes Bild';
   const label = document.createElement('span');
   label.className = 'print-state';
   label.textContent = 'Foto wählen';
