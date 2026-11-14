@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
+import { minDeltaE } from '../src/core/color';
 
 /** Zugang, den das Spiel für Tests bereitstellt (siehe src/app/app.ts). */
 interface Murmel {
@@ -21,6 +22,7 @@ interface Murmel {
     tray: number;
     busy: boolean;
     finishShown: boolean;
+    colors: string[];
   } | null;
   home(): void;
   /** eine Stelle auf dem Holz des Bretts, die keine Mulde trifft */
@@ -203,7 +205,7 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
   const sheet = page.locator('#settings');
   await expect(sheet).toBeVisible();
   const choices = sheet.locator('[data-part="holes"] .choice');
-  await expect(choices).toHaveText(['Gestanzt', 'Im Bild', 'Kreuz', 'Gerissen', 'Schälchen', 'Ring']);
+  await expect(choices).toHaveText(['Kreuz', 'Schälchen', 'Ring']);
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true'); // Voreinstellung
   await choices.nth(1).click();
   await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
@@ -225,7 +227,7 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
 test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Felder lässt sich spielen', async ({
   page,
 }) => {
-  test.slow(); // sechs Entwürfe nacheinander: Der iPad-Browser auf dem Build-Server braucht dafür länger
+  test.slow(); // mehrere Entwürfe nacheinander: Der iPad-Browser auf dem Build-Server braucht dafür länger
   const errors = watchErrors(page);
   await page.goto('/');
   await page.locator('#homeSettings').click();
@@ -239,7 +241,7 @@ test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Feld
   // Jeder Entwurf wird einmal gewählt und einen Zug lang gespielt: Dabei darf nichts kaputtgehen.
   await page.evaluate(() => window.murmel.open('mond'));
   const holes = page.locator('#settings [data-part="holes"] .choice');
-  for (let k = 0; k < 6; k++) {
+  for (let k = 0; k < 3; k++) {
     await page.locator('#playSettings').click();
     await holes.nth(k).click();
     await expect(holes.nth(k)).toHaveAttribute('aria-pressed', 'true');
@@ -637,5 +639,44 @@ test('Ein eigenes, angefangenes Bild bleibt in der Sammlung, bis man es entfernt
   await page.reload();
   await expect(page.locator('.print')).toHaveCount(PRINTS);
   await expect(mine).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('Die Farben eines eigenen Fotos lassen sich stärker voneinander abheben', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.locator('#photo').setInputFiles('public/icon-512.png');
+  await expect.poll(async () => (await status(page))?.id).toMatch(/^eigenes-/);
+  // ein Zug, damit es einen Stand gibt, der das Umfärben überstehen muss
+  const move = await page.evaluate(() => window.murmel.next());
+  if (move) {
+    await page.mouse.click(move.select.x, move.select.y);
+    await page.mouse.click(move.target.x, move.target.y);
+  }
+  await expect.poll(async () => (await status(page))?.busy).toBe(false);
+  const before = await status(page);
+  const gap = (colors: string[] = []) => minDeltaE(colors).value;
+
+  await page.locator('#playSettings').click();
+  const choices = page.locator('#settings [data-part="contrast"] .choice');
+  await expect(choices).toHaveText(['Naturnah', 'Deutlich', 'Kräftig']);
+  await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  await choices.nth(2).click();
+  await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#settings [data-part="done"]').click();
+
+  const after = await status(page);
+  expect(after?.colors).not.toEqual(before?.colors);
+  expect(after?.colors.length).toBe(before?.colors.length);
+  expect(gap(after?.colors)).toBeGreaterThan(gap(before?.colors));
+  // die Murmeln liegen, wo sie lagen
+  expect(after?.remaining).toBe(before?.remaining);
+  expect(after?.inTray).toBe(before?.inTray);
+
+  // die Wahl gilt auch nach dem Neuladen
+  await page.reload();
+  await page.locator('.print-wrap .print').click();
+  await expect.poll(async () => (await status(page))?.colors).toEqual(after?.colors);
+  expect((await status(page))?.remaining).toBe(before?.remaining);
   expect(errors).toEqual([]);
 });

@@ -1,6 +1,7 @@
 import { HOLE_STYLES, type HoleStyle } from '../art/holes';
 import { MARBLE_STYLES, type MarbleStyle } from '../art/marble';
 import { SOUND_MODES, type SoundMode } from '../audio/sound';
+import { PHOTO_CONTRASTS, type PhotoContrast } from '../core/quantize';
 
 /**
  * Merkt sich im Browser, welche Bilder fertig sind, wo man bei einem angefangenen Bild steht und welche eigenen
@@ -15,7 +16,10 @@ export interface Progress {
 
 /** Das Raster eines eigenen Fotos in einer Detailtiefe, so wie es beim ersten Spielen entstanden ist */
 export interface OwnLevel {
+  /** Murmelfarben in der Einstellung "naturnah" */
   palette: string[];
+  /** Farben des Fotos je Farbnummer. Aus ihnen entstehen die Murmelfarben; ältere Stände kennen sie noch nicht. */
+  source?: string[];
   target: number[];
 }
 
@@ -39,6 +43,8 @@ interface Saved {
   detail?: number | null;
   /** in den Einstellungen gewählt: Zahl der Mulden auf dem Holzbrett */
   tray?: number;
+  /** in den Einstellungen gewählt: wie stark sich die Murmelfarben eigener Fotos unterscheiden */
+  contrast?: PhotoContrast;
   /** eigene Fotos, in der Reihenfolge, in der sie dazukamen */
   own?: OwnRecord[];
 }
@@ -127,6 +133,14 @@ export const store = {
   },
   set tray(size: number | undefined) {
     read().tray = size;
+    write();
+  },
+  get contrast(): PhotoContrast {
+    const saved = read().contrast;
+    return PHOTO_CONTRASTS.find((c) => c === saved) ?? PHOTO_CONTRASTS[0];
+  },
+  set contrast(contrast: PhotoContrast) {
+    read().contrast = contrast;
     write();
   },
   /** Eigene Fotos der Sammlung. */

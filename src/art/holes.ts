@@ -1,43 +1,27 @@
 import { mix, rgba } from '../core/color';
-import { makeRng } from '../core/random';
 import { PAPER } from './materials';
 
 /**
  * Das leere Feld im Bild. Es muss auf einen Blick anders aussehen als eine Murmel (matt statt glänzend, vertieft
- * statt gewölbt) und zeigen, welche Farbe hierher gehört. Mehrere Entwürfe sind in den Einstellungen wählbar.
- *
- * Auf der blassen Vorzeichnung, die Farbe trägt das Zeichen selbst:
- * - gestanzt: ein dunkles Loch mit heller Schnittkante in einem breiten Kragen in der Zielfarbe
- * - schale:   eine flache Schale in aufgehellter Zielfarbe mit Rand in der vollen Farbe
- * - ring:     eine helle Mulde mit kräftigem Farbring
- *
- * Im fertigen Bild: Unter dem leeren Feld liegt schon das Bild in voller Farbe (siehe `showsPicture`), das Zeichen
- * ist nur noch die Öffnung darin. So ist die Farbe so deutlich wie möglich.
- * - bild:  ein rundes, dunkles Loch mit heller Schnittkante
- * - kreuz: ein Kreuzschnitt, dessen vier Lappen nach innen gedrückt sind
- * - riss:  ein gerissenes, gezacktes Loch mit feinen Sprüngen
+ * statt gewölbt) und zeigen, welche Farbe hierher gehört. Drei Entwürfe sind in den Einstellungen wählbar. Alle
+ * liegen auf der blassen Vorzeichnung, die Farbe trägt das Zeichen selbst:
+ * - kreuz:  eine flache Schale in aufgehellter Zielfarbe, in deren Mitte ein Kreuzschlitz-Schraubendreher
+ *           einen Abdruck nach unten hinterlassen hat
+ * - schale: dieselbe Schale ohne Abdruck
+ * - ring:   eine helle Mulde mit kräftigem Farbring
  *
  * Alle zeichnen um den Mittelpunkt (cx, cy) eines Felds der Kantenlänge `cell`. Das Licht kommt von oben links.
  */
 type Ctx = CanvasRenderingContext2D;
 
-export type HoleStyle = 'gestanzt' | 'bild' | 'kreuz' | 'riss' | 'schale' | 'ring';
+export type HoleStyle = 'kreuz' | 'schale' | 'ring';
 /** Die Voreinstellung steht vorn. */
-export const HOLE_STYLES: readonly HoleStyle[] = ['gestanzt', 'bild', 'kreuz', 'riss', 'schale', 'ring'];
+export const HOLE_STYLES: readonly HoleStyle[] = ['kreuz', 'schale', 'ring'];
 export const HOLE_NAMES: Record<HoleStyle, string> = {
-  gestanzt: 'Gestanzt',
-  bild: 'Im Bild',
   kreuz: 'Kreuz',
-  riss: 'Gerissen',
   schale: 'Schälchen',
   ring: 'Ring',
 };
-
-/** Liegt bei diesem Entwurf unter dem leeren Feld schon das fertige Bild? */
-export const showsPicture = (style: HoleStyle): boolean => style === 'bild' || style === 'kreuz' || style === 'riss';
-
-/** So viele verschiedene Formen hat ein Entwurf. Gerissene Löcher sollen nicht alle gleich aussehen. */
-export const holeVariants = (style: HoleStyle): number => (style === 'riss' ? 4 : 1);
 
 const SHADE = '#10142a';
 const LIGHT = '#fff8ea';
@@ -77,42 +61,6 @@ function hollowPath(x: Ctx, cx: number, cy: number, r: number, shade: number, li
 function hollow(x: Ctx, cx: number, cy: number, r: number, shade: number, light: number): void {
   disc(x, cx, cy, r);
   hollowPath(x, cx, cy, r, shade, light);
-}
-
-/** Rundes, dunkles Loch mit heller Schnittkante: rundum hell, unten rechts am hellsten. */
-function roundHole(x: Ctx, cx: number, cy: number, r: number, cell: number): void {
-  // gleichmäßig dunkel, ohne Glanz, damit das Loch nicht wie eine dunkle Perle wirkt
-  x.fillStyle = DEEP;
-  disc(x, cx, cy, r);
-  x.fill();
-  hollow(x, cx, cy, r, 0.85, 0.1);
-  const w = Math.max(1, cell * 0.045);
-  x.lineWidth = w;
-  x.strokeStyle = rgba(LIGHT, 0.62);
-  disc(x, cx, cy, r + w / 2);
-  x.stroke();
-  x.strokeStyle = rgba(LIGHT, 0.97);
-  x.beginPath();
-  x.arc(cx, cy, r + w / 2, Math.PI * 0.02, Math.PI * 0.72);
-  x.stroke();
-  // feine dunkle Linie außen: Sie hält die helle Kante auch auf hellem Grund sichtbar
-  x.lineWidth = Math.max(0.6, cell * 0.016);
-  x.strokeStyle = edge(0.34);
-  disc(x, cx, cy, r + w);
-  x.stroke();
-}
-
-/** Ein echtes Loch: dunkel, klein, mit heller Schnittkante. Darum ein matter Kragen in der Zielfarbe. */
-function punched(x: Ctx, cx: number, cy: number, cell: number, color: string): void {
-  const collar = cell * 0.4;
-  x.fillStyle = color;
-  disc(x, cx, cy, collar);
-  x.fill();
-  x.strokeStyle = edge(0.3);
-  x.lineWidth = Math.max(0.75, cell * 0.022);
-  disc(x, cx, cy, collar);
-  x.stroke();
-  roundHole(x, cx, cy, cell * 0.225, cell);
 }
 
 /** Ein leerer Kreis: kräftiger Ring in der Zielfarbe um eine helle Mulde, durch die das blasse Bild scheint. */
@@ -157,131 +105,69 @@ function dish(x: Ctx, cx: number, cy: number, cell: number, color: string): void
 }
 
 /**
- * Kreuzschnitt: Das Papier ist über Kreuz eingeschnitten, die vier Lappen sind zur Mitte hin eingedrückt, wie der
- * Schlitz im Deckel eines Bechers. Die Lappen oben und links liegen im Schatten, die unten und rechts fangen Licht.
- * Zwischen den Lappen klafft ein dunkler Stern, in der Mitte am breitesten.
+ * Schale mit Druckstelle: In der Mitte der Schale hat ein Kreuzschlitz-Schraubendreher einen Abdruck hinterlassen.
+ * Um den Abdruck gibt die Schale nach (weicher Schatten), das Kreuz selbst ist tief und dunkel, in der Mitte am
+ * breitesten und zu den Spitzen hin schmal. Die Kanten oben links liegen im Schatten, die unten rechts fangen Licht.
  */
-function crossCut(x: Ctx, cx: number, cy: number, cell: number): void {
-  const a = cell * 0.3; // halbe Kantenlänge des eingeschnittenen Quadrats
-  const flap = (ax: number, ay: number, bx: number, by: number, fill: string): void => {
-    x.fillStyle = fill;
-    x.beginPath();
-    x.moveTo(cx + ax, cy + ay);
-    x.lineTo(cx + bx, cy + by);
-    x.lineTo(cx, cy);
-    x.closePath();
-    x.fill();
-  };
-  flap(-a, -a, a, -a, rgba(SHADE, 0.3)); // oben
-  flap(-a, -a, -a, a, rgba(SHADE, 0.2)); // links
-  flap(a, -a, a, a, rgba(LIGHT, 0.2)); // rechts
-  flap(-a, a, a, a, rgba(LIGHT, 0.3)); // unten
+function pressedDish(x: Ctx, cx: number, cy: number, cell: number, color: string): void {
+  dish(x, cx, cy, cell, color);
 
-  // der Spalt: vier schmale Arme entlang der Schnitte, zur Mitte hin breiter
-  const tip = a * 1.04 * Math.SQRT2;
-  const waist = cell * 0.075;
-  x.beginPath();
-  for (let k = 0; k < 4; k++) {
-    const d = Math.PI / 4 + (k * Math.PI) / 2; // Richtung eines Schnitts
-    const m = d + Math.PI / 4; // Richtung der Einbuchtung zwischen zwei Armen
-    const px = cx + Math.cos(d) * tip;
-    const py = cy + Math.sin(d) * tip;
-    if (k === 0) x.moveTo(px, py);
-    else x.lineTo(px, py);
-    x.lineTo(cx + Math.cos(m) * waist, cy + Math.sin(m) * waist);
-  }
-  x.closePath();
-  x.fillStyle = DEEP;
+  // die Schale gibt zur Druckstelle hin nach
+  const sink = x.createRadialGradient(cx, cy, cell * 0.04, cx, cy, cell * 0.27);
+  sink.addColorStop(0, rgba(SHADE, 0.3));
+  sink.addColorStop(1, rgba(SHADE, 0));
+  x.fillStyle = sink;
+  disc(x, cx, cy, cell * 0.27);
   x.fill();
-  // helle Schnittkante, damit das Kreuz auch auf dunklen Farben steht
+
+  const reach = cell * 0.2; // Länge eines Arms
+  const tip = cell * 0.026; // halbe Breite an der Spitze
+  const waist = cell * 0.058; // Abstand der Einbuchtung zwischen zwei Armen von der Mitte
+  const cross = (dx: number, dy: number): void => {
+    x.beginPath();
+    for (let k = 0; k < 4; k++) {
+      const d = (k * Math.PI) / 2;
+      const c = Math.cos(d);
+      const s = Math.sin(d);
+      const m = d + Math.PI / 4;
+      const px = cx + dx + c * reach;
+      const py = cy + dy + s * reach;
+      if (k === 0) x.moveTo(px + s * tip, py - c * tip);
+      else x.lineTo(px + s * tip, py - c * tip);
+      x.lineTo(px - s * tip, py + c * tip);
+      x.lineTo(cx + dx + Math.cos(m) * waist, cy + dy + Math.sin(m) * waist);
+    }
+    x.closePath();
+  };
+  const lip = Math.max(0.6, cell * 0.02);
   x.lineJoin = 'round';
-  x.lineWidth = Math.max(0.8, cell * 0.028);
-  x.strokeStyle = rgba(LIGHT, 0.8);
+  x.lineWidth = lip;
+  // Lippe: unten rechts fängt die Kante Licht, oben links fällt sie in den Schatten
+  cross(lip * 0.7, lip * 0.7);
+  x.strokeStyle = rgba(LIGHT, 0.75);
   x.stroke();
-  x.lineWidth = Math.max(0.5, cell * 0.012);
-  x.strokeStyle = edge(0.4);
+  cross(-lip * 0.6, -lip * 0.6);
+  x.strokeStyle = rgba(SHADE, 0.4);
   x.stroke();
-}
-
-/**
- * Gerissenes Loch: ein gezackter, unregelmäßiger Umriss, als wäre das Papier durchstoßen worden, mit heller
- * Risskante und ein paar feinen Sprüngen, die von den Zacken ausgehen. `variant` wählt eine von mehreren Formen.
- */
-function torn(x: Ctx, cx: number, cy: number, cell: number, variant: number): void {
-  const rng = makeRng(101 + variant * 37);
-  // Unregelmäßig wie ein echter Riss: ungleiche Winkel, ein paar lange Zacken, dazwischen stumpfe Ecken.
-  const count = 9 + (variant % 3);
-  const start = rng() * Math.PI * 2;
-  const steps = Array.from({ length: count }, () => 0.6 + rng());
-  const total = steps.reduce((sum, v) => sum + v, 0);
-  const pts: [number, number, number][] = [];
-  let turned = 0;
-  for (let k = 0; k < count; k++) {
-    const angle = start + (turned / total) * Math.PI * 2;
-    turned += steps[k];
-    // jede zweite Ecke ist eher Zacke, aber nicht jede gleich lang
-    const spike = k % 2 === 0 ? 0.26 + rng() * 0.1 : 0.16 + rng() * 0.07;
-    pts.push([cx + Math.cos(angle) * cell * spike, cy + Math.sin(angle) * cell * spike, angle]);
-  }
-  const outline = (): void => {
-    x.beginPath();
-    pts.forEach(([px, py], k) => {
-      if (k === 0) x.moveTo(px, py);
-      else x.lineTo(px, py);
-    });
-    x.closePath();
-  };
-  // feine Sprünge im Papier, ausgehend von einigen Zacken
-  x.lineCap = 'round';
-  x.strokeStyle = edge(0.5);
-  x.lineWidth = Math.max(0.6, cell * 0.018);
-  for (let k = 0; k < pts.length; k += 2) {
-    if (rng() < 0.35) continue;
-    const [px, py, angle] = pts[k];
-    const bend = angle + (rng() - 0.5) * 0.9;
-    const len = cell * (0.07 + rng() * 0.09);
-    x.beginPath();
-    x.moveTo(px, py);
-    x.lineTo(px + Math.cos(bend) * len, py + Math.sin(bend) * len);
-    x.stroke();
-  }
-  outline();
-  x.fillStyle = DEEP;
+  // der Abdruck selbst: tief, mit einem Rest der Farbe
+  cross(0, 0);
+  x.fillStyle = mix(color, DEEP, 0.8);
   x.fill();
-  outline();
-  hollowPath(x, cx, cy, cell * 0.36, 0.8, 0.08);
-  // Risskante: hell, weil man in die Dicke des Papiers sieht
-  outline();
-  x.lineJoin = 'miter';
-  x.lineWidth = Math.max(1, cell * 0.04);
-  x.strokeStyle = rgba(LIGHT, 0.85);
-  x.stroke();
-  outline();
-  x.lineWidth = Math.max(0.5, cell * 0.012);
-  x.strokeStyle = edge(0.45);
-  x.stroke();
+  cross(0, 0);
+  hollowPath(x, cx, cy, reach, 0.7, 0.14);
 }
 
-/** Zeichnet ein leeres Feld im gewählten Entwurf. `variant` zählt ab 0 (siehe `holeVariants`). */
-export function hole(x: Ctx, cx: number, cy: number, cell: number, color: string, style: HoleStyle, variant = 0): void {
+/** Zeichnet ein leeres Feld im gewählten Entwurf. */
+export function hole(x: Ctx, cx: number, cy: number, cell: number, color: string, style: HoleStyle): void {
   switch (style) {
-    case 'gestanzt':
-      punched(x, cx, cy, cell, color);
-      break;
-    case 'ring':
-      ringed(x, cx, cy, cell, color);
+    case 'kreuz':
+      pressedDish(x, cx, cy, cell, color);
       break;
     case 'schale':
       dish(x, cx, cy, cell, color);
       break;
-    case 'bild':
-      roundHole(x, cx, cy, cell * 0.27, cell);
-      break;
-    case 'kreuz':
-      crossCut(x, cx, cy, cell);
-      break;
-    case 'riss':
-      torn(x, cx, cy, cell, variant);
+    case 'ring':
+      ringed(x, cx, cy, cell, color);
       break;
   }
 }

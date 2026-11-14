@@ -166,11 +166,23 @@ export function quantize(data: ArrayLike<number>, pixels: number, k: number): Qu
   return { palette: order.map((oi) => hexes[oi]), index };
 }
 
+/** Wie stark sich die Murmelfarben eines eigenen Fotos voneinander abheben sollen */
+export const PHOTO_CONTRASTS = ['naturnah', 'deutlich', 'kraeftig'] as const;
+export type PhotoContrast = (typeof PHOTO_CONTRASTS)[number];
+/**
+ * Mindestabstand (ΔE) zwischen zwei Murmelfarben eines Fotos. Bei 0 zählt nur die Nähe zum Foto; der feste Satz
+ * hält dann von sich aus etwa 32. Dunkle Töne (Schwarz, Dunkelblau, Dunkelrot, Braun) liegen als Glasmurmeln
+ * enger beieinander, als die Zahl sagt: Ab 44 kommen sie nicht mehr nebeneinander vor.
+ */
+export const CONTRAST_SPREAD: Readonly<Record<PhotoContrast, number>> = { naturnah: 0, deutlich: 44, kraeftig: 56 };
+
 /**
  * Ordnet jeder Bildfarbe eine eigene Murmelfarbe zu: die häufigste Farbe zuerst, jeweils die ähnlichste noch freie.
  * Eine bunte Bildfarbe wird dabei nicht zu Grau oder Schwarz entsättigt.
+ * Mit `spread` kommen nur Murmelfarben in Frage, die von allen schon vergebenen mindestens so weit entfernt sind.
+ * Gibt es keine solche mehr, gewinnt die, die sich am deutlichsten von den vergebenen abhebt.
  */
-export function toMarbleColors(palette: readonly string[], counts: readonly number[]): string[] {
+export function toMarbleColors(palette: readonly string[], counts: readonly number[], spread = 0): string[] {
   const pool = Object.values(MARBLE_COLORS);
   const order = palette.map((_, i) => i).sort((a, b) => counts[b] - counts[a]);
   const used = new Set<string>();
@@ -180,11 +192,17 @@ export function toMarbleColors(palette: readonly string[], counts: readonly numb
     const chromaA = Math.hypot(A[1], A[2]);
     let best = pool[0];
     let bd = Number.POSITIVE_INFINITY;
+    let bestGap = -1;
     for (const candidate of pool) {
       if (used.has(candidate)) continue;
       const B = toLab(candidate);
       const d = deltaE(palette[i], candidate) + Math.max(0, chromaA - Math.hypot(B[1], B[2])) * 0.8;
-      if (d < bd) {
+      let gap = Number.POSITIVE_INFINITY;
+      for (const taken of used) gap = Math.min(gap, deltaE(candidate, taken));
+      // weit genug entfernte Farben sind untereinander gleich gut, darunter zählt jeder Schritt Abstand
+      gap = Math.min(gap, spread);
+      if (gap > bestGap || (gap === bestGap && d < bd)) {
+        bestGap = gap;
         bd = d;
         best = candidate;
       }
@@ -195,11 +213,48 @@ export function toMarbleColors(palette: readonly string[], counts: readonly numb
   return out;
 }
 
-/** Aus einem verkleinerten Foto (w × h Bildpunkte, RGBA) wird ein Bild zum Spielen. */
-export function photoLevel(name: string, data: ArrayLike<number>, w: number, h: number, k: number): Level | null {
+/** Ein Foto als Raster: die Farben des Fotos (von dunkel nach hell) und je Feld die Nummer seiner Farbe. */
+export interface PhotoRaster {
+  readonly source: string[];
+  readonly target: Int16Array;
+}
+
+/** Reduziert ein verkleinertes Foto (w × h Bildpunkte, RGBA) auf höchstens etwa k Farben. */
+export function photoRaster(data: ArrayLike<number>, w: number, h: number, k: number): PhotoRaster | null {
   const q = quantize(data, w * h, Math.min(k, Object.keys(MARBLE_COLORS).length - 3));
-  if (!q) return null;
-  const counts = new Array<number>(q.palette.length).fill(0);
-  for (const c of q.index) if (c >= 0) counts[c]++;
-  return makeLevel(name, w, h, toMarbleColors(q.palette, counts), q.index);
+  return q ? { source: q.palette, target: q.index } : null;
+}
+
+/** Mittlere Farbe des Fotos je Farbnummer eines Rasters. So lassen sich die Fotofarben zu einem alten Raster wiederfinden. */
+export function sourceColors(data: ArrayLike<number>, target: ArrayLike<number>, colors: number): string[] {
+  const sum = Array.from({ length: colors }, () => [0, 0, 0, 0]);
+  for (let i = 0; i < target.length; i++) {
+    const s = sum[target[i]];
+    if (!s) continue;
+    s[0] += data[i * 4];
+    s[1] += data[i * 4 + 1];
+    s[2] += data[i * 4 + 2];
+    s[3]++;
+  }
+  return sum.map((s) => (s[3] ? rgbToHex(s[0] / s[3], s[1] / s[3], s[2] / s[3]) : '#808080'));
+}
+
+/** Aus den Fotofarben eines Rasters wird ein Bild zum Spielen, mit Murmelfarben im gewünschten Abstand. */
+export function rasterLevel(name: string, w: number, h: number, raster: PhotoRaster, contrast: PhotoContrast): Level {
+  const counts = new Array<number>(raster.source.length).fill(0);
+  for (const c of raster.target) if (c >= 0) counts[c]++;
+  return makeLevel(name, w, h, toMarbleColors(raster.source, counts, CONTRAST_SPREAD[contrast]), raster.target);
+}
+
+/** Aus einem verkleinerten Foto (w × h Bildpunkte, RGBA) wird ein Bild zum Spielen. */
+export function photoLevel(
+  name: string,
+  data: ArrayLike<number>,
+  w: number,
+  h: number,
+  k: number,
+  contrast: PhotoContrast = 'naturnah',
+): Level | null {
+  const raster = photoRaster(data, w, h, k);
+  return raster ? rasterLevel(name, w, h, raster, contrast) : null;
 }

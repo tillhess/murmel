@@ -2,9 +2,19 @@ import { HOLE_STYLES, type HoleStyle } from '../art/holes';
 import { MARBLE_STYLES, type MarbleStyle, marble } from '../art/marble';
 import { grainCanvas } from '../art/paint';
 import { SOUND_MODES, Sound, type SoundMode } from '../audio/sound';
+import type { PhotoContrast } from '../core/quantize';
 import { DETAIL_SIZES, type Mood } from '../core/scene';
 import { renderShelf } from './home';
-import { addOwn, DEFAULT_MOOD, loadOwn, ownPictures, type Picture, pictures, removeOwn } from './library';
+import {
+  addOwn,
+  DEFAULT_MOOD,
+  loadOwn,
+  ownPictures,
+  type Picture,
+  pictures,
+  removeOwn,
+  setPhotoContrast,
+} from './library';
 import { PlayScreen, TRAY_DEFAULT, TRAY_SIZES } from './play';
 import { SettingsSheet } from './settings';
 import { store } from './storage';
@@ -153,6 +163,17 @@ export function startApp(): void {
     if (home.hidden && now) open(now.picture.atSize(size));
     else fillShelf();
   };
+  let contrast = store.contrast;
+  const setContrast = (next: PhotoContrast): void => {
+    contrast = next;
+    setPhotoContrast(next);
+    const now = play.current;
+    // Ein offenes eigenes Bild bekommt sofort die neuen Murmelfarben; die Murmeln bleiben liegen, wo sie sind.
+    if (home.hidden && now?.picture.own) {
+      play.save();
+      open(now.picture.atSize(detail));
+    }
+  };
   const settings = new SettingsSheet(
     el<HTMLDialogElement>('settings'),
     {
@@ -176,6 +197,11 @@ export function startApp(): void {
         traySize = size;
         store.tray = size;
         return play.setTraySize(size);
+      },
+      contrast: () => contrast,
+      setContrast: (next) => {
+        store.contrast = next;
+        setContrast(next);
       },
       sound: () => sound.mode,
       setSound,

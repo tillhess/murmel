@@ -1,7 +1,7 @@
 import { grainCanvas, newCanvas, paintScene } from '../art/paint';
 import { SCENES } from '../art/scenes';
 import { type Level, makeLevel } from '../core/level';
-import { photoLevel } from '../core/quantize';
+import { type PhotoContrast, type PhotoRaster, photoRaster, rasterLevel, sourceColors } from '../core/quantize';
 import { type Mood, type Scene, sceneLevel } from '../core/scene';
 import { store } from './storage';
 
@@ -133,36 +133,69 @@ function printOf(id: string, photo: HTMLCanvasElement): HTMLCanvasElement {
   return painting;
 }
 
+/** Wie stark sich die Murmelfarben eigener Fotos unterscheiden sollen, siehe Einstellungen */
+let contrast: PhotoContrast = store.contrast;
+export function setPhotoContrast(next: PhotoContrast): void {
+  contrast = next;
+}
+
+const rasters = new Map<string, PhotoRaster>();
+
 /**
  * Das Raster eines eigenen Fotos in einer Detailtiefe. Es wird beim ersten Mal aus dem Foto gerechnet und dann
  * aufbewahrt: Ein Spielstand passt nur zu genau dem Raster, mit dem er begonnen wurde.
  */
-function levelOf(id: string, name: string, photo: HTMLCanvasElement, cells: number): Level | null {
+function rasterOf(id: string, photo: HTMLCanvasElement, cells: number): PhotoRaster | null {
   const key = `${id}@${cells}`;
+  const known = rasters.get(key);
+  if (known) return known;
+  // schrittweise halbieren: so mittelt der Browser sauber, statt Bildpunkte zu überspringen
+  let small: HTMLCanvasElement = photo;
+  while (small.width / 2 >= cells * 1.5) {
+    const next = newCanvas(small.width / 2, small.height / 2);
+    const nx = next.getContext('2d') as CanvasRenderingContext2D;
+    nx.imageSmoothingQuality = 'high';
+    nx.drawImage(small, 0, 0, next.width, next.height);
+    small = next;
+  }
+  const grid = newCanvas(cells, cells);
+  const gx = grid.getContext('2d') as CanvasRenderingContext2D;
+  gx.imageSmoothingQuality = 'high';
+  gx.drawImage(small, 0, 0, cells, cells);
+  const data = gx.getImageData(0, 0, cells, cells).data;
+
+  const saved = store.own().find((r) => r.id === id)?.levels[String(cells)];
+  let raster: PhotoRaster | null = null;
+  if (saved && saved.target.length === cells * cells) {
+    // Stände von früher kennen die Fotofarben nicht: Sie lassen sich aus dem Foto nachlesen.
+    const source = saved.source ?? sourceColors(data, saved.target, saved.palette.length);
+    raster = { source, target: Int16Array.from(saved.target) };
+    if (!saved.source) store.setOwnLevel(id, cells, { ...saved, source });
+  } else {
+    raster = photoRaster(data, cells, cells, PHOTO_COLORS);
+    if (raster) {
+      const palette = [...rasterLevel('', cells, cells, raster, 'naturnah').palette];
+      store.setOwnLevel(id, cells, { palette, source: raster.source, target: Array.from(raster.target) });
+    }
+  }
+  if (raster) rasters.set(key, raster);
+  return raster;
+}
+
+/** Das Raster mit Murmelfarben im eingestellten Abstand. Die Felder bleiben dieselben, nur die Farben wechseln. */
+function levelOf(id: string, name: string, photo: HTMLCanvasElement, cells: number): Level | null {
+  const key = `${id}@${cells}/${contrast}`;
   const known = ownLevels.get(key);
   if (known) return known;
+  const raster = rasterOf(id, photo, cells);
+  if (!raster) return null;
+  // "naturnah" bleibt bei den Farben, mit denen das Bild entstanden ist
   const saved = store.own().find((r) => r.id === id)?.levels[String(cells)];
-  let level: Level | null = null;
-  if (saved && saved.target.length === cells * cells) {
-    level = makeLevel(name, cells, cells, saved.palette, Int16Array.from(saved.target));
-  } else {
-    // schrittweise halbieren: so mittelt der Browser sauber, statt Bildpunkte zu überspringen
-    let small: HTMLCanvasElement = photo;
-    while (small.width / 2 >= cells * 1.5) {
-      const next = newCanvas(small.width / 2, small.height / 2);
-      const nx = next.getContext('2d') as CanvasRenderingContext2D;
-      nx.imageSmoothingQuality = 'high';
-      nx.drawImage(small, 0, 0, next.width, next.height);
-      small = next;
-    }
-    const grid = newCanvas(cells, cells);
-    const gx = grid.getContext('2d') as CanvasRenderingContext2D;
-    gx.imageSmoothingQuality = 'high';
-    gx.drawImage(small, 0, 0, cells, cells);
-    level = photoLevel(name, gx.getImageData(0, 0, cells, cells).data, cells, cells, PHOTO_COLORS);
-    if (level) store.setOwnLevel(id, cells, { palette: [...level.palette], target: Array.from(level.target) });
-  }
-  if (level) ownLevels.set(key, level);
+  const level =
+    contrast === 'naturnah' && saved
+      ? makeLevel(name, cells, cells, saved.palette, raster.target)
+      : rasterLevel(name, cells, cells, raster, contrast);
+  ownLevels.set(key, level);
   return level;
 }
 
@@ -259,5 +292,6 @@ export function removeOwn(id: string): void {
   store.removeOwn(id);
   photos.delete(id);
   paintings.delete(id);
-  for (const key of [...ownLevels.keys()]) if (key.startsWith(`${id}@`)) ownLevels.delete(key);
+  for (const map of [ownLevels, rasters])
+    for (const key of [...map.keys()]) if (key.startsWith(`${id}@`)) map.delete(key);
 }

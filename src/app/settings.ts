@@ -1,8 +1,9 @@
-import { HOLE_NAMES, HOLE_STYLES, type HoleStyle, hole, holeVariants, showsPicture } from '../art/holes';
+import { HOLE_NAMES, HOLE_STYLES, type HoleStyle, hole } from '../art/holes';
 import { MARBLE_NAMES, MARBLE_STYLES, type MarbleStyle, marble } from '../art/marble';
 import { PAPER } from '../art/materials';
 import { SOUND_MODES, type SoundMode } from '../audio/sound';
 import { mix } from '../core/color';
+import { PHOTO_CONTRASTS, type PhotoContrast } from '../core/quantize';
 
 /** Was die Einstellungen lesen und ändern dürfen. Jede Wahl gilt sofort, es gibt kein Speichern und kein Abbrechen. */
 export interface SettingsHandlers {
@@ -16,6 +17,9 @@ export interface SettingsHandlers {
   /** Mulden auf dem Holzbrett. `setTray` meldet, ob die neue Größe schon im laufenden Spiel gilt. */
   tray(): number;
   setTray(size: number): boolean;
+  /** wie stark sich die Murmelfarben eigener Fotos unterscheiden */
+  contrast(): PhotoContrast;
+  setContrast(contrast: PhotoContrast): void;
   sound(): SoundMode;
   setSound(mode: SoundMode): void;
 }
@@ -30,6 +34,12 @@ const SOUND_CHOICES: Record<SoundMode, string> = {
   alles: 'Alles',
   murmeln: 'Nur Murmeln',
   aus: 'Still',
+};
+
+const CONTRAST_CHOICES: Record<PhotoContrast, string> = {
+  naturnah: 'Naturnah',
+  deutlich: 'Deutlich',
+  kraeftig: 'Kräftig',
 };
 
 /** Farben der kleinen Vorschau: eine mittlere, eine dunkle und eine helle. An den Rändern entscheidet sich die Lesbarkeit. */
@@ -49,14 +59,14 @@ function sampleContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | nu
 function drawHoleSample(canvas: HTMLCanvasElement, style: HoleStyle, marbles: MarbleStyle): void {
   const x = sampleContext(canvas);
   if (!x) return;
-  // unter der Murmel die blasse Vorzeichnung; unter den leeren Feldern je nach Entwurf schon das Bild
+  // unter allem liegt die blasse Vorzeichnung
   x.fillStyle = mix(PAPER, SAMPLE[0], 0.36);
   x.fillRect(0, 0, CELL, CELL);
   marble(x, CELL / 2, CELL / 2, CELL * 0.82 * 0.48, SAMPLE[0], 0.4, marbles);
   [SAMPLE[0], SAMPLE[1]].forEach((color, k) => {
-    x.fillStyle = showsPicture(style) ? color : mix(PAPER, color, 0.36);
+    x.fillStyle = mix(PAPER, color, 0.36);
     x.fillRect(CELL * (k + 1), 0, CELL, CELL);
-    hole(x, CELL * (k + 1.5), CELL / 2, CELL, color, style, k % holeVariants(style));
+    hole(x, CELL * (k + 1.5), CELL / 2, CELL, color, style);
   });
 }
 
@@ -96,6 +106,7 @@ export class SettingsSheet {
   private readonly detailButtons: HTMLButtonElement[];
   private readonly trayButtons: HTMLButtonElement[];
   private readonly trayNote: HTMLElement;
+  private readonly contrastButtons: HTMLButtonElement[];
 
   constructor(
     private readonly dialog: HTMLDialogElement,
@@ -127,6 +138,16 @@ export class SettingsSheet {
       return button;
     });
     find('tray').append(...this.trayButtons);
+
+    this.contrastButtons = PHOTO_CONTRASTS.map((contrast) => {
+      const button = choice(CONTRAST_CHOICES[contrast], contrast, false);
+      button.addEventListener('click', () => {
+        handlers.setContrast(contrast);
+        this.sync();
+      });
+      return button;
+    });
+    find('contrast').append(...this.contrastButtons);
 
     this.holeButtons = HOLE_STYLES.map((style) => {
       const button = choice(HOLE_NAMES[style], style, true);
@@ -187,6 +208,8 @@ export class SettingsSheet {
     for (const b of this.detailButtons) b.setAttribute('aria-pressed', String(b.dataset.value === detail));
     const tray = String(this.handlers.tray());
     for (const b of this.trayButtons) b.setAttribute('aria-pressed', String(b.dataset.value === tray));
+    const contrast = this.handlers.contrast();
+    for (const b of this.contrastButtons) b.setAttribute('aria-pressed', String(b.dataset.value === contrast));
     for (const b of this.soundButtons) b.setAttribute('aria-pressed', String(b.dataset.value === sound));
   }
 }

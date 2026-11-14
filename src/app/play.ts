@@ -175,6 +175,8 @@ export class PlayScreen {
     tray: number;
     busy: boolean;
     finishShown: boolean;
+    /** die Murmelfarben des Bildes */
+    colors: string[];
   } | null {
     if (!this.game || !this.picture) return null;
     return {
@@ -190,6 +192,7 @@ export class PlayScreen {
       tray: this.game.state.tray.length,
       busy: this.view.busy,
       finishShown: !this.el.finish.hidden,
+      colors: [...this.game.level.palette],
     };
   }
 
@@ -327,7 +330,8 @@ export class PlayScreen {
     this.el.undo.disabled = !this.game?.canUndo || this.game.solved;
   }
 
-  private save(): void {
+  /** Hält den Stand fest. Nach jedem Zug geschieht das von selbst. */
+  save(): void {
     const { game, picture } = this;
     if (!game || !picture || game.solved) return;
     store.saveProgress(picture.key, { cur: Array.from(game.state.cur), tray: Array.from(game.state.tray) });

@@ -1,4 +1,4 @@
-import { HOLE_STYLES, type HoleStyle, hole, holeVariants, showsPicture } from '../art/holes';
+import { HOLE_STYLES, type HoleStyle, hole } from '../art/holes';
 import {
   dimple,
   glint,
@@ -579,13 +579,10 @@ export class BoardView {
     );
   }
 
-  /** Leeres Feld i im Bild, in der Farbe, die hierher gehört. Manche Entwürfe haben mehrere Formen. */
-  private holeSprite(color: string, cell: number, i: number): Sprite {
+  /** Leeres Feld im Bild, in der Farbe, die hierher gehört. */
+  private holeSprite(color: string, cell: number): Sprite {
     const style = this.holeStyle;
-    const variant = (i * 7) % holeVariants(style);
-    return this.sprites.get(`h${style}${variant}${color}`, cell, (x, D) =>
-      hole(x, D / 2, D / 2, D, color, style, variant),
-    );
+    return this.sprites.get(`h${style}${color}`, cell, (x, D) => hole(x, D / 2, D / 2, D, color, style));
   }
 
   /** Mulde im Holzbrett */
@@ -655,9 +652,7 @@ export class BoardView {
       g.globalAlpha = 0.36;
       g.drawImage(painting, sx, sy, sw, sh, ox, oy, frame.w, frame.h);
       g.globalAlpha = 1;
-      // Fertige Flächen: das Bild scheint durch eine weich gezeichnete Maske. Bei manchen Entwürfen für leere
-      // Felder liegt das Bild auch dort schon offen, wo noch eine Murmel fehlt: Dann ist nur das Loch zu sehen.
-      const open = showsPicture(this.holeStyle);
+      // Fertige Flächen: das Bild scheint durch eine weich gezeichnete Maske.
       const mw = w * 4;
       const mh = h * 4;
       if (this.mask.width !== mw || this.mask.height !== mh) {
@@ -669,8 +664,7 @@ export class BoardView {
       m.fillStyle = '#ffffff';
       let any = false;
       for (const i of level.cells) {
-        const free = open && (state.cur[i] === EMPTY || this.pendCells.has(i) || this.blooms.has(i));
-        if (!free && !this.shown(i)) continue;
+        if (!this.shown(i)) continue;
         any = true;
         m.fillRect((i % w) * 4, Math.floor(i / w) * 4, 4, 4);
       }
@@ -712,7 +706,7 @@ export class BoardView {
           const [cx, cy] = this.cellCenter(i);
           const c = state.cur[i];
           if (c === EMPTY || this.pendCells.has(i) || lifted?.has(i)) {
-            Sprites.blit(g, this.holeSprite(level.palette[level.target[i]], cell, i), cx, cy, cell);
+            Sprites.blit(g, this.holeSprite(level.palette[level.target[i]], cell), cx, cy, cell);
           } else {
             Sprites.blit(g, this.marbleSprite(level.palette[c], md, (i * 7) % VARIANTS), cx, cy, md);
           }

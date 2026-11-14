@@ -1,6 +1,6 @@
 // Entwicklungsansicht: die Entwürfe für das leere Feld als Musterblatt, jede Farbe neben ihrer Murmel
 // (mit und ohne Spiegelung).
-import { HOLE_NAMES, HOLE_STYLES, hole, holeVariants, showsPicture } from '../src/art/holes';
+import { HOLE_NAMES, HOLE_STYLES, hole } from '../src/art/holes';
 import { marble } from '../src/art/marble';
 import { PAPER } from '../src/art/materials';
 import { SCENES } from '../src/art/scenes';
@@ -33,15 +33,13 @@ for (const scene of SCENES) {
     for (const cell of sizes) {
       colors.forEach((color, k) => {
         const left = 10 + k * group * sizes[0];
-        // unter den Murmeln die blasse Vorzeichnung; unter den leeren Feldern je nach Entwurf schon das Bild
+        // unter allem die blasse Vorzeichnung
         x.fillStyle = mix(PAPER, color, 0.36);
-        x.fillRect(left, top, cell * 2, cell);
-        x.fillStyle = showsPicture(style) ? color : mix(PAPER, color, 0.36);
-        x.fillRect(left + cell * 2, top, cell * 2, cell);
+        x.fillRect(left, top, cell * 4, cell);
         marble(x, left + cell / 2, top + cell / 2, cell * 0.82 * 0.48, color, k, 'glas');
         marble(x, left + cell * 1.5, top + cell / 2, cell * 0.82 * 0.48, color, k, 'matt');
-        hole(x, left + cell * 2.5, top + cell / 2, cell, color, style, 0);
-        hole(x, left + cell * 3.5, top + cell / 2, cell, color, style, 1 % holeVariants(style));
+        hole(x, left + cell * 2.5, top + cell / 2, cell, color, style);
+        hole(x, left + cell * 3.5, top + cell / 2, cell, color, style);
       });
       top += cell + 14;
     }

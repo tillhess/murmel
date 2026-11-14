@@ -46,7 +46,7 @@ await page.locator('#homeSettings').click();
 const holeChoices = await page.locator('#settings [data-part="holes"] .choice').allTextContents();
 const soundChoices = await page.locator('#settings [data-part="sound"] .choice').allTextContents();
 check(
-  holeChoices.length >= 3 && holeChoices.includes('Gestanzt'),
+  holeChoices.length >= 3 && holeChoices.includes('Schälchen'),
   `Die Einstellungen bieten Entwürfe für leere Felder an (${holeChoices.join(', ')})`,
 );
 check(soundChoices.length === 3, `Die Einstellungen bieten drei Klangstufen an (${soundChoices.join(', ')})`);
