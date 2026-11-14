@@ -13,6 +13,7 @@ interface Murmel {
     solved: boolean;
     remaining: number;
     inTray: number;
+    selected: number;
     busy: boolean;
     finishShown: boolean;
   } | null;
@@ -65,24 +66,24 @@ test('Auf dem Tablet hängen alle Bilder auf einmal an der Wand, hoch wie quer',
     for (let k = 0; k < 6; k++)
       await expect(prints.nth(k), `${size.width} × ${size.height}`).toBeInViewport({ ratio: 1 });
     await expect(page.locator('.wordmark')).toBeInViewport({ ratio: 1 });
-    await expect(page.locator('#homeSound')).toBeInViewport({ ratio: 1 });
+    await expect(page.locator('#homeSettings')).toBeInViewport({ ratio: 1 });
   }
 });
 
 test('Der Klang hat drei Stufen und merkt sich die gewählte', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/');
-  const button = page.locator('#homeSound');
-  await expect(button).toHaveText('Klang an');
-  await button.click();
-  await expect(button).toHaveText('Nur Murmeln');
-  await expect(page.locator('#homeNote')).toHaveText('Nur die Murmeln klingen.');
-  await button.click();
-  await expect(button).toHaveText('Klang aus');
+  await page.locator('#homeSettings').click();
+  const choices = page.locator('#settings [data-part="sound"] .choice');
+  await expect(choices).toHaveText(['Alles', 'Nur Murmeln', 'Still']);
+  await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  await choices.nth(2).click();
+  await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.murmel.sound())).toBe('aus');
+  await page.locator('#settings [data-part="done"]').click();
+  await expect(page.locator('#settings')).toBeHidden();
 
   await page.reload();
-  await expect(page.locator('#homeSound')).toHaveText('Klang aus');
   // Im Spiel zeigt das Symbol dieselbe Stufe, und ein Tipp schaltet weiter.
   await page.locator('.print').first().click();
   const icon = page.locator('#sound');
@@ -90,6 +91,57 @@ test('Der Klang hat drei Stufen und merkt sich die gewählte', async ({ page }) 
   await icon.click();
   await expect(icon).toHaveAttribute('data-mode', 'alles');
   await expect(page.locator('#whisper')).toContainText('Klang an.');
+  // Die Einstellungen zeigen, was das Symbol geschaltet hat.
+  await page.locator('#playSettings').click();
+  await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  expect(errors).toEqual([]);
+});
+
+test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.locator('#homeSettings').click();
+  const sheet = page.locator('#settings');
+  await expect(sheet).toBeVisible();
+  const choices = sheet.locator('[data-part="holes"] .choice');
+  await expect(choices).toHaveText(['Schälchen', 'Ring', 'Gestanzt']);
+  await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true'); // Voreinstellung
+  await choices.nth(1).click();
+  await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'false');
+  await sheet.locator('[data-part="done"]').click();
+  await expect(sheet).toBeHidden();
+
+  // Die Wahl bleibt, und im Spiel führt das Symbol in der Leiste zu denselben Einstellungen.
+  await page.reload();
+  await page.locator('.print').first().click();
+  await page.locator('#playSettings').click();
+  await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  // Ein Tipp neben das Blatt schließt es.
+  await page.mouse.click(4, 4);
+  await expect(sheet).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('Passt eine Gruppe nicht ganz ins Ziel, bleibt der Rest gewählt', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('seerosen'));
+  let rest = 0;
+  for (let k = 0; k < 80 && rest === 0; k++) {
+    const move = await page.evaluate(() => window.murmel.next());
+    if (!move) break;
+    await page.mouse.click(move.select.x, move.select.y);
+    const chosen = (await status(page))?.selected ?? 0;
+    expect(chosen).toBeGreaterThan(0);
+    await page.mouse.click(move.target.x, move.target.y);
+    rest = (await status(page))?.selected ?? 0;
+    if (rest > 0) expect(rest).toBeLessThan(chosen);
+  }
+  expect(rest, 'in 80 Zügen blieb nie ein Rest übrig').toBeGreaterThan(0);
+  // Ein Tipp daneben hebt die Auswahl auf.
+  await page.mouse.click(4, 90);
+  expect((await status(page))?.selected).toBe(0);
   expect(errors).toEqual([]);
 });
 

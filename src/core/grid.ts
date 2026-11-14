@@ -12,17 +12,38 @@ export function neighbors(level: Level, i: number): number[] {
   return out;
 }
 
-/** Breitensuche ab `start` über alle Nachbarn, die `pred` erfüllen. Die Reihenfolge entspricht dem Abstand vom Start. */
+/**
+ * Die bis zu acht Felder rund um ein Feld: erst die vier über die Kante, dann die vier über Eck.
+ * Die Reihenfolge sorgt dafür, dass Wege geradeaus führen, wo es geht, und nur dort über Eck, wo es sein muss.
+ */
+export function around(level: Level, i: number): number[] {
+  const { w, target } = level;
+  const x = i % w;
+  const out = neighbors(level, i);
+  const up = i >= w;
+  const down = i + w < target.length;
+  if (up && x > 0) out.push(i - w - 1);
+  if (up && x < w - 1) out.push(i - w + 1);
+  if (down && x > 0) out.push(i + w - 1);
+  if (down && x < w - 1) out.push(i + w + 1);
+  return out;
+}
+
+/**
+ * Breitensuche ab `start` über alle Nachbarn, die `pred` erfüllen. Die Reihenfolge entspricht dem Abstand vom Start.
+ * `next` legt fest, was als Nachbar zählt: nur über die Kante (Voreinstellung) oder auch über Eck (`around`).
+ */
 export function flood(
   level: Level,
   start: number,
   pred: (i: number) => boolean,
   seen: Uint8Array = new Uint8Array(level.target.length),
+  next: (level: Level, i: number) => number[] = neighbors,
 ): number[] {
   const out = [start];
   seen[start] = 1;
   for (let head = 0; head < out.length; head++) {
-    for (const j of neighbors(level, out[head])) {
+    for (const j of next(level, out[head])) {
       if (!seen[j] && pred(j)) {
         seen[j] = 1;
         out.push(j);
@@ -42,10 +63,14 @@ export function groupAt(level: Level, cur: Int16Array, i: number): number[] {
   return flood(level, i, (j) => cur[j] === c && level.target[j] !== c);
 }
 
-/** Das freie Loch i samt aller angrenzenden freien Löcher derselben Zielfarbe. */
+/**
+ * Das freie Loch i samt aller angrenzenden freien Löcher derselben Zielfarbe. Hier zählt auch, was nur über Eck
+ * angrenzt: Ein Ziel füllt sich diagonal weiter (vom Auftraggeber so festgelegt). Für die Auswahl von Murmeln
+ * gilt das nicht, dort zählt nur Kante an Kante.
+ */
 export function regionAt(level: Level, cur: Int16Array, i: number): number[] {
   const t = level.target[i];
-  return flood(level, i, (j) => cur[j] === EMPTY && level.target[j] === t);
+  return flood(level, i, (j) => cur[j] === EMPTY && level.target[j] === t, undefined, around);
 }
 
 export interface Cluster {
@@ -63,7 +88,10 @@ export function components(level: Level, cur: Int16Array): { groups: Cluster[]; 
     const c = cur[i];
     const t = level.target[i];
     if (c === EMPTY) {
-      regions.push({ color: t, cells: flood(level, i, (j) => cur[j] === EMPTY && level.target[j] === t, seen) });
+      regions.push({
+        color: t,
+        cells: flood(level, i, (j) => cur[j] === EMPTY && level.target[j] === t, seen, around),
+      });
     } else if (c !== t) {
       groups.push({ color: c, cells: flood(level, i, (j) => cur[j] === c && level.target[j] !== c, seen) });
     }

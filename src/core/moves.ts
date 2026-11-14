@@ -1,4 +1,4 @@
-import { groupAt, isMisplaced, neighbors, regionAt } from './grid';
+import { around, groupAt, isMisplaced, neighbors, regionAt } from './grid';
 import { EMPTY, type Level, type State } from './level';
 
 /** Ein Platz für eine Murmel: ein Feld auf dem Brett oder eine Mulde der Ablage. */
@@ -28,6 +28,21 @@ export type MoveResult =
   | { readonly ok: false; readonly reason: Refusal };
 
 export const selectionSize = (sel: Selection): number => (sel.source === 'board' ? sel.cells.length : sel.slots.length);
+
+/**
+ * Was von einer Auswahl übrig ist, nachdem die Murmeln aus `rolls` losgerollt sind. Dieser Rest bleibt gewählt:
+ * Passt eine Gruppe nicht ganz in ihr Ziel, kann man gleich das nächste Ziel antippen.
+ */
+export function remainder(sel: Selection, rolls: readonly Roll[]): Selection | null {
+  if (sel.source === 'board') {
+    const gone = new Set(rolls.map((r) => ('cell' in r.from ? r.from.cell : -1)));
+    const cells = sel.cells.filter((c) => !gone.has(c));
+    return cells.length ? { source: 'board', color: sel.color, cells } : null;
+  }
+  const gone = new Set(rolls.map((r) => ('slot' in r.from ? r.from.slot : -1)));
+  const slots = sel.slots.filter((s) => !gone.has(s));
+  return slots.length ? { source: 'tray', color: sel.color, slots } : null;
+}
 
 /** Tippt man eine falsch liegende Murmel an, ist sie samt allen angrenzenden Murmeln derselben Farbe gewählt. */
 export function selectCell(level: Level, state: State, cell: number): Selection | null {
@@ -73,8 +88,9 @@ function nearest(level: Level, cells: readonly number[], x: number, y: number, n
 }
 
 /**
- * Die Auswahl rollt in den Bereich freier Löcher rund um `hole`. Gefüllt wird nur dieser zusammenhängende Bereich:
- * Passen nicht alle hinein, bleiben die übrigen Murmeln liegen. Es rollen die Murmeln, die dem Loch am nächsten sind.
+ * Die Auswahl rollt in den Bereich freier Löcher rund um `hole`. Gefüllt wird nur dieser zusammenhängende Bereich
+ * (zusammenhängend auch über Eck): Passen nicht alle hinein, bleiben die übrigen Murmeln liegen. Es rollen die
+ * Murmeln, die dem Loch am nächsten sind.
  */
 export function place(level: Level, state: State, sel: Selection, hole: number): MoveResult {
   if (level.target[hole] === undefined || level.target[hole] < 0 || state.cur[hole] !== EMPTY) {
@@ -87,18 +103,28 @@ export function place(level: Level, state: State, sel: Selection, hole: number):
   const dests = region.slice(0, n);
 
   // Wege im Zielbereich: Baum der Breitensuche ab dem Einstieg. So rollt jede Murmel nur über Löcher dieses Bereichs.
+  // Unter gleich kurzen Wegen gewinnt der, der geradeaus führt; über Eck rollt eine Murmel nur, wo es sein muss.
   const index = new Map<number, number>();
   dests.forEach((cell, k) => {
     index.set(cell, k);
   });
   const parent = new Int32Array(n).fill(-1);
+  const depth = new Int32Array(n);
   for (let k = 1; k < n; k++) {
+    const straight = new Set(neighbors(level, dests[k]));
     let best = -1;
-    for (const j of neighbors(level, dests[k])) {
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (const j of around(level, dests[k])) {
       const q = index.get(j);
-      if (q !== undefined && q < k && (best < 0 || q < best)) best = q;
+      if (q === undefined || q >= k) continue;
+      const score = depth[q] * 2 + (straight.has(j) ? 0 : 1);
+      if (score < bestScore) {
+        bestScore = score;
+        best = q;
+      }
     }
     parent[k] = best;
+    depth[k] = depth[best] + 1;
   }
   const pathTo = (k: number): Spot[] => {
     const cells: number[] = [];

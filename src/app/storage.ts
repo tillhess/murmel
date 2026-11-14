@@ -1,3 +1,4 @@
+import { HOLE_STYLES, type HoleStyle } from '../art/holes';
 import { SOUND_MODES, type SoundMode } from '../audio/sound';
 
 /**
@@ -15,6 +16,8 @@ interface Saved {
   progress: Record<string, Progress>;
   /** frühere Stände kannten nur an und aus */
   sound: SoundMode | boolean;
+  /** in den Einstellungen gewählter Entwurf für leere Felder */
+  holes?: HoleStyle;
 }
 
 const KEY = 'murmel.v1';
@@ -65,6 +68,14 @@ export const store = {
   },
   set sound(mode: SoundMode) {
     read().sound = mode;
+    write();
+  },
+  get holes(): HoleStyle | undefined {
+    const saved = read().holes;
+    return HOLE_STYLES.find((style) => style === saved);
+  },
+  set holes(style: HoleStyle | undefined) {
+    read().holes = style;
     write();
   },
   /**

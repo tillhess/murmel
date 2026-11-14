@@ -30,7 +30,8 @@ npm run dev
 Vor dem ersten `npm run e2e` einmal die Browser laden: `npx playwright install chromium webkit`.
 
 Unter `dev/szenen.html` (bei laufendem Entwicklungsserver) stehen alle Motive als Gemälde und als Murmelraster
-nebeneinander, mit Farbanteilen und kleinstem Farbabstand.
+nebeneinander, mit Farbanteilen und kleinstem Farbabstand. `dev/loecher.html` zeigt die Entwürfe für das leere Feld
+in jeder Farbe neben der passenden Murmel.
 
 ## Aufbau
 
@@ -69,7 +70,8 @@ beide getrennt speichern.
 
 - **Kein Ton?** Der Klang richtet sich nach dem Stummmodus des iPad (Glocke im Kontrollzentrum). Das ist Absicht:
   Nur so läuft ein Hörbuch ungestört weiter.
-- **Klang in drei Stufen:** alles, nur die Murmeln, still. Der Schalter steht auf der Startseite und oben rechts im Spiel.
+- **Einstellungen:** wie leere Felder aussehen (Schälchen, Ring oder Gestanzt) und der Klang in drei Stufen (alles,
+  nur die Murmeln, still). Sie öffnen sich von der Startseite und über das Symbol oben rechts im Spiel.
 - Aufnahmen aus WebKit im iPad-Format: `npm run build && npm run preview`, dann in einem zweiten Fenster
   `node scripts/aufnahmen.mjs <Zielordner>`.
 

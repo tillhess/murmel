@@ -40,6 +40,18 @@ check(
 );
 if (shots) await page.screenshot({ path: `${shots}/live-sammlung.png` });
 
+// Einstellungen: drei Entwürfe für leere Felder, drei Stufen für den Klang
+await page.locator('#homeSettings').click();
+const holeChoices = await page.locator('#settings [data-part="holes"] .choice').allTextContents();
+const soundChoices = await page.locator('#settings [data-part="sound"] .choice').allTextContents();
+check(
+  holeChoices.join(', ') === 'Schälchen, Ring, Gestanzt',
+  `Die Einstellungen bieten die leeren Felder an (${holeChoices.join(', ')})`,
+);
+check(soundChoices.length === 3, `Die Einstellungen bieten drei Klangstufen an (${soundChoices.join(', ')})`);
+if (shots) await page.screenshot({ path: `${shots}/live-einstellungen.png` });
+await page.locator('#settings [data-part="done"]').click();
+
 await page.locator('.print').first().click();
 await page.waitForTimeout(1500);
 const before = await page.evaluate(() => window.murmel.status());

@@ -11,6 +11,8 @@ Was für Murmel festgelegt ist und warum. Neue Entscheidungen kommen unten dazu,
 | Gewählt ist die angetippte Murmel samt allen angrenzenden Murmeln derselben Farbe, die noch falsch liegen. | So bewegt ein Tipp eine ganze Fläche. |
 | Ziel ist ein freies Loch derselben Farbe oder die Ablage. | |
 | Gefüllt wird nur der zusammenhängende Bereich um das angetippte Loch. Was nicht hineinpasst, bleibt liegen. | Vom Auftraggeber so festgelegt: kein Weiterfließen in andere Löcher. Der Zug tut genau, was man angetippt hat. |
+| Zusammenhängend heißt beim Ziel auch: über Eck. Ein Bereich füllt sich diagonal weiter. | Vom Auftraggeber so festgelegt (14.11.2026). Die Kette rollt geradeaus, wo es geht, und über Eck nur, wo es sein muss. Für die Auswahl gilt weiter nur Kante an Kante. |
+| Was nicht hineinpasst, bleibt gewählt. Das gilt auch, wenn auf dem Holzbrett nicht für alle Platz ist. | Vom Auftraggeber so festgelegt (14.11.2026). Man tippt gleich das nächste Ziel an, statt die Gruppe neu zu wählen. Ein Tipp daneben oder auf den Rest hebt die Auswahl auf. |
 | Es rollen die Murmeln, die dem Ziel am nächsten liegen. | Ergibt kurze, nachvollziehbare Wege. |
 | Die Ablage hat 30 feste Mulden. | Vom Auftraggeber festgelegt. Mulden sind feste Plätze, nichts rutscht nach. |
 | Es gibt keine Sackgasse. | Liegen Murmeln in der Ablage, gibt es genauso viele freie Löcher, und für mindestens eins passt immer eine Murmel. Das ist als Test abgesichert. |
@@ -66,6 +68,14 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Klang in drei Stufen: alles, nur Murmeln, still. | Laut Erklärvideo wird neben Hörbüchern gespielt. |
 | Der Klang folgt dem Stummmodus des iPad. | Nur so mischt er sich unter ein Hörbuch, statt es zu unterbrechen. Beides zugleich lässt das Web nicht zu. |
 | Der Bildschirm wird nicht wach gehalten. | Wer innehält, darf das Gerät einschlafen lassen. Der Stand ist nach jedem Zug gespeichert. |
+
+## Leere Felder und Einstellungen (14.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Ein leeres Feld ist ein Schälchen: flach, matt, in aufgehellter Zielfarbe mit Rand in der vollen Farbe. | Vom Auftraggeber aus drei Entwürfen gewählt. Die früheren dunklen Mulden waren von dunklen Murmeln kaum zu unterscheiden. |
+| Die beiden anderen Entwürfe (Ring, Gestanzt) bleiben wählbar. | Wunsch des Auftraggebers: Wer mag, stellt es in den Einstellungen um. |
+| Es gibt ein Einstellungen-Blatt mit zwei Fragen: leere Felder und Klang. Es öffnet sich von der Startseite und über ein Symbol in der Spielleiste. | Jede Wahl gilt sofort und bleibt gespeichert. Der Klang lässt sich im Spiel zusätzlich mit einem Tipp auf das Lautsprecher-Symbol umschalten. |
 
 ## Oberfläche (14.11.2026)
 

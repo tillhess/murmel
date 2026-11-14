@@ -1,3 +1,4 @@
+import { HOLE_STYLES, type HoleStyle, hole } from '../art/holes';
 import { dimple, glint, marble, marbleCore, marbleTop, marbleUnder } from '../art/marble';
 import { PAPER, paperSheet, roundedRect, WOOD, woodBoard } from '../art/materials';
 import { newCanvas } from '../art/paint';
@@ -65,6 +66,8 @@ export class BoardView {
   private readonly mask = newCanvas(4, 4);
   private readonly sprites = new Sprites();
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /** Wie ein leeres Feld im Bild aussieht (siehe src/art/holes.ts) */
+  private holeStyle: HoleStyle = HOLE_STYLES[0];
 
   private game: Game | null = null;
   private painting: HTMLCanvasElement | null = null;
@@ -161,6 +164,13 @@ export class BoardView {
 
   get busy(): boolean {
     return this.flights.length > 0 || this.blooms.size > 0;
+  }
+
+  /** Wählt den Entwurf für leere Felder im Bild. */
+  setHoleStyle(style: HoleStyle): void {
+    if (style === this.holeStyle) return;
+    this.holeStyle = style;
+    this.baseDirty = true;
   }
 
   /** Wie viel Platz oben (Leiste, Statusleiste) und unten (Rand des Geräts) frei bleiben muss. */
@@ -378,6 +388,13 @@ export class BoardView {
     return this.sprites.get(`${layer}${color}`, d, (x, D) => draw(x, D / 2, D / 2, (D / 2) * 0.96, color));
   }
 
+  /** Leeres Feld im Bild, in der Farbe, die hierher gehört */
+  private holeSprite(color: string, cell: number): Sprite {
+    const style = this.holeStyle;
+    return this.sprites.get(`h${style}${color}`, cell, (x, D) => hole(x, D / 2, D / 2, D, color, style));
+  }
+
+  /** Mulde im Holzbrett */
   private dimpleSprite(color: string, d: number): Sprite {
     return this.sprites.get(`d${color}`, d, (x, D) => dimple(x, D / 2, D / 2, D * 0.37, color));
   }
@@ -486,7 +503,7 @@ export class BoardView {
       const [cx, cy] = this.cellCenter(i);
       const c = state.cur[i];
       if (c === EMPTY || this.pendCells.has(i) || lifted?.has(i)) {
-        Sprites.blit(g, this.dimpleSprite(level.palette[level.target[i]], cell), cx, cy, cell);
+        Sprites.blit(g, this.holeSprite(level.palette[level.target[i]], cell), cx, cy, cell);
       } else {
         Sprites.blit(g, this.marbleSprite(level.palette[c], md, (i * 7) % VARIANTS), cx, cy, md);
       }

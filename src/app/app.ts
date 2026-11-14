@@ -1,3 +1,4 @@
+import { HOLE_STYLES, type HoleStyle } from '../art/holes';
 import { marble } from '../art/marble';
 import { grainCanvas } from '../art/paint';
 import { SOUND_MODES, Sound, type SoundMode } from '../audio/sound';
@@ -5,6 +6,7 @@ import type { Mood } from '../core/scene';
 import { renderShelf } from './home';
 import { DEFAULT_MOOD, fromPhoto, type Picture, pictures } from './library';
 import { PlayScreen } from './play';
+import { SettingsSheet } from './settings';
 import { store } from './storage';
 
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -47,9 +49,7 @@ export function startApp(): void {
   const home = el('home');
   const shelf = el('shelf');
   const photo = el<HTMLInputElement>('photo');
-  const homeSound = el<HTMLButtonElement>('homeSound');
   const playSound = el<HTMLButtonElement>('sound');
-  const homeNote = el('homeNote');
 
   document.documentElement.classList.toggle('standalone', isStandalone());
   store.keep();
@@ -92,35 +92,44 @@ export function startApp(): void {
 
   // ---------- Klang ----------
   const showSound = (): void => {
-    const text = SOUND_TEXT[sound.mode];
-    homeSound.textContent = text.label;
     playSound.dataset.mode = sound.mode;
-    playSound.setAttribute('aria-label', `${text.label}. Tippen schaltet um.`);
+    playSound.setAttribute('aria-label', `${SOUND_TEXT[sound.mode].label}. Tippen schaltet um.`);
   };
-  let noteTimer = 0;
-  const cycleSound = (): void => {
+  const setSound = (mode: SoundMode): void => {
+    sound.setMode(mode);
+    store.sound = mode;
+    showSound();
+    // ein leiser Ton als Antwort, sobald der Klang wach ist
+    if (mode !== 'aus') window.setTimeout(() => sound.pick(), 200);
+  };
+  // Das Symbol in der Spielleiste schaltet die drei Stufen der Reihe nach durch.
+  playSound.addEventListener('click', () => {
     const before = sound.mode;
     const next = SOUND_MODES[(SOUND_MODES.indexOf(before) + 1) % SOUND_MODES.length];
-    sound.setMode(next);
-    store.sound = next;
-    showSound();
+    setSound(next);
     // Der Klang richtet sich nach dem Stummmodus des Geräts. Wer ihn gerade einschaltet und nichts hört,
     // sucht sonst den Fehler im Spiel.
-    const said = before === 'aus' ? 'Klang an. Bleibt es still, ist das iPad stummgeschaltet.' : SOUND_TEXT[next].said;
-    if (home.hidden) {
-      play.tell(said);
-    } else {
-      homeNote.textContent = said;
-      homeNote.classList.add('heard');
-      clearTimeout(noteTimer);
-      noteTimer = window.setTimeout(() => homeNote.classList.remove('heard'), 4200);
-    }
-    // ein leiser Ton als Antwort, sobald der Klang wach ist
-    if (next !== 'aus') window.setTimeout(() => sound.pick(), 200);
-  };
-  homeSound.addEventListener('click', cycleSound);
-  playSound.addEventListener('click', cycleSound);
+    play.tell(before === 'aus' ? 'Klang an. Bleibt es still, ist das iPad stummgeschaltet.' : SOUND_TEXT[next].said);
+  });
   showSound();
+
+  // ---------- Einstellungen ----------
+  let holes: HoleStyle = store.holes ?? HOLE_STYLES[0];
+  const setHoles = (style: HoleStyle): void => {
+    holes = style;
+    play.setHoleStyle(style);
+  };
+  setHoles(holes);
+  const settings = new SettingsSheet(el<HTMLDialogElement>('settings'), {
+    holes: () => holes,
+    setHoles: (style) => {
+      store.holes = style;
+      setHoles(style);
+    },
+    sound: () => sound.mode,
+    setSound,
+  });
+  for (const id of ['homeSettings', 'playSettings']) el(id).addEventListener('click', () => settings.open());
 
   // Der Raum atmet im Takt des Himmelslichts: Der Klang richtet sich nach der Uhr der Animation.
   const light = document.querySelector('.sky-light')?.getAnimations?.()[0];
@@ -169,6 +178,7 @@ export function startApp(): void {
       status: () => play.status(),
       home: () => play.close(),
       sound: () => sound.mode,
+      holes: (style: HoleStyle) => setHoles(style),
     },
   });
 }

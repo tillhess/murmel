@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Murmel: Entwürfe für das leere Feld</title>
+    <style>
+      body { margin: 0; padding: 24px; background: #2a2d3a; color: #eee; font: 14px system-ui; }
+      h2 { margin: 26px 0 10px; font-size: 15px; font-weight: 600; }
+      .row { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+      canvas { display: block; }
+      figure { margin: 0; }
+      figcaption { margin-top: 6px; opacity: .85; }
+    </style>
+  </head>
+  <body>
+    <p>Jede Farbe eines Motivs: links die Murmel, daneben zwei leere Felder dieser Farbe. Oben groß (16 × 16), unten klein (28 × 28).</p>
+    <div id="out"></div>
+    <script type="module" src="./loecher.ts"></script>
+  </body>
+</html>

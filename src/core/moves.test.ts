@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deal } from './deal';
-import { neighbors } from './grid';
+import { around, neighbors, regionAt } from './grid';
 import { EMPTY, type Level, newState, type State } from './level';
 import { freeSlots, hasFreeHole, park, place, type Selection, selectCell, selectSlot, trayCount } from './moves';
 import { makeRng, randInt } from './random';
@@ -97,11 +97,59 @@ describe('Ins Bild legen', () => {
         const via = roll.via.map((s) => ('cell' in s ? s.cell : -1));
         expect(via[0]).toBe(hole);
         expect(via[via.length - 1]).toBe('cell' in roll.to ? roll.to.cell : -1);
-        for (let k = 1; k < via.length; k++) expect(neighbors(level, via[k - 1])).toContain(via[k]);
+        // jeder Schritt führt auf ein angrenzendes Feld, über die Kante oder über Eck
+        for (let k = 1; k < via.length; k++) expect(around(level, via[k - 1])).toContain(via[k]);
       }
       return;
     }
     throw new Error('kein passender Zug gefunden');
+  });
+});
+
+describe('Ziele, die nur über Eck zusammenhängen', () => {
+  it('zählen als ein Bereich und füllen sich in einem Zug', () => {
+    // A gehört auf die Diagonale: oben links und unten rechts sind frei, die beiden B liegen schon richtig
+    const level = levelFromRows(['AB', 'BA']);
+    const state = newState(new Int16Array([EMPTY, 1, 1, EMPTY]), 4);
+    state.tray.set([0, 0]);
+    expect(regionAt(level, state.cur, 0)).toEqual([0, 3]);
+
+    const result = place(level, state, selectSlot(state, 0) as Selection, 0);
+    if (!result.ok) throw new Error('abgelehnt');
+    expect(Array.from(state.cur)).toEqual([0, 1, 1, 0]);
+    expect(trayCount(state)).toBe(0);
+    // die vorderste Murmel rollt über Eck ins hintere Loch, die zweite bleibt im Einstieg
+    expect(result.rolls[0]).toMatchObject({ to: { cell: 3 }, via: [{ cell: 0 }, { cell: 3 }] });
+    expect(result.rolls[1]).toMatchObject({ to: { cell: 0 }, via: [{ cell: 0 }] });
+  });
+
+  it('rollen geradeaus, wo es geht, und über Eck nur, wo es sein muss', () => {
+    // freier Bereich für A: eine Reihe von drei Löchern, dazu eins, das nur über Eck anschließt
+    const level = levelFromRows(['AAAB', 'BBBA']);
+    const state = newState(new Int16Array([EMPTY, EMPTY, EMPTY, 1, 1, 1, 1, EMPTY]), 6);
+    state.tray.set([0, 0, 0, 0]);
+    expect(regionAt(level, state.cur, 0)).toEqual([0, 1, 2, 7]);
+
+    const result = place(level, state, selectSlot(state, 0) as Selection, 0);
+    if (!result.ok) throw new Error('abgelehnt');
+    const cells = (k: number) => result.rolls[k].via.map((s) => ('cell' in s ? s.cell : -1));
+    expect(cells(0)).toEqual([0, 1, 2, 7]);
+    for (const roll of result.rolls) {
+      const via = roll.via.map((s) => ('cell' in s ? s.cell : -1));
+      // nur der letzte Schritt ins abseits liegende Loch führt über Eck
+      for (let k = 1; k < via.length; k++) {
+        if (via[k] !== 7) expect(neighbors(level, via[k - 1])).toContain(via[k]);
+      }
+    }
+    expect(Array.from(state.cur)).toEqual([0, 0, 0, 1, 1, 1, 1, 0]);
+  });
+
+  it('gelten nicht für die Auswahl: Murmeln hängen nur Kante an Kante zusammen', () => {
+    const level = levelFromRows(['BA', 'AB']);
+    // zwei A liegen falsch und berühren sich nur über Eck
+    const state = newState(new Int16Array([0, EMPTY, EMPTY, 0]), 4);
+    const sel = selectCell(level, state, 0) as Selection & { source: 'board' };
+    expect(sel.cells).toEqual([0]);
   });
 });
 

@@ -1,8 +1,9 @@
+import type { HoleStyle } from '../art/holes';
 import type { Sound } from '../audio/sound';
 import { Game, type Outcome } from '../core/game';
 import { colorDone, remaining } from '../core/grid';
 import { newState } from '../core/level';
-import { trayCount } from '../core/moves';
+import { selectionSize, trayCount } from '../core/moves';
 import { makeRng } from '../core/random';
 import { suggest } from '../core/solver';
 import type { Picture } from './library';
@@ -119,6 +120,7 @@ export class PlayScreen {
     const game = this.game;
     if (!game) return;
     for (let guard = 0; guard < 20000 && !game.solved; guard++) {
+      game.tapOutside(); // ein Rest vom vorigen Zug ist noch gewählt
       const s = suggest(game.level, game.state);
       if (!s) break;
       this.respond('cell' in s.select ? game.tapCell(s.select.cell) : game.tapTray(s.select.slot));
@@ -129,6 +131,11 @@ export class PlayScreen {
   /** Der nächste sinnvolle Zug als zwei Bildschirmpunkte: erst auswählen, dann Ziel (für Tests). */
   nextMove(): { select: { x: number; y: number }; target: { x: number; y: number } } | null {
     const game = this.game;
+    if (game?.selection) {
+      // ein Rest vom vorigen Zug ist noch gewählt: Der vorgeschlagene Zug beginnt mit einer frischen Auswahl
+      game.tapOutside();
+      this.view.refresh();
+    }
     const s = game && !game.solved ? suggest(game.level, game.state) : null;
     if (!s) return null;
     return { select: this.view.clientPoint(s.select), target: this.view.clientPoint(s.target) };
@@ -139,6 +146,8 @@ export class PlayScreen {
     solved: boolean;
     remaining: number;
     inTray: number;
+    /** wie viele Murmeln gerade gewählt sind */
+    selected: number;
     busy: boolean;
     finishShown: boolean;
   } | null {
@@ -148,9 +157,15 @@ export class PlayScreen {
       solved: this.game.solved,
       remaining: remaining(this.game.level, this.game.state.cur),
       inTray: trayCount(this.game.state),
+      selected: this.game.selection ? selectionSize(this.game.selection) : 0,
       busy: this.view.busy,
       finishShown: !this.el.finish.hidden,
     };
+  }
+
+  /** Wählt den Entwurf für leere Felder im Bild. */
+  setHoleStyle(style: HoleStyle): void {
+    this.view.setHoleStyle(style);
   }
 
   /** Sagt einen Satz in der Leiste, der nach ein paar Sekunden wieder verschwindet. */
@@ -195,6 +210,8 @@ export class PlayScreen {
         this.view.refresh();
         this.save();
         this.updateUndo();
+        // Nicht alles passte ins Ziel: Der Rest bleibt gewählt und wartet auf das nächste Ziel.
+        if (outcome.rest) this.hint('rest', 'Der Rest bleibt gewählt.');
         break;
       case 'abgelehnt':
         this.sound.nope();

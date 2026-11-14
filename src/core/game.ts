@@ -1,7 +1,17 @@
 import { deal } from './deal';
 import { isSolved } from './grid';
 import { cloneState, EMPTY, type Level, newState, type State } from './level';
-import { hasFreeHole, park, place, type Refusal, type Roll, type Selection, selectCell, selectSlot } from './moves';
+import {
+  hasFreeHole,
+  park,
+  place,
+  type Refusal,
+  type Roll,
+  remainder,
+  type Selection,
+  selectCell,
+  selectSlot,
+} from './moves';
 import type { Rng } from './random';
 
 /** Was ein Tipp bewirkt hat. Die Darstellung reagiert darauf mit Bewegung und Klang. */
@@ -14,6 +24,8 @@ export type Outcome =
       readonly color: number;
       readonly rolls: readonly Roll[];
       readonly fertig: boolean;
+      /** Was von der Auswahl nicht mitrollen konnte. Es bleibt gewählt. */
+      readonly rest: Selection | null;
     }
   | { readonly type: 'abgelehnt'; readonly reason: Refusal | 'nichts-gewählt' }
   | { readonly type: 'liegt-richtig'; readonly cell: number }
@@ -23,7 +35,8 @@ const NOTHING: Outcome = { type: 'nichts' };
 
 /**
  * Spielsteuerung. Ein Zug hat zwei Schritte: erst eine Gruppe wählen, dann ein Ziel antippen
- * (ein freies Loch derselben Farbe oder die Ablage). Es wird nichts gezählt und nichts bewertet.
+ * (ein freies Loch derselben Farbe oder die Ablage). Passt die Gruppe nicht ganz ins Ziel, bleibt der Rest gewählt.
+ * Es wird nichts gezählt und nichts bewertet.
  */
 export class Game {
   readonly level: Level;
@@ -59,8 +72,9 @@ export class Game {
     if (level.target[cell] === undefined || level.target[cell] < 0) return this.tapOutside();
     const here = state.cur[cell];
     if (here === EMPTY) {
-      if (!this.selection) return { type: 'abgelehnt', reason: 'nichts-gewählt' };
-      return this.roll('bild', (s) => place(level, s, this.selection as Selection, cell));
+      const selection = this.selection;
+      if (!selection) return { type: 'abgelehnt', reason: 'nichts-gewählt' };
+      return this.roll('bild', selection, (s) => place(level, s, selection, cell));
     }
     if (here === level.target[cell]) return { type: 'liegt-richtig', cell };
     if (this.selection?.source === 'board' && this.selection.cells.includes(cell)) return this.deselect();
@@ -70,8 +84,9 @@ export class Game {
   /** Tipp auf die Ablage. `slot` ist die getroffene Mulde oder null für das Brett daneben. */
   tapTray(slot: number | null): Outcome {
     const { level, state } = this;
-    if (this.selection?.source === 'board') {
-      return this.roll('ablage', (s) => park(level, s, this.selection as Selection, this.trayAt ?? undefined));
+    const selection = this.selection;
+    if (selection?.source === 'board') {
+      return this.roll('ablage', selection, (s) => park(level, s, selection, this.trayAt ?? undefined));
     }
     if (slot === null || state.tray[slot] === undefined || state.tray[slot] === EMPTY) return this.tapOutside();
     if (this.selection?.source === 'tray' && this.selection.color === state.tray[slot]) return this.deselect();
@@ -101,13 +116,15 @@ export class Game {
     return { type: 'abgewählt' };
   }
 
-  private roll(ziel: 'bild' | 'ablage', move: (s: State) => ReturnType<typeof place>): Outcome {
+  private roll(ziel: 'bild' | 'ablage', selection: Selection, move: (s: State) => ReturnType<typeof place>): Outcome {
     const before = cloneState(this.state);
     const result = move(this.state);
     if (!result.ok) return { type: 'abgelehnt', reason: result.reason };
     this.history.push(before);
     if (this.history.length > 200) this.history.shift();
-    this.selection = null;
-    return { type: 'gerollt', ziel, color: result.color, rolls: result.rolls, fertig: this.solved };
+    // Was nicht mitrollen konnte, bleibt gewählt.
+    const rest = remainder(selection, result.rolls);
+    this.selection = rest;
+    return { type: 'gerollt', ziel, color: result.color, rolls: result.rolls, fertig: this.solved, rest };
   }
 }
