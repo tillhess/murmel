@@ -363,6 +363,13 @@ button:focus-visible,
   outline-style: dashed;
 }
 
+.foot-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
 .home-foot {
   display: flex;
   flex-direction: column;
@@ -673,6 +680,12 @@ button:focus-visible,
   border-radius: 50%;
   background: #f6f1e6;
   box-shadow: 0 1px 3px rgb(43 39 51 / 0.25);
+}
+
+.sheet-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .setting-note {
