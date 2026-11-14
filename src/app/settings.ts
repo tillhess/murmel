@@ -17,6 +17,9 @@ export interface SettingsHandlers {
   /** Mulden auf dem Holzbrett. `setTray` meldet, ob die neue Größe schon im laufenden Spiel gilt. */
   tray(): number;
   setTray(size: number): boolean;
+  /** Tempo der rollenden Murmeln, einer der Werte aus `tempos` */
+  tempo(): number;
+  setTempo(tempo: number): void;
   /** wie stark sich die Murmelfarben eigener Fotos unterscheiden */
   contrast(): PhotoContrast;
   setContrast(contrast: PhotoContrast): void;
@@ -28,6 +31,8 @@ export interface SettingsHandlers {
 export interface SettingsOptions {
   readonly detailSizes: readonly number[];
   readonly traySizes: readonly number[];
+  /** Stufen des Reglers für das Tempo, von langsam nach schnell */
+  readonly tempos: readonly number[];
 }
 
 const SOUND_CHOICES: Record<SoundMode, string> = {
@@ -35,6 +40,9 @@ const SOUND_CHOICES: Record<SoundMode, string> = {
   murmeln: 'Nur Murmeln',
   aus: 'Still',
 };
+
+/** Wie die Stufen des Tempo-Reglers vorgelesen werden */
+const TEMPO_TEXT = ['sehr ruhig', 'ruhig', 'normal', 'zügig', 'schnell', 'sehr schnell'];
 
 const CONTRAST_CHOICES: Record<PhotoContrast, string> = {
   naturnah: 'Naturnah',
@@ -107,11 +115,12 @@ export class SettingsSheet {
   private readonly trayButtons: HTMLButtonElement[];
   private readonly trayNote: HTMLElement;
   private readonly contrastButtons: HTMLButtonElement[];
+  private readonly tempoSlider: HTMLInputElement;
 
   constructor(
     private readonly dialog: HTMLDialogElement,
     private readonly handlers: SettingsHandlers,
-    options: SettingsOptions,
+    private readonly options: SettingsOptions,
   ) {
     const find = (name: string): HTMLElement => dialog.querySelector(`[data-part="${name}"]`) as HTMLElement;
 
@@ -138,6 +147,16 @@ export class SettingsSheet {
       return button;
     });
     find('tray').append(...this.trayButtons);
+
+    // Tempo: ein Regler mit festen Stufen. Jede Bewegung gilt sofort.
+    this.tempoSlider = find('tempo') as HTMLInputElement;
+    this.tempoSlider.min = '0';
+    this.tempoSlider.max = String(options.tempos.length - 1);
+    this.tempoSlider.step = '1';
+    this.tempoSlider.addEventListener('input', () => {
+      handlers.setTempo(options.tempos[Number(this.tempoSlider.value)] ?? 1);
+      this.sync();
+    });
 
     this.contrastButtons = PHOTO_CONTRASTS.map((contrast) => {
       const button = choice(CONTRAST_CHOICES[contrast], contrast, false);
@@ -208,6 +227,12 @@ export class SettingsSheet {
     for (const b of this.detailButtons) b.setAttribute('aria-pressed', String(b.dataset.value === detail));
     const tray = String(this.handlers.tray());
     for (const b of this.trayButtons) b.setAttribute('aria-pressed', String(b.dataset.value === tray));
+    // der Regler steht auf der Stufe, die dem eingestellten Tempo am nächsten liegt
+    const tempo = this.handlers.tempo();
+    const tempos = this.options.tempos;
+    const step = tempos.reduce((best, t, k) => (Math.abs(t - tempo) < Math.abs(tempos[best] - tempo) ? k : best), 0);
+    this.tempoSlider.value = String(step);
+    this.tempoSlider.setAttribute('aria-valuetext', TEMPO_TEXT[step] ?? '');
     const contrast = this.handlers.contrast();
     for (const b of this.contrastButtons) b.setAttribute('aria-pressed', String(b.dataset.value === contrast));
     for (const b of this.soundButtons) b.setAttribute('aria-pressed', String(b.dataset.value === sound));

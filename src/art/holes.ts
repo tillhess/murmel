@@ -5,9 +5,9 @@ import { PAPER } from './materials';
  * Das leere Feld im Bild. Es muss auf einen Blick anders aussehen als eine Murmel (matt statt glänzend, vertieft
  * statt gewölbt) und zeigen, welche Farbe hierher gehört. Drei Entwürfe sind in den Einstellungen wählbar. Alle
  * liegen auf der blassen Vorzeichnung, die Farbe trägt das Zeichen selbst:
- * - kreuz:  eine flache Schale in aufgehellter Zielfarbe, in deren Mitte ein Kreuzschlitz-Schraubendreher
- *           einen Abdruck nach unten hinterlassen hat
- * - schale: dieselbe Schale ohne Abdruck
+ * - schale: eine flache Schale in aufgehellter Zielfarbe mit Rand in der vollen Farbe
+ * - kreuz:  dieselbe Schale, in deren Mitte ein Kreuzschlitz-Schraubendreher einen Abdruck nach unten
+ *           hinterlassen hat
  * - ring:   eine helle Mulde mit kräftigem Farbring
  *
  * Alle zeichnen um den Mittelpunkt (cx, cy) eines Felds der Kantenlänge `cell`. Das Licht kommt von oben links.
@@ -16,10 +16,10 @@ type Ctx = CanvasRenderingContext2D;
 
 export type HoleStyle = 'kreuz' | 'schale' | 'ring';
 /** Die Voreinstellung steht vorn. */
-export const HOLE_STYLES: readonly HoleStyle[] = ['kreuz', 'schale', 'ring'];
+export const HOLE_STYLES: readonly HoleStyle[] = ['schale', 'kreuz', 'ring'];
 export const HOLE_NAMES: Record<HoleStyle, string> = {
-  kreuz: 'Kreuz',
   schale: 'Schälchen',
+  kreuz: 'Kreuz',
   ring: 'Ring',
 };
 

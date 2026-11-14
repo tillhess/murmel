@@ -22,6 +22,7 @@ interface Murmel {
     tray: number;
     busy: boolean;
     finishShown: boolean;
+    tempo: number;
     colors: string[];
   } | null;
   home(): void;
@@ -205,7 +206,7 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
   const sheet = page.locator('#settings');
   await expect(sheet).toBeVisible();
   const choices = sheet.locator('[data-part="holes"] .choice');
-  await expect(choices).toHaveText(['Kreuz', 'Schälchen', 'Ring']);
+  await expect(choices).toHaveText(['Schälchen', 'Kreuz', 'Ring']);
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true'); // Voreinstellung
   await choices.nth(1).click();
   await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
@@ -678,5 +679,40 @@ test('Die Farben eines eigenen Fotos lassen sich stärker voneinander abheben', 
   await page.locator('.print-wrap .print').click();
   await expect.poll(async () => (await status(page))?.colors).toEqual(after?.colors);
   expect((await status(page))?.remaining).toBe(before?.remaining);
+  expect(errors).toEqual([]);
+});
+
+test('Ein Regler stellt das Tempo der Murmeln ein', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('mond'));
+  const slider = page.locator('#settings [data-part="tempo"]');
+  const setTempo = async (step: number): Promise<void> => {
+    await page.locator('#playSettings').click();
+    await slider.fill(String(step));
+    await page.locator('#settings [data-part="done"]').click();
+  };
+  await page.locator('#playSettings').click();
+  await expect(slider).toHaveValue('2'); // Voreinstellung in der Mitte
+  await page.locator('#settings [data-part="done"]').click();
+
+  expect((await status(page))?.tempo).toBe(1);
+  await setTempo(0);
+  const slow = (await status(page))?.tempo ?? 1;
+  expect(slow).toBeLessThan(1);
+  await setTempo(5);
+  const fast = (await status(page))?.tempo ?? 1;
+  expect(fast).toBeGreaterThan(2);
+  // auch im schnellsten Tempo lässt sich spielen
+  const move = await page.evaluate(() => window.murmel.next());
+  if (!move) throw new Error('kein Zug gefunden');
+  await page.mouse.click(move.select.x, move.select.y);
+  await page.mouse.click(move.target.x, move.target.y);
+  await expect.poll(async () => (await status(page))?.busy).toBe(false);
+
+  // die Wahl bleibt nach dem Neuladen
+  await page.reload();
+  await page.locator('#homeSettings').click();
+  await expect(slider).toHaveValue('5');
   expect(errors).toEqual([]);
 });

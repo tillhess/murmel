@@ -43,6 +43,8 @@ interface Saved {
   detail?: number | null;
   /** in den Einstellungen gewählt: Zahl der Mulden auf dem Holzbrett */
   tray?: number;
+  /** in den Einstellungen gewählt: Tempo der rollenden Murmeln als Vielfaches der Voreinstellung */
+  tempo?: number;
   /** in den Einstellungen gewählt: wie stark sich die Murmelfarben eigener Fotos unterscheiden */
   contrast?: PhotoContrast;
   /** eigene Fotos, in der Reihenfolge, in der sie dazukamen */
@@ -133,6 +135,14 @@ export const store = {
   },
   set tray(size: number | undefined) {
     read().tray = size;
+    write();
+  },
+  get tempo(): number | undefined {
+    const saved = read().tempo;
+    return typeof saved === 'number' && saved >= 0.2 && saved <= 6 ? saved : undefined;
+  },
+  set tempo(tempo: number | undefined) {
+    read().tempo = tempo;
     write();
   },
   get contrast(): PhotoContrast {

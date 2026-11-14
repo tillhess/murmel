@@ -18,6 +18,7 @@ import {
 import { PlayScreen, TRAY_DEFAULT, TRAY_SIZES } from './play';
 import { SettingsSheet } from './settings';
 import { store } from './storage';
+import { TEMPO_DEFAULT, TEMPOS } from './view';
 
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -154,6 +155,8 @@ export function startApp(): void {
     play.setMarbleStyle(style);
   };
   setMarbles(marbles);
+  let tempo = store.tempo ?? TEMPO_DEFAULT;
+  play.setTempo(tempo);
   let traySize = store.tray ?? TRAY_DEFAULT;
   play.setTraySize(traySize);
   const setDetail = (size: number | null): void => {
@@ -198,6 +201,12 @@ export function startApp(): void {
         store.tray = size;
         return play.setTraySize(size);
       },
+      tempo: () => tempo,
+      setTempo: (next) => {
+        tempo = next;
+        store.tempo = next;
+        play.setTempo(next);
+      },
       contrast: () => contrast,
       setContrast: (next) => {
         store.contrast = next;
@@ -206,7 +215,7 @@ export function startApp(): void {
       sound: () => sound.mode,
       setSound,
     },
-    { detailSizes: DETAIL_SIZES, traySizes: TRAY_SIZES },
+    { detailSizes: DETAIL_SIZES, traySizes: TRAY_SIZES, tempos: TEMPOS },
   );
   for (const id of ['homeSettings', 'playSettings']) el(id).addEventListener('click', () => settings.open());
 

@@ -175,6 +175,8 @@ export class PlayScreen {
     tray: number;
     busy: boolean;
     finishShown: boolean;
+    /** Tempo der rollenden Murmeln (1 = Voreinstellung) */
+    tempo: number;
     /** die Murmelfarben des Bildes */
     colors: string[];
   } | null {
@@ -192,6 +194,7 @@ export class PlayScreen {
       tray: this.game.state.tray.length,
       busy: this.view.busy,
       finishShown: !this.el.finish.hidden,
+      tempo: this.view.tempo,
       colors: [...this.game.level.palette],
     };
   }
@@ -228,6 +231,11 @@ export class PlayScreen {
   /** Wählt den Entwurf für leere Felder im Bild. */
   setHoleStyle(style: HoleStyle): void {
     this.view.setHoleStyle(style);
+  }
+
+  /** Stellt ein, wie schnell die Murmeln rollen. */
+  setTempo(tempo: number): void {
+    this.view.setTempo(tempo);
   }
 
   /** Wählt, ob die Murmeln spiegeln. */

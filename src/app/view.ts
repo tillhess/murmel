@@ -32,6 +32,11 @@ import { DISPLAY_FONT } from './theme';
 const VARIANTS = 6;
 /** Rolltempo in Feldern pro Sekunde: ruhig genug zum Zusehen. Weiterspielen kann man, während die Kette noch rollt. */
 const SPEED = 13;
+/**
+ * Wählbares Tempo als Vielfaches davon, von gemächlich bis flink. Die Mitte der Liste ist die Voreinstellung.
+ */
+export const TEMPOS: readonly number[] = [0.45, 0.65, 1, 1.5, 2.2, 3.2];
+export const TEMPO_DEFAULT = 1;
 /** Auf dem letzten Stück vor ihrem Ziel rollt eine Murmel aus (in Feldern). */
 const EASE_CELLS = 0.8;
 /** So lange sinken gewählte Murmeln zurück auf das Papier, bevor sie losrollen */
@@ -96,6 +101,8 @@ export class BoardView {
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   /** Wie ein leeres Feld im Bild aussieht (siehe src/art/holes.ts) */
   private holeStyle: HoleStyle = HOLE_STYLES[0];
+  /** Tempo der rollenden Murmeln als Vielfaches der Voreinstellung */
+  tempo = TEMPO_DEFAULT;
   /** Murmeln mit oder ohne Spiegelung (siehe src/art/marble.ts) */
   private marbleStyle: MarbleStyle = MARBLE_STYLES[0];
 
@@ -335,6 +342,11 @@ export class BoardView {
   }
 
   /** Wählt, ob die Murmeln spiegeln. */
+  /** Stellt ein, wie schnell die Murmeln rollen (1 = Voreinstellung). Gilt ab dem nächsten Zug. */
+  setTempo(tempo: number): void {
+    this.tempo = tempo;
+  }
+
   setMarbleStyle(style: MarbleStyle): void {
     if (style === this.marbleStyle) return;
     this.marbleStyle = style;
@@ -495,7 +507,7 @@ export class BoardView {
     // lange Wege und lange Ketten etwas schneller, damit kein Zug ewig dauert
     const speed = this.reduceMotion
       ? 1e6
-      : Math.max((this.cell * SPEED) / 1000, far / 1300, (spacing * (rolls.length - 1)) / 2800);
+      : Math.max((this.cell * SPEED) / 1000, far / 1300, (spacing * (rolls.length - 1)) / 2800) * this.tempo;
     const runs = scheduleChain(paths, { speed, spacing, ease: this.cell * EASE_CELLS });
     const chain = { landed: 0, total: rolls.length };
     rolls.forEach((r, k) => {
