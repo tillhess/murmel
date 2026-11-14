@@ -33,14 +33,14 @@ man rollt sie Gruppe für Gruppe an ihren Platz, und ein Bild entsteht.
 
 Node 26 (siehe `.node-version`). Wo `fnm` installiert ist, steht vor jedem Befehl `fnm exec --using=26`.
 
-| Befehl | Was er tut |
-| --- | --- |
-| `npm run dev` | Entwicklungsserver auf Port 5173 |
-| `npm run check` | Lint und Format (Biome), Typprüfung, Tests der Spiellogik (Vitest) |
-| `npm run format` | behebt, was Biome selbst beheben kann |
-| `npm run build` | baut `dist/index.html` (öffentliche Seite) und `dist/artifact.html` (Einzeldatei) |
-| `npm run e2e` | Browsertests (Playwright) in Chromium und in WebKit im iPad-Format |
-| `node scripts/live-pruefen.mjs` | prüft die ausgelieferte öffentliche Seite |
+| Befehl                          | Was er tut                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `npm run dev`                   | Entwicklungsserver auf Port 5173                                                  |
+| `npm run check`                 | Lint und Format (Biome), Typprüfung, Tests der Spiellogik (Vitest)                |
+| `npm run format`                | behebt, was Biome selbst beheben kann                                             |
+| `npm run build`                 | baut `dist/index.html` (öffentliche Seite) und `dist/artifact.html` (Einzeldatei) |
+| `npm run e2e`                   | Browsertests (Playwright) in Chromium und in WebKit im iPad-Format                |
+| `node scripts/live-pruefen.mjs` | prüft die ausgelieferte öffentliche Seite                                         |
 
 Die Browsertests laufen gegen den Build in `dist/`, nicht gegen die Quelldateien: **vor `npm run e2e` immer
 `npm run build`**, sonst prüfen sie den alten Stand.
