@@ -965,8 +965,27 @@ export class BoardView {
       const c = state.tray[k];
       if (c === EMPTY || this.pendSlots.has(k)) continue;
       const [x, y] = this.slotCenter(k);
-      const lifted = trayActive;
-      Sprites.blit(ctx, this.marbleSprite(level.palette[c], td, k % VARIANTS), x, y - (lifted ? 5 + pulse * 2 : 0), td);
+      const lift = trayActive ? 5 + pulse * 2 : 0;
+      Sprites.blit(ctx, this.marbleSprite(level.palette[c], td, k % VARIANTS), x, y - lift, td);
+      if (trayActive) {
+        // derselbe helle Ring wie um gewählte Murmeln im Bild
+        ctx.beginPath();
+        ctx.arc(x, y - lift, td * 0.5, 0, Math.PI * 2);
+        ctx.strokeStyle = LIGHT;
+        ctx.globalAlpha = trayAlpha * (0.75 + 0.25 * pulse);
+        ctx.lineWidth = Math.max(1.4, t.slot * 0.06);
+        ctx.stroke();
+        ctx.globalAlpha = trayAlpha;
+      }
+    }
+    if (trayActive) {
+      // Das ganze Brett ist gewählt: ein heller Rahmen rundherum
+      ctx.strokeStyle = LIGHT;
+      ctx.globalAlpha = trayAlpha * (0.6 + 0.35 * pulse);
+      ctx.lineWidth = 2.5 + pulse;
+      roundedRect(ctx, t.x - 4, t.y - 4, t.w + 8, t.h + 8, Math.min(18, t.h / 4 + 4));
+      ctx.stroke();
+      ctx.globalAlpha = trayAlpha;
     }
     ctx.restore();
 
