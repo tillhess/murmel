@@ -132,3 +132,12 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Schriften liegen bei und werden in die Seite eingebettet (14.11.2026) | Die öffentliche Seite lädt nichts von fremden Servern, auch keine Schriften von Google. Damit gehen beim Aufruf keine Besucherdaten an Dritte, und die Tests brauchen kein Netz. Preis: Die Seite wächst von 68 auf 294 kB. |
 | Auslieferung auf GitHub Pages nur nach Schalter | Die Seite ist öffentlich. Das soll eine bewusste Entscheidung sein. Seit dem 14.11.2026 ist der Schalter an (Auftraggeber). |
 | Das Repository ist öffentlich (14.11.2026) | GitHub Pages lässt im kostenlosen Tarif kein privates Repository zu. Die Abschrift des Erklärvideos liegt deshalb nicht im Repository, und die Commits tragen die GitHub-Adresse statt einer privaten Mailadresse. |
+
+## App Store (14.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Die iOS-App ist eine Hülle (Capacitor 8, Swift Package Manager) um den Web-Build, kein Neubau in Swift. | Ein Stand für Webseite und App. Ein Neubau würde rund einen Arbeitstag kosten und danach doppelte Pflege bedeuten. |
+| Die App fragt nur nach der Kamera, und nur, wenn man für ein eigenes Bild „Foto aufnehmen“ wählt. | Die Fotoauswahl von iOS braucht keine Freigabe. Ohne den Kamera-Hinweis würde die App beim Aufnehmen beendet. |
+| Die App läuft auf iPad und iPhone, hoch wie quer. | Die Webseite kann beides schon. Ob das iPhone im App Store angeboten wird, entscheiden die Entwickler vor dem Einreichen. |
+

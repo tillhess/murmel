@@ -116,3 +116,19 @@ Das Repository ist öffentlich, weil GitHub Pages im kostenlosen Tarif kein priv
 [Fraunces](https://github.com/undercasetype/Fraunces) und [Figtree](https://github.com/erikdkennedy/figtree) stehen
 unter der SIL Open Font License 1.1. Sie kommen als Pakete (`@fontsource-variable/…`, Lizenztexte liegen dort bei)
 und werden beim Bauen in die Seite eingebettet. Die Seite lädt dadurch nichts von fremden Servern.
+
+## App Store (iOS)
+
+Die iOS-App ist eine dünne Hülle (Capacitor) um denselben Build wie die Webseite. Das Xcode-Projekt liegt in `ios/`.
+
+```bash
+npm run ios          # baut dist/ und überträgt es ins iOS-Projekt
+npx cap open ios     # öffnet das Projekt in Xcode
+```
+
+Voraussetzung ist Xcode aus dem Mac App Store. Zum Veröffentlichen braucht es außerdem eine Mitgliedschaft im
+Apple Developer Program; das Team wird in Xcode unter „Signing & Capabilities“ gewählt.
+
+- Kennung der App: `de.tillhess.murmel` (in `capacitor.config.ts` und im Xcode-Projekt)
+- Icon und Startbild entstehen aus `public/icon.svg`: `node scripts/icons.mjs`
+- In der App gibt es keinen Service Worker und keinen Knopf „App installieren“; beides gehört nur zur Webseite.

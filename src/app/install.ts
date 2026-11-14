@@ -4,10 +4,16 @@ interface InstallPrompt extends Event {
   readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-/** Läuft das Spiel als App vom Home-Bildschirm oder aus dem Dock? */
+/** Läuft das Spiel in der iOS-App aus dem App Store? Deren Hülle (Capacitor) meldet sich im Fenster an. */
+export function isNativeApp(): boolean {
+  const shell = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  return shell?.isNativePlatform?.() === true;
+}
+
+/** Läuft das Spiel als App: vom Home-Bildschirm, aus dem Dock oder als iOS-App? */
 export function isStandalone(): boolean {
   const legacy = (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  return legacy || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+  return isNativeApp() || legacy || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
 }
 
 /** Eine eigene Seite im Browser, nicht eingebettet in eine andere (wie die Einzeldatei) */

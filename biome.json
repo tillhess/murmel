@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!prototyp", "!notizen", "!docs", "!dist"]
+    "includes": ["**", "!prototyp", "!notizen", "!docs", "!dist", "!ios"]
   },
   "formatter": {
     "enabled": true,
