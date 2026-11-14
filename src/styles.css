@@ -1,4 +1,5 @@
-/* Murmel. Layout: eine Bildschirmseite ohne Scrollen. Hinter allem liegt ein Himmel, dessen Farbverlauf zum Bild passt
+/* Murmel. Layout: eine Bildschirmseite, die selbst nicht scrollt; nur die Sammlung auf der Startseite lässt sich
+   durchblättern. Hinter allem liegt ein Himmel, dessen Farbverlauf zum Bild passt
    und der im Atemtempo heller und dunkler wird. Darauf: ein Blatt Papier mit dem Bild, daneben ein Holzbrett.
    Die Bedienung bleibt leise: wenige Wörter, dünne Linien, keine Kästen.
    Das Spiel hat bewusst eine einzige, eigene Farbwelt und folgt nicht dem hellen oder dunklen Systemmodus. */
@@ -201,6 +202,10 @@ button:focus-visible,
 .home {
   /* Breite eines Drucks: im Regal so groß wie möglich, ohne dass er in der Höhe anstößt */
   --print-w: min(clamp(168px, 56cqw, 300px), max(120px, calc(100cqh - 330px)));
+  /* Die Wand auf dem Tablet scrollt. Ein weicher Auslauf am unteren Rand zeigt, dass es weitergeht; am oberen
+     verschwinden die Drucke sacht, statt an einer Kante abzubrechen. So hoch ist der untere Auslauf: */
+  --shelf-fade: 72px;
+  --shelf-mask: linear-gradient(to bottom, transparent, #000 22px, #000 calc(100% - var(--shelf-fade)), transparent);
   height: 100%;
   box-sizing: border-box;
   display: grid;
@@ -366,7 +371,8 @@ button:focus-visible,
   padding-right: var(--gutter-right);
 }
 
-/* Tablet im Hochformat: eine Wand, an der alle Drucke auf einmal hängen, drei nebeneinander. */
+/* Tablet im Hochformat: eine Wand, an der die Drucke zu dritt nebeneinander hängen. Die Wand ist höher als der
+   Bildschirm und scrollt. Ein Druck ist so groß, dass zwei Reihen ganz zu sehen sind; die dritte schaut hervor. */
 @container app (min-width: 700px) and (min-height: 900px) {
   .home {
     --print-w: min(280px, calc((100cqw - 104px) / 3), calc((100cqh - 514px) / 1.9));
@@ -380,16 +386,12 @@ button:focus-visible,
     gap: 30px 36px;
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scroll-snap-type: none;
-    padding: 20px var(--gutter-right) 20px var(--gutter-left);
+    padding: 28px var(--gutter-right) var(--shelf-fade) var(--gutter-left);
     touch-action: pan-y;
-  }
-}
-
-/* Kommen eigene Bilder dazu, werden es drei Reihen: Die Drucke rücken dann etwas zusammen. */
-@container app (min-width: 700px) and (min-height: 900px) {
-  .shelf:has(> :nth-child(7)) {
-    --print-w: min(280px, calc((100cqw - 104px) / 3), calc((100cqh - 590px) / 2.85));
+    -webkit-mask-image: var(--shelf-mask);
+    mask-image: var(--shelf-mask);
   }
 }
 
@@ -430,9 +432,12 @@ button:focus-visible,
     gap: 30px 36px;
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scroll-snap-type: none;
-    padding: 20px var(--gutter-right) 20px 16px;
+    padding: 28px var(--gutter-right) var(--shelf-fade) 16px;
     touch-action: pan-y;
+    -webkit-mask-image: var(--shelf-mask);
+    mask-image: var(--shelf-mask);
   }
 
   .home-foot {
@@ -440,10 +445,6 @@ button:focus-visible,
     grid-row: 2;
     align-items: flex-start;
     padding-left: calc(var(--edge) - 14px);
-  }
-
-  .shelf:has(> :nth-child(7)) {
-    --print-w: min(280px, calc((62cqw - 104px) / 3), calc((100cqh - 290px) / 2.85));
   }
 }
 

@@ -45,8 +45,9 @@ export interface HomeHandlers {
   remove(picture: Picture): void;
 }
 
-/** Baut die Sammlung auf der Startseite neu auf. */
+/** Baut die Sammlung auf der Startseite neu auf. Sie bleibt dabei an der Stelle stehen, bis zu der gescrollt war. */
 export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeHandlers): void {
+  const at = { left: shelf.scrollLeft, top: shelf.scrollTop };
   shelf.replaceChildren();
   list.forEach((picture, k) => {
     const card = document.createElement('button');
@@ -123,4 +124,5 @@ export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeH
   own.append(blank, name, label);
   own.addEventListener('click', () => handlers.choosePhoto());
   shelf.append(own);
+  shelf.scrollTo(at.left, at.top);
 }

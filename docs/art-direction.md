@@ -60,8 +60,40 @@ KAMI 2 ([2.11]) wäre der nächste Schritt zu mehr Wärme; es bräuchte eigene A
 vergrößern.
 
 Bei Rot-Grün-Sehschwäche gemessen (kleinster Abstand je Bild, Stand 14.11.2026): Mond 26,6, Nebelberge 28,6,
-Seerosen 21,1, Birken 21,5, Fuchs 25,5. Vor der Korrektur lagen Seerosen bei 9,7 und Birken bei 9,1. Die seltene
-Blau-Gelb-Schwäche ist nicht abgesichert (Seerosen 14,3), ebenso wenig die 17 Farben für eigene Fotos.
+Seerosen 21,1, Birken 21,5, Fuchs 25,5. Vor der Korrektur lagen Seerosen bei 9,7 und Birken bei 9,1. Die zehn
+Motive, die am 14.11.2026 dazukamen, sind von Anfang an auf diese Schwelle hin gebaut: Segelboot 21,8, Ballon 21,6,
+Wüste 24,7, Kirschblüte 21,5, Bergsee 22,8, Lavendel 21,6, Pilze 21,6, Leuchtturm 25,4, Wal 21,9, Koi 21,5. Die
+seltene Blau-Gelb-Schwäche ist nicht abgesichert (Segelboot 11,0 zwischen Sonne und Segel, Seerosen 14,3,
+Kirschblüte 14,7), ebenso wenig die 17 Farben für eigene Fotos.
+
+### Die 15 Motive
+
+Jedes Motiv hat seine eigene Tageszeit, Farbwelt und seinen eigenen Gegenstand, damit die Wand der Sammlung nicht
+eintönig wird (Vorgabe für die zehn Motive vom 14.11.2026). Die Größe wächst mit der Feinheit der Formen: Große
+Flächen wie Segel und Hügel tragen schon mit 16 Murmeln je Kante, ein gebogener Fischleib braucht 32.
+
+| Motiv | Murmeln je Kante | Tageszeit und Farbwelt |
+| --- | --- | --- |
+| Mond über dem See | 16 | Nacht: Indigo, Flieder, Türkis |
+| Segelboot im Abendlicht | 16 | goldener Abend: Apricot über Petrol, weiße Segel |
+| Heißluftballon über Hügeln | 18 | heller Morgen: Himmelblau, Frühlingsgrün, ein roter Ballon |
+| Nebelberge | 20 | tiefe Sonne im Dunst: Pfirsich, Rosa, Flieder, Blau |
+| Wüste am Abend | 20 | Abenddämmerung: Malve, Violett, Terrakotta, Kaktusgrün |
+| Kirschblütenzweig | 22 | Frühling wie auf einem Holzschnitt: Papierweiß, rote Sonne, Rosa |
+| Seerosen | 24 | Teich von oben: Petrol, Grün, zartes Rosa |
+| Birken im Herbst | 24 | Herbsttag: Gelb, Orange, Rost, weiße Stämme |
+| Bergsee mit Boot | 24 | klarer Morgen: blassgelber Himmel, Schieferblau, Türkis, ein rotes Boot |
+| Lavendelfeld | 26 | Sommerabend: Violett in zwei Tönen, Salbeigrün, Buttergelb |
+| Fuchs im Schnee | 28 | Winternacht: Nachtblau, Schneeweiß, Fuchsorange |
+| Pilze im Moos | 28 | Waldboden: dunkles Tannengrün, Moos, Fliegenpilzrot |
+| Leuchtturm im Zwielicht | 28 | blaue Stunde: Taubenblau, dunkle See, Rot und Weiß, gelbes Licht |
+| Wal unter Sternen | 30 | Nacht über und unter Wasser: Aubergine, Seegrün, ein fast schwarzer Wal |
+| Koi im Teich | 32 | dunkles Wasser von oben: Zinnober, Gold, Weiß, Seerosengrün |
+
+Sieben Motive haben eine kräftige Farbe als Akzent (das Rot von Ballon, Sonne, Boot, Pilzhut, Leuchtturm und Koi,
+das Orange der Fische unter dem Wal), drei kommen ganz ohne aus (Segelboot, Wüste, Lavendel). Farben, die bei
+Rot-Grün-Sehschwäche zusammenfallen würden, sind über die Helligkeit getrennt, etwa das Rot des Ballons vom Grün
+der Hügel und das Rosa der Blüten vom Rot der Sonne dahinter.
 
 ## Bewegung
 
@@ -122,10 +154,11 @@ Tempo, Klang, Farbe und fehlenden Druck. Ob sie ankommt, zeigt nur das Spielen.
 | Die Bedienung liegt am Rand: ein Wort links, zwei Symbole rechts. Im Bild steht kein Text. | Beleg [1.32]: Ruhige Technik nutzt den Rand der Aufmerksamkeit. [2.15]: Einrasten ersetzt Raster und Zähler. | `.bar` in `src/styles.css` |
 | Die Einstellungen liegen hinter einem unauffälligen Symbol: ein Blatt Papier mit wenigen Fragen (leere Felder, Murmeln, Detail, Holzbrett, Klang). Jede Wahl gilt sofort, es gibt kein Speichern und kein Abbrechen. | Vorgabe (wählbare Entwürfe und Größen). Beleg [1.32]: Was selten gebraucht wird, gehört an den Rand. | `src/app/settings.ts` |
 | Hinweise in Worten erscheinen nur die ersten beiden Male und wenn etwas nicht geht. Sie kommen als ein kursiver Satz und verschwinden wieder. | Folgerung: Ohne jede Führung macht fehlender Druck ratlos. Vorschläge für Züge sind ausgeschlossen (Vorgabe), also bleiben Worte. | `PlayScreen.hint` |
-| Die Schwierigkeit wählt man mit dem Bild (von 16 × 16 bis 28 × 28) oder mit der Detailtiefe in den Einstellungen (bis 50 × 50). Viele kleine Murmeln holt man sich mit zwei Fingern näher heran; das Holzbrett bleibt stehen. | Beleg [1.8]: Die Wahl gehört ins Spiel, nicht in ein Menü vor jedem Bild. Vorgabe (Detailtiefe, Zoom). | `SCENES` in `src/art/scenes.ts`, `src/core/camera.ts`, `src/app/gestures.ts` |
+| Die Schwierigkeit wählt man mit dem Bild (von 16 × 16 bis 32 × 32) oder mit der Detailtiefe in den Einstellungen (bis 50 × 50). Viele kleine Murmeln holt man sich mit zwei Fingern näher heran; das Holzbrett bleibt stehen. | Beleg [1.8]: Die Wahl gehört ins Spiel, nicht in ein Menü vor jedem Bild. Vorgabe (Detailtiefe, Zoom). | `SCENES` in `src/art/scenes.ts`, `src/core/camera.ts`, `src/app/gestures.ts` |
 | Ein Bild dauert einige Minuten und kann jederzeit liegen bleiben. Der Stand wird nach jedem Zug gespeichert. | Beleg [1.24] (kurze, klar umrissene Einheiten). Die untersuchten Dosen sind klein (5 bis 15 Minuten). | `src/app/storage.ts` |
 | Nach dem letzten Zug gehört der Bildschirm dem Bild. Das Holzbrett blendet aus, erst nach einem Moment stehen zwei leise Wege daneben. | Folgerung aus [1.3] und [2.1]. | `PlayScreen.finished` |
-| Auf dem Tablet hängen alle Bilder auf einmal an der Wand. Fertige sind farbig, begonnene teilweise, neue blass. Eigene Fotos hängen daneben wie jeder andere Druck. | Folgerung: Die Sammlung zeigt, was entstanden ist, ohne es zu zählen. Vorgabe (eigene Bilder bleiben). | `renderShelf`, `@container` in `src/styles.css`, `src/app/library.ts` |
+| Auf dem Tablet hängen die Bilder an einer Wand, drei nebeneinander. Mit 15 Motiven ist sie höher als der Bildschirm und scrollt senkrecht: Zwei Reihen sind ganz zu sehen, die dritte schaut hervor, und ein weicher Auslauf am unteren Rand zeigt, dass es weitergeht. Fertige Bilder sind farbig, begonnene teilweise, neue blass. Eigene Fotos hängen am Ende wie jeder andere Druck. | Folgerung: Die Sammlung zeigt, was entstanden ist, ohne es zu zählen. Die Blätter bleiben so groß wie bei zwei Reihen, weil ein kleineres Blatt als Bild kaum noch zu erkennen wäre. Folgerung aus [1.32]: Der Auslauf sagt am Rand, dass es weitergeht, ohne Pfeil, Zähler oder Scrollleiste. Vorgabe (eigene Bilder bleiben, zehn weitere Motive). | `renderShelf` in `src/app/home.ts`, `--shelf-mask` und `@container` in `src/styles.css`, `src/app/library.ts` |
+| Wer aus einem Bild zurückkommt, steht in der Sammlung wieder an derselben Stelle. | Folgerung: Bei 16 Blättern müsste man das eben gespielte Bild sonst jedes Mal neu suchen. | `showHome` in `src/app/app.ts` |
 
 ## Auf dem iPad
 
@@ -145,6 +178,9 @@ das Erleben betrifft:
 - Der Klang ist nach Regeln gebaut und auf Fehlerfreiheit gemessen, aber nicht mit Ohren beurteilt. Lautstärken,
   Tonlagen und Ausklang brauchen eine Hörprobe auf dem iPad.
 - Nichts davon lief auf einem echten iPad. Geprüft ist WebKit im iPad-Format über Playwright.
+- Die Sammlung scrollt in den Tests per Skript. Wie sich das Wischen mit dem Finger anfühlt und ob der weiche Auslauf
+  (eine CSS-Maske über der scrollenden Wand) auf dem iPad flüssig bleibt, ist offen.
+- Die zehn Motive vom 14.11.2026 sind als Bilder und als Raster angesehen, aber noch von niemandem gespielt.
 - Wie sich Statusleiste und Fenstermodus von iPadOS 26 und 27 auf die Ränder auswirken, ist laut Recherche nicht
   dokumentiert und teils fehlerhaft (WebKit-Fehler 301994).
 - Ob das Spiel beruhigt, hat niemand gemessen.
