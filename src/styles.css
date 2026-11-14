@@ -370,6 +370,19 @@ button:focus-visible,
   gap: 4px;
 }
 
+/* Impressum und Datenschutz: da, aber leiser als alles andere */
+.legal .quiet {
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  text-decoration: none;
+  color: var(--ink-faint);
+}
+
+.legal .quiet:hover {
+  color: var(--ink-soft);
+}
+
 .home-foot {
   display: flex;
   flex-direction: column;

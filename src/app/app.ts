@@ -5,7 +5,7 @@ import { SOUND_MODES, Sound, type SoundMode } from '../audio/sound';
 import type { PhotoContrast } from '../core/quantize';
 import { DETAIL_SIZES, type Mood } from '../core/scene';
 import { renderShelf } from './home';
-import { isStandalone, setupInstall } from './install';
+import { isStandalone, isTopLevel, setupInstall } from './install';
 import {
   addOwn,
   DEFAULT_MOOD,
@@ -60,6 +60,7 @@ export function startApp(): void {
   document.documentElement.classList.toggle('standalone', isStandalone());
   store.keep();
   setupInstall(el<HTMLButtonElement>('install'), el<HTMLDialogElement>('installHint'));
+  el('legal').hidden = !isTopLevel();
 
   // Papierkorn über dem Himmel und die Murmel als Schlusspunkt des Namens
   try {

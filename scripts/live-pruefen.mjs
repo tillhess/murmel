@@ -73,6 +73,8 @@ if (shots) await page.screenshot({ path: `${shots}/live-spiel.png` });
 
 for (const [path, expected] of [
   ['manifest.webmanifest', 200],
+  ['impressum.html', 200],
+  ['datenschutz.html', 200],
   ['icon-180.png', 200],
   ['icon-512.png', 200],
   ['artifact.html', 404], // die Einzeldatei zum Einbetten gehört nicht auf die öffentliche Seite

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a2452" />
+    <meta name="description" content="Datenschutz bei Murmel: Das Spiel erhebt keine Daten, alles bleibt auf dem Gerät." />
+    <title>Datenschutz · Murmel</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f6f1e6;
+        --ink: #2b2733;
+        --soft: rgb(43 39 51 / 0.66);
+        --sky-top: #1a2452;
+        --sky-bottom: #56508f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom)) fixed;
+        min-height: 100%;
+      }
+      body {
+        margin: 0;
+        padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+          max(32px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+        font-family: "Avenir Next", system-ui, sans-serif;
+        font-size: 17px;
+        line-height: 1.55;
+        color: var(--ink);
+        -webkit-text-size-adjust: 100%;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 34px 30px 30px;
+        background: var(--paper);
+        border-radius: 3px;
+        box-shadow: 0 18px 40px rgb(10 12 30 / 0.35);
+      }
+      h1,
+      h2 {
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-style: italic;
+        font-weight: 400;
+        line-height: 1.15;
+      }
+      h1 {
+        margin: 0 0 22px;
+        font-size: 2rem;
+      }
+      h2 {
+        margin: 30px 0 8px;
+        font-size: 1.3rem;
+      }
+      p,
+      ul,
+      address {
+        margin: 0 0 12px;
+        font-style: normal;
+      }
+      ul {
+        padding-left: 1.2em;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      .back,
+      .foot {
+        font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .back {
+        display: inline-block;
+        min-height: 44px;
+        margin-bottom: 8px;
+        text-decoration: none;
+        color: var(--soft);
+      }
+      .foot {
+        margin-top: 34px;
+        color: var(--soft);
+      }
+      .note {
+        color: var(--soft);
+        font-size: 0.92rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./">← Zurück zu Murmel</a>
+      <h1>Datenschutz</h1>
+      <p>
+        Kurz gesagt: Murmel erhebt keine Daten über dich. Es gibt kein Konto, keine Cookies, keine Werbung und keine
+        Auswertung deines Verhaltens. Alles, was du spielst, bleibt auf deinem Gerät.
+      </p>
+
+      <h2>Verantwortlich</h2>
+      <address>
+        Till Hess<br />
+        Schlossblick 17a<br />
+        35606 Solms<br />
+        Deutschland
+      </address>
+      <p>E-Mail: <a href="mailto:tillhess+murmel@hey.com">tillhess+murmel@hey.com</a></p>
+
+      <h2>Was auf deinem Gerät gespeichert wird</h2>
+      <p>Damit du weiterspielen kannst, wo du aufgehört hast, merkt sich Murmel im Speicher deines Browsers oder der App:</p>
+      <ul>
+        <li>welche Bilder fertig sind und wo du bei einem angefangenen Bild stehst,</li>
+        <li>deine Einstellungen,</li>
+        <li>eigene Fotos, aus denen du Bilder gemacht hast, in verkleinerter Form.</li>
+      </ul>
+      <p>
+        Diese Daten verlassen dein Gerät nicht. Niemand außer dir hat Zugriff darauf, auch ich nicht. Du löschst sie,
+        indem du ein eigenes Bild in der Sammlung entfernst, die Websitedaten in deinem Browser löschst oder die App
+        entfernst.
+      </p>
+
+      <h2>Fotos und Kamera</h2>
+      <p>
+        Wenn du ein eigenes Bild anlegst, wählst du ein Foto aus oder nimmst eines auf. Das Foto wird nur auf deinem
+        Gerät verarbeitet und nirgendwohin übertragen. Auf die Kamera greift Murmel nur zu, wenn du selbst „Foto
+        aufnehmen“ wählst.
+      </p>
+
+      <h2>Abruf der Webseite</h2>
+      <p>
+        Die Webseite liegt bei GitHub Pages, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San
+        Francisco, CA 94107, USA. Wenn du die Seite aufrufst, verarbeitet GitHub technisch notwendige Daten, vor allem
+        deine IP-Adresse, den Zeitpunkt des Abrufs und Angaben zu deinem Browser. Das ist nötig, um die Seite
+        auszuliefern und den Dienst zu schützen (Art. 6 Abs. 1 Buchstabe f DSGVO). Ich selbst habe auf diese Daten
+        keinen Zugriff. Dabei können Daten in die USA übertragen werden; GitHub ist nach dem EU-US Data Privacy
+        Framework zertifiziert. Näheres steht in der
+        <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener"
+          >Datenschutzerklärung von GitHub</a
+        >.
+      </p>
+      <p>
+        Murmel lädt darüber hinaus nichts von anderen Servern: keine Schriften, keine Skripte, keine Messdienste.
+      </p>
+
+      <h2>Spielen ohne Netz und als App</h2>
+      <p>
+        Damit Murmel auch ohne Netz läuft, legt dein Browser eine Kopie der Seite auf deinem Gerät ab. Die App aus dem
+        App Store bringt das Spiel schon mit und überträgt beim Spielen keine Daten.
+      </p>
+
+      <h2>Wenn du mir schreibst</h2>
+      <p>
+        Schreibst du mir eine E-Mail, verwende ich deine Adresse und deine Nachricht nur, um dir zu antworten, und
+        lösche sie, wenn die Sache erledigt ist (Art. 6 Abs. 1 Buchstabe f DSGVO).
+      </p>
+
+      <h2>Deine Rechte</h2>
+      <p>
+        Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch.
+        Schreib mir dazu an die Adresse oben. Außerdem kannst du dich bei einer Datenschutzbehörde beschweren, zum
+        Beispiel beim Hessischen Beauftragten für Datenschutz und Informationsfreiheit.
+      </p>
+
+      <p class="note">Stand: 14. November 2026</p>
+      <p class="foot"><a href="./impressum.html">Impressum</a></p>
+    </main>
+  </body>
+</html>

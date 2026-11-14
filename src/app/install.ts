@@ -10,13 +10,18 @@ export function isStandalone(): boolean {
   return legacy || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
 }
 
-/** Eine eigene Seite im Browser, nicht eingebettet in eine andere (wie die Einzeldatei) */
-function ownPage(): boolean {
+/** Nicht eingebettet in eine andere Seite (wie die Einzeldatei): Dann liegen die Nachbarseiten daneben. */
+export function isTopLevel(): boolean {
   try {
-    return window.self === window.top && /^https?:$/.test(location.protocol);
+    return window.self === window.top;
   } catch {
     return false;
   }
+}
+
+/** Eine eigene Seite im Browser, nicht eingebettet in eine andere */
+function ownPage(): boolean {
+  return isTopLevel() && /^https?:$/.test(location.protocol);
 }
 
 /** Wie man die Seite in diesem Browser von Hand zur App macht; null, wo es keinen Weg gibt oder er angeboten wird */

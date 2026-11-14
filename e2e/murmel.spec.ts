@@ -746,3 +746,30 @@ test('Murmel lässt sich als App installieren und läuft danach ohne Netz', asyn
   }
   expect(errors).toEqual([]);
 });
+
+test('Impressum und Datenschutz sind von der Startseite aus erreichbar', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  const legal = page.locator('#legal a');
+  await expect(legal).toHaveText(['Impressum', 'Datenschutz']);
+  await legal.nth(0).click();
+  await expect(page.locator('h1')).toHaveText('Impressum');
+  await expect(page.locator('address')).toContainText('35606 Solms');
+  await page.locator('.foot a').click();
+  await expect(page.locator('h1')).toHaveText('Datenschutz');
+  await expect(page.locator('main')).toContainText('erhebt keine Daten');
+  // zurück ins Spiel
+  await page.locator('.back').click();
+  await expect(page.locator('#shelf')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('In der eingebetteten Einzeldatei fehlen die Verweise auf Nachbarseiten', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.body.innerHTML = '<iframe src="artifact.html" style="width:900px;height:700px;border:0"></iframe>';
+  });
+  const frame = page.frameLocator('iframe');
+  await expect(frame.locator('#shelf')).toBeVisible();
+  await expect(frame.locator('#legal')).toBeHidden();
+});

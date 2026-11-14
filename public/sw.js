@@ -4,7 +4,16 @@
 // der Zwischenspeicher die zuletzt geladene Fassung. Skript, Styles und Schriften stecken im HTML (siehe
 // vite.config.ts), deshalb genügen die wenigen Dateien unten für ein vollständiges Spiel.
 const CACHE = 'murmel-v1';
-const FILES = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+const FILES = [
+  './',
+  'impressum.html',
+  'datenschutz.html',
+  'manifest.webmanifest',
+  'icon.svg',
+  'icon-180.png',
+  'icon-192.png',
+  'icon-512.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

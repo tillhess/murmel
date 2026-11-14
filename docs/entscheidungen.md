@@ -132,3 +132,12 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Schriften liegen bei und werden in die Seite eingebettet (14.11.2026) | Die öffentliche Seite lädt nichts von fremden Servern, auch keine Schriften von Google. Damit gehen beim Aufruf keine Besucherdaten an Dritte, und die Tests brauchen kein Netz. Preis: Die Seite wächst von 68 auf 294 kB. |
 | Auslieferung auf GitHub Pages nur nach Schalter | Die Seite ist öffentlich. Das soll eine bewusste Entscheidung sein. Seit dem 14.11.2026 ist der Schalter an (Auftraggeber). |
 | Das Repository ist öffentlich (14.11.2026) | GitHub Pages lässt im kostenlosen Tarif kein privates Repository zu. Die Abschrift des Erklärvideos liegt deshalb nicht im Repository, und die Commits tragen die GitHub-Adresse statt einer privaten Mailadresse. |
+
+## Impressum und Datenschutz (14.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Es gibt zwei eigene Seiten, `impressum.html` und `datenschutz.html`, leise verlinkt unten auf der Startseite. Anbieter ist Till Hess als Privatperson. | Wunsch des Auftraggebers; der App Store verlangt eine Adresse für die Datenschutzerklärung. Zuvor galt ein Impressum als nicht nötig. |
+| Beide Seiten sind schlichte Dateien in `public/`, ohne Skript und ohne eingebettete Schriften. | Sie müssen auch dann lesbar sein, wenn das Spiel nicht lädt, und sie ändern sich selten. |
+| In der eingebetteten Einzeldatei fehlen die Verweise. | Dort gibt es keine Nachbarseiten. |
+
