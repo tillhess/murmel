@@ -57,16 +57,15 @@ export function flood(
 export const isMisplaced = (level: Level, cur: Int16Array, i: number): boolean =>
   cur[i] !== EMPTY && cur[i] !== level.target[i];
 
-/** Die Murmel auf Feld i samt aller angrenzenden Murmeln derselben Farbe, die auch noch falsch liegen. */
+/** Die Murmel auf Feld i samt aller über Kante oder Ecke angrenzenden Murmeln derselben Farbe, die auch noch falsch liegen. */
 export function groupAt(level: Level, cur: Int16Array, i: number): number[] {
   const c = cur[i];
-  return flood(level, i, (j) => cur[j] === c && level.target[j] !== c);
+  return flood(level, i, (j) => cur[j] === c && level.target[j] !== c, undefined, around);
 }
 
 /**
  * Das freie Loch i samt aller angrenzenden freien Löcher derselben Zielfarbe. Hier zählt auch, was nur über Eck
- * angrenzt: Ein Ziel füllt sich diagonal weiter (vom Auftraggeber so festgelegt). Für die Auswahl von Murmeln
- * gilt das nicht, dort zählt nur Kante an Kante.
+ * angrenzt: Ein Ziel füllt sich diagonal weiter.
  */
 export function regionAt(level: Level, cur: Int16Array, i: number): number[] {
   const t = level.target[i];
@@ -93,7 +92,7 @@ export function components(level: Level, cur: Int16Array): { groups: Cluster[]; 
         cells: flood(level, i, (j) => cur[j] === EMPTY && level.target[j] === t, seen, around),
       });
     } else if (c !== t) {
-      groups.push({ color: c, cells: flood(level, i, (j) => cur[j] === c && level.target[j] !== c, seen) });
+      groups.push({ color: c, cells: flood(level, i, (j) => cur[j] === c && level.target[j] !== c, seen, around) });
     }
   }
   return { groups, regions };
@@ -118,3 +117,4 @@ export function colorDone(level: Level, cur: Int16Array, color: number): boolean
   }
   return any;
 }
+

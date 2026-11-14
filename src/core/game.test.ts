@@ -38,7 +38,10 @@ describe('Spielsteuerung', () => {
     game.tapCell(2);
     expect(game.tapCell(0)).toMatchObject({ type: 'gerollt', ziel: 'bild', fertig: false });
 
-    // die geparkten Murmeln sind schon gewählt: Der Tipp aufs Loch genügt
+    expect(game.selection).toBeNull();
+    expect(game.trayActive).toBe(false);
+    expect(game.tapCell(2)).toEqual({ type: 'abgelehnt', reason: 'nichts-gewählt' });
+    expect(game.tapTray(null)).toEqual({ type: 'ablage-gewählt' });
     const last = game.tapCell(2);
     expect(last).toMatchObject({ type: 'gerollt', ziel: 'bild', fertig: true });
     expect(game.solved).toBe(true);
@@ -106,17 +109,23 @@ describe('Spielsteuerung', () => {
       expect(game.selection).toBeNull();
     });
 
-    it('legt Murmeln vom Holzbrett ohne eigene Auswahl ins Bild: Sie sind immer gewählt', () => {
+    it('wählt das Holzbrett ausdrücklich und behält die Auswahl für weitere Züge', () => {
       const level = levelFromRows(['AAB', 'BBA']);
       // frei: ein Loch für A oben links, eins unten rechts; auf dem Holzbrett liegen drei A
       const game = new Game(level, newState(new Int16Array([EMPTY, 1, 1, 0, 0, EMPTY]), 4));
       game.state.tray.set([0, 0, 0]);
+      expect(game.trayActive).toBe(false);
+      expect(game.tapTray(0)).toEqual({ type: 'ablage-gewählt' });
+      expect(game.tapTray(0)).toEqual({ type: 'abgewählt' });
+      expect(game.tapTray(0)).toEqual({ type: 'ablage-gewählt' });
       expect(game.trayActive).toBe(true);
-      expect(game.tapTray(0)).toEqual({ type: 'nichts' }); // antippen ist nicht nötig und ändert nichts
       expect(game.tapCell(0)).toMatchObject({ type: 'gerollt', ziel: 'bild', color: 0, rest: null });
       expect(game.tapCell(5)).toMatchObject({ type: 'gerollt', ziel: 'bild', color: 0 });
       expect(trayCount(game.state)).toBe(1);
       expect(game.selection).toBeNull();
+      expect(game.trayActive).toBe(true);
+      expect(game.tapOutside()).toEqual({ type: 'abgewählt' });
+      expect(game.trayActive).toBe(false);
     });
 
     it('bleibt gewählt, was nicht mehr auf das volle Holzbrett passt', () => {
@@ -166,10 +175,10 @@ describe('Spielsteuerung', () => {
       expect(game.tapTray(1)).toMatchObject({ type: 'gerollt', ziel: 'ablage', color: 1 });
     });
 
-    it('hebt die Auswahl im Bild auf, wenn man auf dem Holzbrett eine andere Farbe antippt', () => {
+    it('wechselt zum Holzbrett, wenn man dort eine andere Farbe antippt', () => {
       const game = withTray();
       game.tapCell(0); // zwei B gewählt
-      expect(game.tapTray(0)).toEqual({ type: 'abgewählt' }); // ein A auf dem Holzbrett
+      expect(game.tapTray(0)).toEqual({ type: 'ablage-gewählt' }); // ein A auf dem Holzbrett
       expect(game.trayActive).toBe(true);
       expect(trayCount(game.state)).toBe(2); // nichts wurde abgelegt
     });
@@ -253,10 +262,11 @@ describe('Spielsteuerung', () => {
       const s = suggest(level, game.state);
       if (!s) throw new Error('kein Zug');
       const first = 'cell' in s.select ? game.tapCell(s.select.cell) : game.tapTray(s.select.slot);
-      expect(first.type).toBe('cell' in s.select ? 'gewählt' : 'nichts'); // das Holzbrett ist immer gewählt
+      expect(first.type).toBe('cell' in s.select ? 'gewählt' : 'ablage-gewählt');
       const second = s.target === 'ablage' ? game.tapTray(null) : game.tapCell(s.target.cell);
       expect(second.type).toBe('gerollt');
     }
     expect(game.solved).toBe(true);
   });
 });
+
