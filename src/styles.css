@@ -1,0 +1,505 @@
+/* Murmel. Layout: eine Bildschirmseite ohne Scrollen. Hinter allem liegt ein Himmel, dessen Farbverlauf zum Bild passt
+   und der im Atemtempo heller und dunkler wird. Darauf: ein Blatt Papier mit dem Bild, daneben ein Holzbrett.
+   Die Bedienung bleibt leise: wenige Wörter, dünne Linien, keine Kästen.
+   Das Spiel hat bewusst eine einzige, eigene Farbwelt und folgt nicht dem hellen oder dunklen Systemmodus. */
+:root {
+  color-scheme: dark;
+  --sky-top: #1a2452;
+  --sky-bottom: #56508f;
+  --ink: #f3ecd8;
+  --ink-soft: color-mix(in srgb, var(--ink) 62%, transparent);
+  --ink-faint: color-mix(in srgb, var(--ink) 28%, transparent);
+  --paper: #f6f1e6;
+  --paper-ink: #2b2733;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-ui: "Figtree", "Avenir Next", system-ui, sans-serif;
+  --gutter-left: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-right: max(16px, env(safe-area-inset-right, 0px));
+  /* Ränder des Geräts: Statusleiste oben, Wischbalken unten. Dort liegt nichts, was man antippen muss. */
+  --inset-top: env(safe-area-inset-top, 0px);
+  --inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Als App auf dem Home-Bildschirm liegt die Statusleiste über dem Himmel. Manche iPadOS-Versionen melden ihre
+   Höhe nicht (WebKit-Fehler 301994), deshalb gilt hier ein Mindestabstand. */
+:root.standalone {
+  --inset-top: max(env(safe-area-inset-top, 0px), 24px);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--sky-top);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ---------- Himmel ---------- */
+.sky,
+.sky > div {
+  position: fixed;
+  inset: 0;
+}
+
+.sky-layer {
+  background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+  transition: opacity 1.8s ease;
+}
+
+.sky-layer.leaving {
+  opacity: 0;
+}
+
+/* Weiches Licht, das im Tempo eines ruhigen Atemzugs an- und abschwillt: vier Sekunden heller, sechs dunkler.
+   Ein stilles Angebot, keine Anleitung. Wer Bewegung reduziert haben möchte, bekommt es nicht zu sehen. */
+.sky-light {
+  background: radial-gradient(60% 46% at 28% 18%, rgb(255 244 220 / 0.2), transparent 70%);
+  animation: breath 10s ease-in-out infinite;
+}
+
+.sky-grain {
+  background-image: var(--grain, none);
+  background-size: 256px 256px;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+@keyframes breath {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+/* ---------- Gemeinsames ---------- */
+/* Maße in cqw und cqh beziehen sich auf diese Fläche, nicht auf das Browserfenster: Als App auf dem
+   Home-Bildschirm sind die Fenstermaße (vh) nicht verlässlich. */
+#app {
+  position: relative;
+  height: 100%;
+  container: app / size;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:focus-visible,
+.print:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.quiet {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: color 0.3s;
+}
+
+.quiet:hover,
+.quiet.strong {
+  color: var(--ink);
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  transition:
+    color 0.3s,
+    opacity 0.3s;
+}
+
+.icon:hover {
+  color: var(--ink);
+}
+
+.icon:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Klang in drei Stufen: alles (zwei Bögen), nur die Murmeln (ein Bogen), still (Kreuz) */
+#sound .mute,
+#sound[data-mode="murmeln"] .wave-far,
+#sound[data-mode="aus"] .wave-near,
+#sound[data-mode="aus"] .wave-far {
+  display: none;
+}
+
+#sound[data-mode="aus"] .mute {
+  display: inline;
+}
+
+/* ---------- Start: die Sammlung ---------- */
+.home {
+  /* Breite eines Drucks: im Regal so groß wie möglich, ohne dass er in der Höhe anstößt */
+  --print-w: min(clamp(168px, 56cqw, 300px), max(120px, calc(100cqh - 330px)));
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-block: calc(var(--inset-top) + clamp(20px, 6cqh, 64px)) calc(var(--inset-bottom) + 12px);
+  animation: arrive 1.2s ease both;
+}
+
+.home-head {
+  text-align: center;
+  padding-left: var(--gutter-left);
+  padding-right: var(--gutter-right);
+}
+
+.wordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  font-variation-settings: "SOFT" 100;
+  font-size: clamp(3.2rem, 11cqw, 6.4rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* die Murmel als Schlusspunkt des Namens */
+.wordmark-dot {
+  width: 0.3em;
+  height: 0.3em;
+  margin-left: 0.04em;
+  vertical-align: -0.02em;
+}
+
+.lede {
+  margin: clamp(10px, 2cqh, 18px) auto 0;
+  max-width: 32ch;
+  font-size: clamp(0.95rem, 2.2cqw, 1.1rem);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+
+/* Schmale Bildschirme: ein Regal, durch das man wischt. Der erste Druck steht in der Mitte. */
+.shelf {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 3.5cqw, 40px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 24px max(var(--gutter-left), calc(50% - var(--print-w) / 2));
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}
+
+.shelf::-webkit-scrollbar {
+  display: none;
+}
+
+/* ein Druck: Papier mit Rand, Bild und Unterschrift */
+.print {
+  flex: none;
+  width: var(--print-w);
+  scroll-snap-align: center;
+  display: grid;
+  gap: 0;
+  padding: 5% 5% 0;
+  box-sizing: border-box;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 2px;
+  box-shadow: 0 16px 34px rgb(8 10 28 / 0.36);
+  text-align: center;
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.5s;
+}
+
+.print:hover,
+.print:focus-visible {
+  transform: rotate(0deg) translateY(-6px);
+  box-shadow: 0 26px 46px rgb(8 10 28 / 0.4);
+}
+
+.print canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  outline: 1px solid rgb(40 34 30 / 0.16);
+}
+
+.print-name {
+  padding: 0.7em 0 0.1em;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(0.92rem, calc(var(--print-w) * 0.07), 1.12rem);
+  line-height: 1.2;
+}
+
+.print-state {
+  padding-bottom: 0.9em;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(43 39 51 / 0.5);
+}
+
+/* leeres Blatt für ein eigenes Foto */
+.print.own canvas {
+  outline-style: dashed;
+}
+
+.home-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: var(--gutter-left);
+  padding-right: var(--gutter-right);
+}
+
+/* ein Satz zum Klang, der kommt und wieder geht */
+.home-note {
+  min-height: 1.4em;
+  margin: 0;
+  padding: 0 14px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  text-wrap: balance;
+}
+
+.home-note.heard {
+  opacity: 0.9;
+}
+
+/* Tablet im Hochformat: eine Wand, an der alle Drucke auf einmal hängen, drei nebeneinander. */
+@container app (min-width: 700px) and (min-height: 900px) {
+  .home {
+    --print-w: min(280px, calc((100cqw - 104px) / 3), calc((100cqh - 514px) / 1.9));
+  }
+
+  .shelf {
+    display: grid;
+    grid-template-columns: repeat(3, var(--print-w));
+    justify-content: center;
+    align-content: safe center;
+    gap: 30px 36px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-snap-type: none;
+    padding: 20px var(--gutter-right) 20px var(--gutter-left);
+    touch-action: pan-y;
+  }
+}
+
+/* Querformat: links der Name, rechts die Wand. */
+@container app (min-width: 900px) and (min-height: 600px) and (min-aspect-ratio: 5 / 4) {
+  .home {
+    --print-w: min(280px, calc((62cqw - 104px) / 3), calc((100cqh - 218px) / 1.9));
+    --edge: max(var(--gutter-left), 6cqw);
+    grid-template-columns: minmax(280px, 38cqw) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    padding-block: calc(var(--inset-top) + 16px) calc(var(--inset-bottom) + 12px);
+  }
+
+  .home-head {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    text-align: left;
+    padding-left: var(--edge);
+    padding-right: 12px;
+  }
+
+  .wordmark {
+    font-size: clamp(3.2rem, 8.5cqw, 6.4rem);
+  }
+
+  .lede {
+    margin-left: 0;
+  }
+
+  .shelf {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: grid;
+    grid-template-columns: repeat(3, var(--print-w));
+    justify-content: center;
+    align-content: safe center;
+    gap: 30px 36px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-snap-type: none;
+    padding: 20px var(--gutter-right) 20px 16px;
+    touch-action: pan-y;
+  }
+
+  .home-foot {
+    grid-column: 1;
+    grid-row: 2;
+    align-items: flex-start;
+    padding-left: calc(var(--edge) - 14px);
+  }
+}
+
+/* ---------- Spiel ---------- */
+.play {
+  position: absolute;
+  inset: 0;
+  animation: arrive 0.9s ease both;
+}
+
+#board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.bar {
+  position: absolute;
+  inset: var(--inset-top) 0 auto;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: var(--gutter-left);
+  padding-right: var(--gutter-right);
+}
+
+/* misst den unteren Rand des Geräts für die Zeichenfläche (siehe play.ts) */
+.probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding-bottom: var(--inset-bottom);
+}
+
+/* leise Hinweise: ein Satz, der kommt und wieder geht */
+.whisper {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(0.92rem, 2.4cqw, 1.08rem);
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  text-wrap: balance;
+}
+
+.whisper.heard {
+  opacity: 0.92;
+}
+
+/* Abschluss: steht dort, wo vorher das Holzbrett lag (Lage und Größe setzt das Skript) */
+.finish {
+  position: absolute;
+  box-sizing: border-box;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 8px;
+  text-align: center;
+  animation: arrive 1.6s ease both;
+}
+
+.finish-line {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.3rem, 4cqw, 1.9rem);
+}
+
+.finish-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-light,
+  .home,
+  .play,
+  .finish {
+    animation: none;
+  }
+  .sky-layer,
+  .whisper,
+  .home-note,
+  .print {
+    transition: none;
+  }
+}
+
+/* Steht bewusst am Ende: gleiche Gewichtung wie die Klassen oben, gewinnt also durch die Reihenfolge. */
+[hidden] {
+  display: none;
+}

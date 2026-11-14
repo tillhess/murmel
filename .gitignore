@@ -1,0 +1,11 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+coverage/
+.DS_Store
+# große Rohdateien (Erklärvideo) gehören nicht ins Repository
+*.MOV
+*.mov
+*.mp4
+.claude/settings.local.json

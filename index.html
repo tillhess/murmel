@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Murmel</title>
+    <meta name="description" content="Glasmurmeln rollen an ihren Platz, und ein Bild entsteht. Ohne Punkte, ohne Eile." />
+    <meta name="theme-color" content="#1a2452" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon-180.png" />
+    <!-- Als App auf dem Home-Bildschirm: Der Himmel reicht bis unter die Statusleiste. Dieser Stil wird beim
+         Hinzufügen festgehalten; wer ihn ändert, muss die App löschen und neu hinzufügen. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Murmel" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,100;1,9..144,300..600,100&display=swap"
+    />
+  </head>
+  <body>
+    <div class="sky" id="sky" aria-hidden="true">
+      <div class="sky-layer"></div>
+      <div class="sky-light"></div>
+      <div class="sky-grain"></div>
+    </div>
+
+    <main id="app">
+      <section class="home" id="home">
+        <header class="home-head">
+          <h1 class="wordmark">murmel<canvas class="wordmark-dot" id="dot" width="96" height="96" aria-hidden="true"></canvas></h1>
+          <p class="lede">Murmeln rollen an ihren Platz, und ein Bild entsteht.<br />Ohne Punkte, ohne Eile.</p>
+        </header>
+        <nav class="shelf" id="shelf" aria-label="Sammlung der Bilder"></nav>
+        <footer class="home-foot">
+          <button class="quiet" id="homeSound" type="button">Klang an</button>
+          <p class="home-note" id="homeNote" role="status" aria-live="polite"></p>
+        </footer>
+      </section>
+
+      <section class="play" id="play" hidden>
+        <canvas
+          id="board"
+          aria-label="Spielbrett. Tippe eine Murmel an, um sie und angrenzende Murmeln gleicher Farbe zu wählen. Tippe dann ein freies Loch dieser Farbe oder die Ablage an."
+        ></canvas>
+        <nav class="bar" id="bar" aria-label="Spiel">
+          <button class="quiet" id="back" type="button">Sammlung</button>
+          <p class="whisper" id="whisper" role="status" aria-live="polite"></p>
+          <button class="icon" id="undo" type="button" aria-label="Zug zurücknehmen" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4.5 11.5 9 16M5 11.5h8.5a5 5 0 0 1 0 10H11" /></svg>
+          </button>
+          <button class="icon" id="sound" type="button" aria-label="Klang an" data-mode="alles">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10v4h3.5L12 18V6L7.5 10H4Z" />
+              <path class="wave-near" d="M15.5 9a4.2 4.2 0 0 1 0 6" />
+              <path class="wave-far" d="M18 6.5a7.8 7.8 0 0 1 0 11" />
+              <path class="mute" d="m16 9.5 5 5m0-5-5 5" />
+            </svg>
+          </button>
+        </nav>
+        <div class="finish" id="finish" hidden>
+          <p class="finish-line">Das Bild ist fertig.</p>
+          <div class="finish-actions">
+            <button class="quiet" id="again" type="button">noch einmal</button>
+            <button class="quiet strong" id="onward" type="button">zur Sammlung</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <input type="file" id="photo" accept="image/*" hidden />
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

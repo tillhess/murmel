@@ -1,0 +1,100 @@
+# Prüft jede Änderung und liefert den Stand von main aus.
+#
+#   pruefen     Lint und Format (Biome), Typen (TypeScript), Tests der Spiellogik (Vitest)
+#   bauen       Build, dann Browser-Tests gegen genau diesen Build (Chromium und WebKit im iPad-Format)
+#   ausliefern  veröffentlicht den Build auf GitHub Pages
+#
+# Die Auslieferung ist abgeschaltet, bis in den Repository-Einstellungen die Variable PAGES auf "an" steht
+# (Settings → Secrets and variables → Actions → Variables) und unter Settings → Pages als Quelle
+# "GitHub Actions" gewählt ist. Achtung: Eine Pages-Seite ist öffentlich erreichbar, auch bei privatem Repository.
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    name: Lint, Typen, Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: Lint und Format
+        run: npm run lint
+      - name: Typen
+        run: npm run typecheck
+      - name: Tests der Spiellogik
+        run: npm test
+
+  bauen:
+    name: Build und Browser-Tests
+    needs: pruefen
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Browser installieren
+        run: npx playwright install --with-deps chromium webkit
+      - name: Browser-Tests
+        run: npm run e2e
+      - name: Spiel als Download ablegen
+        uses: actions/upload-artifact@v7
+        with:
+          name: murmel
+          path: dist
+          retention-days: 30
+      - name: Testbericht ablegen, falls etwas fehlschlägt
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-bericht
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+      - name: Build für GitHub Pages bereitstellen
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.PAGES == 'an'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  ausliefern:
+    name: Auf GitHub Pages veröffentlichen
+    needs: bauen
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.PAGES == 'an'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: pages
+        uses: actions/deploy-pages@v5

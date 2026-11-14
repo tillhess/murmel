@@ -1,0 +1,1246 @@
+<title>Murmel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Lexend:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen app. Oben Name und Motiv, in der Mitte die Leinwand im Bilderrahmen, unten das Holzbrett als Ablage.
+   Konzept: Atelier zum Abschalten. Aus sortierten Glasmurmeln entsteht in Ruhe ein Gemälde, ohne Wertung. */
+:root {
+  --bg: #e7ebe6;
+  --panel: #f7f9f5;
+  --fg: #1d2928;
+  --muted: #5a6a67;
+  --line: #cfd6cf;
+  --accent: #0d776f;
+  --accent-fg: #ffffff;
+  --socket: #d5dbd3;
+  --hint: #0d9488;
+  --good: #2b8a4b;
+  --warn: #b97a10;
+  --bad: #c1433a;
+  --scrim: rgba(20, 32, 30, .5);
+  --canvas: #e9e3d6;
+  --frame: #2e2a27;
+  --gold: #c9a35c;
+  --wood: #e4c89c;
+  --wood-grain: #b98c55;
+  --font-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body: "Lexend", "Avenir Next", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a19; --panel: #162826; --fg: #e4eeeb; --muted: #97ada8; --line: #26403d;
+    --accent: #3ec1b0; --accent-fg: #062220; --socket: #1f3735;
+    --hint: #5eead4; --good: #5cc77e; --warn: #e2a84a; --bad: #ee7a6f; --scrim: rgba(0, 0, 0, .6);
+    --canvas: #ddd5c5; --frame: #171413; --gold: #b8924f; --wood: #cfb07f; --wood-grain: #9a7244;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1a19; --panel: #162826; --fg: #e4eeeb; --muted: #97ada8; --line: #26403d;
+  --accent: #3ec1b0; --accent-fg: #062220; --socket: #1f3735;
+  --hint: #5eead4; --good: #5cc77e; --warn: #e2a84a; --bad: #ee7a6f; --scrim: rgba(0, 0, 0, .6);
+  --canvas: #ddd5c5; --frame: #171413; --gold: #b8924f; --wood: #cfb07f; --wood-grain: #9a7244;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.app {
+  height: 100%; display: grid; grid-template-rows: auto 1fr; gap: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px;
+  box-sizing: border-box;
+}
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1 1 200px; }
+.brand h1 { font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; margin: 0; letter-spacing: -.01em; white-space: nowrap; }
+.brand .level { color: var(--muted); font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: .9rem; font-weight: 500; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; min-height: 40px;
+}
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .45; cursor: default; }
+main { position: relative; min-height: 0; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+.toast {
+  position: absolute; left: 50%; top: 4px; transform: translateX(-50%); pointer-events: none; z-index: 2;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+  font-size: .9rem; font-weight: 500; white-space: nowrap; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+  transition: opacity .25s; opacity: 0;
+}
+.toast.show { opacity: 1; }
+.toast.good { color: var(--good); } .toast.bad { color: var(--bad); } .toast.warn { color: var(--warn); }
+.overlay { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; z-index: 20; padding: 16px; }
+.sheet {
+  background: var(--panel); color: var(--fg); border-radius: 18px; border: 1px solid var(--line);
+  width: min(720px, 100%); max-height: 100%; overflow: auto; box-sizing: border-box;
+  padding: 20px max(18px, env(safe-area-inset-left, 0px)) 20px max(18px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 16px;
+}
+.sheet h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; margin: 0; text-wrap: balance; }
+.sheet p { margin: 0; color: var(--muted); line-height: 1.5; max-width: 62ch; }
+.motifs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.motif { display: grid; gap: 8px; text-align: left; padding: 10px; border-radius: 14px; }
+.painting {
+  display: block; width: 100%; height: auto; max-width: 100%; box-sizing: border-box;
+  border: 6px solid var(--frame); padding: 2px; background: var(--gold);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .22);
+}
+.motif .t { font-weight: 600; }
+.sheet h3 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; }
+.motif .d { font-size: .78rem; color: var(--muted); }
+.upload { display: grid; gap: 12px; padding: 14px; border: 1px dashed var(--line); border-radius: 14px; }
+.upload h3 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+label.field { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
+select, input[type=file] { font: inherit; font-size: .9rem; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; max-width: 100%; }
+.preview { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.preview .painting { width: 140px; }
+.result { text-align: center; justify-items: center; }
+#winPaint { width: min(300px, 80%); border-width: 10px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+@media (max-width: 560px) {
+  .brand h1 { font-size: 1.15rem; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>Murmel</h1>
+      <span class="level" id="levelName">–</span>
+    </div>
+    <div class="actions">
+      <button id="bUndo" disabled>Rückgängig</button>
+      <button id="bMenu">Motive</button>
+    </div>
+  </header>
+  <main>
+    <canvas id="cv" aria-label="Spielbrett. Tippe eine Murmel an, um sie und angrenzende Murmeln gleicher Farbe zu wählen. Tippe dann ein freies Loch dieser Farbe oder die Ablage an."></canvas>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+</div>
+
+<div class="overlay" id="menu" hidden>
+  <div class="sheet">
+    <h2>Motiv wählen</h2>
+    <p>Alle Murmeln liegen am Anfang an der falschen Stelle. Ein Zug hat zwei Schritte: Tippe eine Murmel an, dann sind sie und alle angrenzenden Murmeln derselben Farbe gewählt. Tippe danach ein freies Loch dieser Farbe an oder die Ablage. Die Murmeln rollen dann als Kette ins Ziel. Jede fertige Fläche wird zum Gemälde.</p>
+    <div class="legend">
+      <span><i style="background:var(--hint)"></i>Gewählt und mögliche Ziele</span>
+      <span><i style="background:radial-gradient(circle at 60% 65%, #c9a35c, #2e2a27 70%)"></i>Loch: wartet auf eine Murmel dieser Farbe</span>
+    </div>
+    <div class="motifs" id="motifs"></div>
+    <div class="upload">
+      <h3>Eigenes Foto</h3>
+      <p>Aus dem Foto wird ein Gemälde, und seine Farben werden auf die Murmelfarben verteilt. Das Foto verlässt dein Gerät nicht.</p>
+      <div class="row">
+        <label class="field">Foto<input type="file" id="fPhoto" accept="image/*"></label>
+        <label class="field">Größe
+          <select id="fSize"><option value="20">20 × 20</option><option value="28" selected>28 × 28</option><option value="36">36 × 36</option><option value="44">44 × 44</option></select>
+        </label>
+        <label class="field">Farben
+          <select id="fColors"><option>5</option><option selected>7</option><option>9</option><option>12</option></select>
+        </label>
+      </div>
+      <div class="preview" id="photoPreview" hidden>
+        <canvas id="pvCanvas" class="painting"></canvas>
+        <button class="primary" id="bPlayPhoto">Mit diesem Bild spielen</button>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end"><button id="bCloseMenu">Schließen</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="win" hidden>
+  <div class="sheet result">
+    <h2 id="winTitle">Fertig</h2>
+    <canvas id="winPaint" class="painting"></canvas>
+    <p>Das Bild ist fertig.</p>
+    <div class="row" style="justify-content:center">
+      <button id="bView">Bild ansehen</button>
+      <button id="bAgain">Nochmal</button>
+      <button class="primary" id="bOther">Anderes Motiv</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('gems.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('gems.' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let trayCap = 30;
+let L = null;   // Level: {name, W, H, pal[], target Int16Array, paint Canvas}
+let G = null;   // Spielstand
+let currentMotif = null;
+
+// ---------- Hilfen ----------
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const newCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function rrect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+// ---------- Farben ----------
+const hex2rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const rgb2hex = (r, g, b) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const mix = (h, t, a) => { const A = hex2rgb(h), B = hex2rgb(t); return rgb2hex(A[0] + (B[0] - A[0]) * a, A[1] + (B[1] - A[1]) * a, A[2] + (B[2] - A[2]) * a); };
+const rgba = (h, a) => { const [r, g, b] = hex2rgb(h); return `rgba(${r},${g},${b},${a})`; };
+const lum = h => { const [r, g, b] = hex2rgb(h); return .299 * r + .587 * g + .114 * b; };
+function lab(h) {
+  const [r, g, b] = hex2rgb(h).map(v => v / 255).map(v => v > .04045 ? ((v + .055) / 1.055) ** 2.4 : v / 12.92);
+  const x = (r * .4124 + g * .3576 + b * .1805) / .95047, y = r * .2126 + g * .7152 + b * .0722, z = (r * .0193 + g * .1192 + b * .9505) / 1.08883;
+  const f = t => t > .008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+}
+const deltaE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+// Fester Satz Murmelfarben: je zwei Farben liegen mindestens etwa 32 ΔE auseinander,
+// damit sie auch als kleine Glasmurmeln sicher unterscheidbar sind.
+const GEM_COLORS = {
+  weiss: '#f7f4ec', beige: '#e2bd84', grau: '#8b919a', schwarz: '#17171b', rot: '#d8263a', dunkelrot: '#7a1a2a',
+  orange: '#f5871f', gelb: '#f9d423', hellgruen: '#93d13a', gruen: '#2c8a45', tuerkis: '#18b3a6', hellblau: '#62b8f2',
+  blau: '#1f5ad8', dunkelblau: '#1e2766', lila: '#9a2fb5', pink: '#ef67aa', braun: '#8b5527'
+};
+const GEM_LIST = Object.values(GEM_COLORS);
+// Ordnet jeder Bildfarbe eine eigene Murmelfarbe zu (häufigste Farbe zuerst, jeweils die nächste freie)
+function toGemColors(pal, counts) {
+  const order = pal.map((_, i) => i).sort((a, b) => counts[b] - counts[a]), used = new Set(), out = [];
+  for (const i of order) {
+    let best = null, bd = Infinity;
+    const A = lab(pal[i]), cA = Math.hypot(A[1], A[2]);
+    for (const g of GEM_LIST) {
+      if (used.has(g)) continue;
+      const B = lab(g), cB = Math.hypot(B[1], B[2]);
+      // eine bunte Bildfarbe nicht zu Grau oder Schwarz entsättigen
+      const d = deltaE(pal[i], g) + Math.max(0, cA - cB) * .8;
+      if (d < bd) { bd = d; best = g; }
+    }
+    used.add(best); out[i] = best;
+  }
+  return out;
+}
+
+// ---------- Gemälde ----------
+let grainCanvas = null;
+function grainPattern(g) {
+  if (!grainCanvas) {
+    grainCanvas = newCanvas(96, 96);
+    const x = grainCanvas.getContext('2d'), d = x.createImageData(96, 96), R = rng(3);
+    for (let i = 0; i < d.data.length; i += 4) { const v = 96 + R() * 64 | 0; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+    x.putImageData(d, 0, 0);
+  }
+  return g.createPattern(grainCanvas, 'repeat');
+}
+// Malt ein Bild mit Pinselstrichen nach: die Striche folgen den Kanten, Farben kommen aus dem Original.
+function painterly(src, seed = 11) {
+  const S = src.width, H = src.height, R = rng(seed);
+  const out = newCanvas(S, H), o = out.getContext('2d');
+  o.drawImage(src, 0, 0);
+  const data = src.getContext('2d').getImageData(0, 0, S, H).data;
+  const lumAt = (x, y) => { x = clamp(x, 0, S - 1); y = clamp(y, 0, H - 1); const k = (y * S + x) * 4; return data[k] * .3 + data[k + 1] * .59 + data[k + 2] * .11; };
+  const unit = Math.max(S, H) / 720;
+  o.lineCap = 'round';
+  const passes = [
+    { n: S * H / 380, len: [16, 30], w: [6, 10], a: .5 },
+    { n: S * H / 95, len: [7, 13], w: [2.6, 4.2], a: .72 },
+    { n: S * H / 260, len: [4, 7], w: [1.4, 2.2], a: .8 }
+  ];
+  for (const p of passes) for (let s = 0; s < p.n; s++) {
+    const x = R() * S | 0, y = R() * H | 0, k = (y * S + x) * 4;
+    if (data[k + 3] < 160) continue;
+    const gx = lumAt(x + 3, y) - lumAt(x - 3, y), gy = lumAt(x, y + 3) - lumAt(x, y - 3), mag = Math.hypot(gx, gy);
+    const ang = mag > 5 ? Math.atan2(gy, gx) + Math.PI / 2 : Math.PI * .22 + Math.sin(x * .011 + y * .006) * .7;
+    const len = (p.len[0] + R() * (p.len[1] - p.len[0])) * (1 - Math.min(.65, mag / 110)) * unit;
+    const j = 1 + (R() - .5) * .14;
+    o.strokeStyle = `rgba(${clamp(data[k] * j, 0, 255) | 0},${clamp(data[k + 1] * j, 0, 255) | 0},${clamp(data[k + 2] * j, 0, 255) | 0},${p.a})`;
+    o.lineWidth = (p.w[0] + R() * (p.w[1] - p.w[0])) * unit;
+    const dx = Math.cos(ang) * len / 2, dy = Math.sin(ang) * len / 2;
+    o.beginPath(); o.moveTo(x - dx, y - dy); o.quadraticCurveTo(x + dy * .25, y - dx * .25, x + dx, y + dy); o.stroke();
+  }
+  // Leinwandstruktur
+  o.save(); o.globalCompositeOperation = 'overlay'; o.globalAlpha = .18; o.fillStyle = grainPattern(o); o.fillRect(0, 0, S, H); o.restore();
+  // Umriss des Originals behalten
+  o.globalCompositeOperation = 'destination-in'; o.drawImage(src, 0, 0); o.globalCompositeOperation = 'source-over';
+  return out;
+}
+function downsample(src, W, H) {
+  let c = src;
+  while (c.width / 2 >= W * 1.5 && c.height / 2 >= H * 1.5) {
+    const n = newCanvas(c.width / 2, c.height / 2), x = n.getContext('2d');
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, n.width, n.height); c = n;
+  }
+  const f = newCanvas(W, H), fx = f.getContext('2d');
+  fx.imageSmoothingEnabled = true; fx.imageSmoothingQuality = 'high'; fx.drawImage(c, 0, 0, W, H);
+  return fx.getImageData(0, 0, W, H);
+}
+function quantize(data, n, k) {
+  const pts = [], idxOf = new Int32Array(n).fill(-1);
+  for (let i = 0; i < n; i++) if (data[i * 4 + 3] > 128) { idxOf[i] = pts.length; pts.push([data[i * 4], data[i * 4 + 1], data[i * 4 + 2]]); }
+  if (!pts.length) return null;
+  const d2 = (a, b) => (a[0] - b[0]) ** 2 * 2 + (a[1] - b[1]) ** 2 * 4 + (a[2] - b[2]) ** 2 * 3;
+  // Farthest-Point-Start: hält auch kleine Akzentfarben
+  let C = [pts[Math.floor(pts.length / 2)].slice()];
+  const best = pts.map(p => d2(p, C[0]));
+  while (C.length < Math.min(k, pts.length)) {
+    let bi = 0; for (let i = 1; i < pts.length; i++) if (best[i] > best[bi]) bi = i;
+    C.push(pts[bi].slice());
+    for (let i = 0; i < pts.length; i++) best[i] = Math.min(best[i], d2(pts[i], C[C.length - 1]));
+  }
+  const asg = new Int16Array(pts.length);
+  for (let it = 0; it < 12; it++) {
+    const sum = C.map(() => [0, 0, 0, 0]);
+    pts.forEach((p, i) => { let bj = 0, bd = Infinity; C.forEach((c, j) => { const d = d2(p, c); if (d < bd) { bd = d; bj = j; } }); asg[i] = bj; const s = sum[bj]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; });
+    C = C.map((c, j) => sum[j][3] ? [sum[j][0] / sum[j][3], sum[j][1] / sum[j][3], sum[j][2] / sum[j][3]] : c);
+  }
+  // Farben mit sehr wenigen Murmeln der nächstliegenden Farbe zuschlagen
+  const minCount = Math.max(4, Math.round(pts.length * .006));
+  for (;;) {
+    const cnt = C.map(() => 0); asg.forEach(j => cnt[j]++);
+    let small = -1; cnt.forEach((m, j) => { if (m > 0 && m < minCount && (small < 0 || m < cnt[small])) small = j; });
+    if (small < 0 || cnt.filter(m => m > 0).length <= 2) break;
+    pts.forEach((p, i) => { if (asg[i] !== small) return; let bj = -1, bd = Infinity; C.forEach((c, j) => { if (j === small || !cnt[j]) return; const d = d2(p, c); if (d < bd) { bd = d; bj = j; } }); asg[i] = bj; });
+  }
+  // Sehr große Farbflächen (z. B. Wasser in einem einzigen Ton) in hell und dunkel teilen:
+  // mehr Abstufung im Bild, und keine Farbe belegt mehr als gut ein Drittel der Murmeln
+  for (let guard = 0; guard < 3; guard++) {
+    const cnt = C.map(() => 0); asg.forEach(j => cnt[j]++);
+    let big = 0; cnt.forEach((m, j) => { if (m > cnt[big]) big = j; });
+    if (cnt[big] <= pts.length * .38) break;
+    const members = []; pts.forEach((p, i) => { if (asg[i] === big) members.push(i); });
+    const lumP = p => p[0] * .3 + p[1] * .59 + p[2] * .11;
+    let lo = members[0], hi = members[0];
+    for (const i of members) { if (lumP(pts[i]) < lumP(pts[lo])) lo = i; if (lumP(pts[i]) > lumP(pts[hi])) hi = i; }
+    let a = pts[lo].slice(), b = pts[hi].slice();
+    for (let it = 0; it < 8; it++) {
+      const sa = [0, 0, 0, 0], sb = [0, 0, 0, 0];
+      for (const i of members) { const p = pts[i], s = d2(p, a) <= d2(p, b) ? sa : sb; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; }
+      if (sa[3]) a = [sa[0] / sa[3], sa[1] / sa[3], sa[2] / sa[3]];
+      if (sb[3]) b = [sb[0] / sb[3], sb[1] / sb[3], sb[2] / sb[3]];
+    }
+    C[big] = a; C.push(b);
+    for (const i of members) if (d2(pts[i], b) < d2(pts[i], a)) asg[i] = C.length - 1;
+  }
+  const used = [...new Set(asg)];
+  const hexes = used.map(j => rgb2hex(...C[j]));
+  const order = used.map((j, i) => i).sort((a, b) => lum(hexes[a]) - lum(hexes[b]));
+  const remap = {}; order.forEach((oi, ni) => remap[used[oi]] = ni);
+  const idx = new Int16Array(n).fill(-1);
+  for (let i = 0; i < n; i++) if (idxOf[i] >= 0) idx[i] = remap[asg[idxOf[i]]];
+  return { pal: order.map(oi => hexes[oi]), idx };
+}
+// Aus einem gemalten Bild wird ein Level: Raster und Murmelfarben aus dem Bild, das Gemälde für die fertigen Flächen
+function levelFromPainting(name, raw, W, H, k, paint) {
+  const q = quantize(downsample(raw, W, H).data, W * H, k);
+  if (!q) return null;
+  const counts = q.pal.map(() => 0); q.idx.forEach(c => { if (c >= 0) counts[c]++; });
+  return { name, W, H, pal: toGemColors(q.pal, counts), target: q.idx, paint: paint || painterly(raw) };
+}
+function scene(draw, size = 720) { const c = newCanvas(size, size); draw(c.getContext('2d'), size); return c; }
+
+function paintMushroom(x, S) {
+  const R = rng(17), cx = S * .5;
+  // Moospolster mit Gras
+  let g = x.createRadialGradient(cx, S * .88, S * .02, cx, S * .9, S * .46);
+  g.addColorStop(0, '#6aa846'); g.addColorStop(.65, '#3f7c36'); g.addColorStop(1, '#23502a');
+  x.fillStyle = g; x.beginPath(); x.ellipse(cx, S * .9, S * .45, S * .085, 0, 0, 7); x.fill();
+  x.lineCap = 'round';
+  for (let i = 0; i < 110; i++) {
+    const bx = cx + (R() - .5) * S * .82, by = S * (.89 + (R() - .4) * .07), h = S * (.035 + R() * .07);
+    x.strokeStyle = ['#2f6a2f', '#4f9440', '#7ab957', '#3a7d35', '#9ccc6a'][R() * 5 | 0]; x.lineWidth = S * (.005 + R() * .006);
+    x.beginPath(); x.moveTo(bx, by); x.quadraticCurveTo(bx + (R() - .5) * S * .03, by - h * .6, bx + (R() - .5) * S * .05, by - h); x.stroke();
+  }
+  // Stiel mit Rundung und Schatten unter dem Hut
+  const stem = () => { x.beginPath(); x.moveTo(S * .41, S * .48); x.bezierCurveTo(S * .39, S * .64, S * .355, S * .8, S * .365, S * .9); x.quadraticCurveTo(cx, S * .945, S * .635, S * .9); x.bezierCurveTo(S * .645, S * .8, S * .61, S * .64, S * .59, S * .48); x.closePath(); };
+  g = x.createLinearGradient(S * .36, 0, S * .64, 0);
+  g.addColorStop(0, '#9c7350'); g.addColorStop(.28, '#ecd7b2'); g.addColorStop(.52, '#fbf1de'); g.addColorStop(.82, '#d6b98c'); g.addColorStop(1, '#8a6140');
+  x.fillStyle = g; stem(); x.fill();
+  x.save(); stem(); x.clip();
+  g = x.createLinearGradient(0, S * .48, 0, S * .63); g.addColorStop(0, 'rgba(70,35,20,.65)'); g.addColorStop(1, 'rgba(70,35,20,0)');
+  x.fillStyle = g; x.fillRect(0, S * .48, S, S * .15);
+  x.fillStyle = 'rgba(255,250,238,.9)'; x.beginPath(); x.ellipse(cx, S * .61, S * .12, S * .026, 0, 0, 7); x.fill();
+  x.fillStyle = 'rgba(150,110,70,.35)'; x.beginPath(); x.ellipse(cx, S * .625, S * .115, S * .012, 0, 0, 7); x.fill();
+  x.restore();
+  // Lamellen unter dem Hut
+  g = x.createLinearGradient(0, S * .45, 0, S * .54); g.addColorStop(0, '#e6cfa6'); g.addColorStop(1, '#a3805a');
+  x.fillStyle = g; x.beginPath(); x.ellipse(cx, S * .49, S * .385, S * .055, 0, 0, 7); x.fill();
+  x.strokeStyle = 'rgba(115,80,48,.55)'; x.lineWidth = S * .003;
+  for (let i = -19; i <= 19; i++) { x.beginPath(); x.moveTo(cx + i * S * .0185, S * .487); x.lineTo(cx + i * S * .012, S * .53); x.stroke(); }
+  // Hut
+  const cap = () => { x.beginPath(); x.moveTo(cx - S * .42, S * .49); x.bezierCurveTo(cx - S * .45, S * .2, cx - S * .19, S * .09, cx, S * .09); x.bezierCurveTo(cx + S * .19, S * .09, cx + S * .45, S * .2, cx + S * .42, S * .49); x.quadraticCurveTo(cx, S * .545, cx - S * .42, S * .49); x.closePath(); };
+  g = x.createRadialGradient(cx - S * .13, S * .19, S * .02, cx + S * .02, S * .36, S * .47);
+  g.addColorStop(0, '#ff8c70'); g.addColorStop(.3, '#e8352f'); g.addColorStop(.72, '#b0192b'); g.addColorStop(1, '#640e1d');
+  x.fillStyle = g; cap(); x.fill();
+  x.save(); cap(); x.clip();
+  g = x.createRadialGradient(cx - S * .15, S * .19, 0, cx - S * .15, S * .19, S * .17); g.addColorStop(0, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, S, S);
+  [[-.22, .29, .058], [-.02, .18, .062], [.2, .26, .052], [-.07, .37, .046], [.3, .39, .04], [-.33, .41, .042], [.11, .39, .05], [.08, .28, .03], [-.17, .2, .032]].forEach(([dx, dy, r]) => {
+    const px = cx + dx * S, py = dy * S, rr = r * S;
+    const sg = x.createRadialGradient(px - rr * .35, py - rr * .4, 0, px, py, rr);
+    sg.addColorStop(0, '#ffffff'); sg.addColorStop(.7, '#f1e9de'); sg.addColorStop(1, '#c8b8a6');
+    x.fillStyle = sg; x.beginPath(); x.ellipse(px, py, rr, rr * .78, dx * .8, 0, 7); x.fill();
+  });
+  g = x.createLinearGradient(0, S * .36, 0, S * .52); g.addColorStop(0, 'rgba(60,0,10,0)'); g.addColorStop(1, 'rgba(60,0,10,.5)');
+  x.fillStyle = g; x.fillRect(0, S * .36, S, S * .16);
+  x.restore();
+}
+function paintSunset(x, S) {
+  const R = rng(29), H = S * .62, sx = S * .62, sy = S * .53;
+  let g = x.createLinearGradient(0, 0, 0, H);
+  [[0, '#120f3a'], [.25, '#33206a'], [.48, '#8e3a80'], [.66, '#de5f55'], [.82, '#ffab57'], [1, '#ffe1a1']].forEach(([o, c]) => g.addColorStop(o, c));
+  x.fillStyle = g; x.fillRect(0, 0, S, H);
+  for (let i = 0; i < 60; i++) { x.fillStyle = `rgba(255,240,225,${.25 + R() * .6})`; x.beginPath(); x.arc(R() * S, R() * S * .2, S * (.0015 + R() * .0025), 0, 7); x.fill(); }
+  g = x.createRadialGradient(sx, sy, 0, sx, sy, S * .45); g.addColorStop(0, 'rgba(255,240,180,.95)'); g.addColorStop(.22, 'rgba(255,196,120,.55)'); g.addColorStop(1, 'rgba(255,140,90,0)');
+  x.fillStyle = g; x.fillRect(0, 0, S, H);
+  const cloud = (cx, cy, w, h, n) => {
+    for (let i = 0; i < n; i++) {
+      const ex = cx + (R() - .5) * w, ey = cy + (R() - .5) * h * .6, rw = w * (.08 + R() * .1), rh = h * (.35 + R() * .3);
+      const cg = x.createLinearGradient(0, ey - rh, 0, ey + rh);
+      cg.addColorStop(0, 'rgba(70,35,95,.9)'); cg.addColorStop(.6, 'rgba(190,80,120,.85)'); cg.addColorStop(1, 'rgba(255,170,120,.9)');
+      x.fillStyle = cg; x.beginPath(); x.ellipse(ex, ey, rw, rh, 0, 0, 7); x.fill();
+    }
+  };
+  cloud(S * .22, S * .17, S * .44, S * .06, 9); cloud(S * .8, S * .27, S * .36, S * .05, 7); cloud(S * .35, S * .38, S * .3, S * .035, 6);
+  g = x.createRadialGradient(sx - S * .02, sy - S * .02, 0, sx, sy, S * .075); g.addColorStop(0, '#fffef2'); g.addColorStop(1, '#ffd77c');
+  x.fillStyle = g; x.beginPath(); x.arc(sx, sy, S * .07, 0, 7); x.fill();
+  const ridge = (baseY, amp, f, ph, c0, c1) => {
+    x.beginPath(); x.moveTo(0, H);
+    for (let px = 0; px <= S + 1; px += S / 160) { const t = px / S; x.lineTo(px, baseY - amp * (Math.sin(t * f + ph) * .55 + Math.sin(t * f * 2.3 + ph * 1.7) * .3 + Math.sin(t * f * 5.7 + ph * .3) * .15)); }
+    x.lineTo(S, H); x.closePath();
+    const rg = x.createLinearGradient(0, baseY - amp, 0, H); rg.addColorStop(0, c0); rg.addColorStop(1, c1); x.fillStyle = rg; x.fill();
+  };
+  ridge(S * .47, S * .11, 5.2, 1.1, '#8a4a86', '#5a2f6a');
+  ridge(S * .54, S * .09, 7.5, 3.3, '#4d2660', '#2e1a44');
+  ridge(S * .6, S * .04, 12, .5, '#271536', '#1a0f27');
+  g = x.createLinearGradient(0, H, 0, S); g.addColorStop(0, '#6a3474'); g.addColorStop(.35, '#331f52'); g.addColorStop(1, '#0d0a1f');
+  x.fillStyle = g; x.fillRect(0, H, S, S - H);
+  for (let i = 0; i < 22; i++) {
+    const y = H + S * (.008 + i * .016), w = S * (.24 - i * .009) * (.6 + R() * .7);
+    if (w <= 0) continue;
+    x.fillStyle = `rgba(255,${180 + R() * 60 | 0},${100 + R() * 50 | 0},${Math.max(0, .9 - i * .04)})`;
+    x.fillRect(sx - w / 2 + (R() - .5) * S * .03, y, w, S * (.005 + R() * .005));
+  }
+  x.fillStyle = '#0b0714';
+  x.beginPath(); x.moveTo(0, S * .66); x.quadraticCurveTo(S * .22, S * .63, S * .4, S * .75); x.quadraticCurveTo(S * .25, S * .84, 0, S * .88); x.closePath(); x.fill();
+  for (let i = 0; i < 10; i++) {
+    const tx = S * (.015 + i * .036 + R() * .015), ty = S * (.68 + i * .005 + R() * .02), h = S * (.1 + R() * .1), w = h * .34;
+    x.beginPath(); x.moveTo(tx, ty - h); x.lineTo(tx + w / 2, ty); x.lineTo(tx - w / 2, ty); x.closePath(); x.fill();
+  }
+  x.strokeStyle = '#0b0714'; x.lineWidth = S * .004; x.lineCap = 'round';
+  for (let i = 0; i < 28; i++) { const rx = S * (.78 + R() * .21), ry = S, h = S * (.1 + R() * .14); x.beginPath(); x.moveTo(rx, ry); x.quadraticCurveTo(rx + (R() - .5) * S * .03, ry - h * .5, rx + (R() - .3) * S * .04, ry - h); x.stroke(); }
+}
+function paintKoi(x, S) {
+  const R = rng(41);
+  let g = x.createRadialGradient(S * .45, S * .4, S * .05, S * .5, S * .5, S * .75);
+  g.addColorStop(0, '#2a93a6'); g.addColorStop(.55, '#17607e'); g.addColorStop(1, '#0a2e48');
+  x.fillStyle = g; x.fillRect(0, 0, S, S);
+  x.lineCap = 'round';
+  for (let i = 0; i < 70; i++) {
+    x.strokeStyle = `rgba(190,240,255,${.05 + R() * .09})`; x.lineWidth = S * (.002 + R() * .004);
+    const y0 = R() * S, x0 = R() * S;
+    x.beginPath(); x.moveTo(x0, y0); x.bezierCurveTo(x0 + S * .05, y0 - S * .02, x0 + S * .08, y0 + S * .03, x0 + S * .14, y0 + S * (R() - .5) * .04); x.stroke();
+  }
+  const pad = (cx, cy, r, rot) => {
+    x.save(); x.translate(cx, cy); x.rotate(rot);
+    x.shadowColor = 'rgba(0,15,25,.45)'; x.shadowBlur = S * .02; x.shadowOffsetX = S * .008; x.shadowOffsetY = S * .014;
+    const pg = x.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r); pg.addColorStop(0, '#8fd06a'); pg.addColorStop(.6, '#4f9d48'); pg.addColorStop(1, '#2f6e35');
+    x.fillStyle = pg; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, r, .35, Math.PI * 2 - .05); x.closePath(); x.fill();
+    x.shadowColor = 'transparent';
+    x.strokeStyle = 'rgba(30,70,30,.5)'; x.lineWidth = r * .03;
+    for (let a = .5; a < 6.2; a += .45) { x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * r * .92, Math.sin(a) * r * .92); x.stroke(); }
+    x.restore();
+  };
+  pad(S * .8, S * .18, S * .14, .3); pad(S * .16, S * .82, S * .16, 2.4); pad(S * .9, S * .75, S * .09, 4.1); pad(S * .1, S * .2, S * .075, 1.2);
+  const lotus = (cx, cy, r) => {
+    for (let k = 0; k < 2; k++) for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + k * .4, rr = r * (k ? .65 : 1);
+      x.save(); x.translate(cx, cy); x.rotate(a);
+      const lg = x.createLinearGradient(0, 0, rr, 0); lg.addColorStop(0, '#fff3f7'); lg.addColorStop(1, k ? '#f6a5c6' : '#e5649c');
+      x.fillStyle = lg; x.beginPath(); x.ellipse(rr * .5, 0, rr * .55, rr * .22, 0, 0, 7); x.fill(); x.restore();
+    }
+    x.fillStyle = '#ffd34d'; x.beginPath(); x.arc(cx, cy, r * .18, 0, 7); x.fill();
+  };
+  lotus(S * .76, S * .2, S * .065);
+  const koi = (cx, cy, ang, len, body, patches) => {
+    x.save(); x.translate(cx, cy); x.rotate(ang);
+    const shape = () => { x.beginPath(); x.moveTo(len * .5, 0); x.bezierCurveTo(len * .46, -len * .17, len * .08, -len * .21, -len * .3, -len * .06); x.quadraticCurveTo(-len * .36, 0, -len * .3, len * .06); x.bezierCurveTo(len * .08, len * .21, len * .46, len * .17, len * .5, 0); x.closePath(); };
+    x.fillStyle = rgba(body, .7);
+    x.beginPath(); x.moveTo(-len * .28, 0); x.quadraticCurveTo(-len * .48, -len * .02, -len * .63, -len * .17); x.quadraticCurveTo(-len * .52, 0, -len * .63, len * .17); x.quadraticCurveTo(-len * .48, len * .02, -len * .28, 0); x.fill();
+    for (const sg of [-1, 1]) { x.beginPath(); x.ellipse(len * .16, sg * len * .155, len * .1, len * .045, sg * .7, 0, 7); x.fill(); }
+    x.save(); x.shadowColor = 'rgba(0,15,30,.5)'; x.shadowBlur = S * .025; x.shadowOffsetX = S * .012; x.shadowOffsetY = S * .02;
+    const bg = x.createLinearGradient(0, -len * .2, 0, len * .2); bg.addColorStop(0, mix(body, '#ffffff', .3)); bg.addColorStop(.5, body); bg.addColorStop(1, mix(body, '#000000', .3));
+    x.fillStyle = bg; shape(); x.fill(); x.restore();
+    x.save(); shape(); x.clip();
+    patches.forEach(([px, py, rx, ry, rot, col]) => { x.fillStyle = col; x.beginPath(); x.ellipse(px * len, py * len, rx * len, ry * len, rot, 0, 7); x.fill(); });
+    const hl = x.createLinearGradient(0, -len * .2, 0, len * .05); hl.addColorStop(0, 'rgba(255,255,255,.35)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = hl; x.fillRect(-len, -len * .25, len * 2, len * .3);
+    x.restore();
+    x.fillStyle = '#141418'; for (const sg of [-1, 1]) { x.beginPath(); x.arc(len * .38, sg * len * .07, len * .018, 0, 7); x.fill(); }
+    x.restore();
+  };
+  koi(S * .45, S * .42, .4, S * .38, '#f26a1b', [[.06, -.05, .13, .08, .3, '#fff6ea'], [-.17, .03, .08, .05, 0, '#fff6ea']]);
+  koi(S * .6, S * .7, -2.5, S * .34, '#f4efe6', [[.1, -.05, .1, .07, .4, '#d93a2b'], [-.14, .03, .08, .05, 0, '#d93a2b'], [.3, .02, .05, .04, 0, '#1b1b22']]);
+  koi(S * .21, S * .45, 1.3, S * .27, '#f5a623', [[0, 0, .11, .06, .5, '#fff6ea']]);
+  x.strokeStyle = 'rgba(220,250,255,.28)'; x.lineWidth = S * .004;
+  [[.3, .74, .05], [.3, .74, .085], [.68, .45, .04]].forEach(([a, b, r]) => { x.beginPath(); x.ellipse(a * S, b * S, r * S, r * S * .55, 0, 0, 7); x.stroke(); });
+}
+const MOTIFS = [
+  { name: 'Fliegenpilz', note: 'zum Reinkommen', make: () => levelFromPainting('Fliegenpilz', scene(paintMushroom), 20, 20, 6) },
+  { name: 'Abendrot', make: () => levelFromPainting('Abendrot', scene(paintSunset), 30, 30, 7) },
+  { name: 'Koi-Teich', make: () => levelFromPainting('Koi-Teich', scene(paintKoi), 36, 36, 7) }
+];
+
+// ---------- Spiellogik ----------
+// Ein Zug hat zwei Schritte: Gruppe wählen (Murmel + alle angrenzenden Murmeln gleicher Farbe), dann Ziel wählen:
+// ein freies Loch dieser Farbe (gefüllt wird nur dieser zusammenhängende Bereich) oder die Ablage.
+
+// Startaufstellung: Die Murmeln liegen in einfarbigen Flecken. Jeder Fleck liegt ganz in einem Bildbereich,
+// aber nie auf seiner eigenen Zielfarbe. Wird ein Fleck bewegt, entsteht ein großes Loch in einer einzigen Farbe,
+// das wieder eine große Gruppe aufnehmen kann: so entstehen Ketten großer Züge.
+let BLOB = .8; // Fleckgröße relativ zur Wurzel der Murmelzahl
+function deal(L) {
+  const cells = L.cells, n = L.target.length, K = L.pal.length;
+  const rem = new Int32Array(K), remT = new Int32Array(K);
+  for (const i of cells) { rem[L.target[i]]++; remT[L.target[i]]++; }
+  let remCells = cells.length;
+  const cur = new Int16Array(n).fill(-1);
+  const B = clamp(Math.round(Math.sqrt(cells.length) * BLOB), 4, 30);
+  // Farbe für ein Feld mit Zielfarbe t. Eine Farbe, die sonst nirgends mehr hinpasst, geht vor.
+  // So bleibt immer eine Verteilung möglich, in der keine Murmel auf ihrer Zielfarbe liegt.
+  const pick = (t, prefer) => {
+    for (let x = 0; x < K; x++) if (x !== t && rem[x] > 0 && rem[x] >= remCells - remT[x]) return x;
+    if (prefer >= 0 && prefer !== t && rem[prefer] > 0) return prefer;
+    let tot = 0; for (let x = 0; x < K; x++) if (x !== t) tot += rem[x];
+    if (tot <= 0) return t; // nur möglich, wenn eine Farbe mehr als die Hälfte des Bildes ausmacht
+    let r = Math.random() * tot;
+    for (let x = 0; x < K; x++) { if (x === t) continue; r -= rem[x]; if (r < 0) return x; }
+    return t;
+  };
+  const assign = (i, c) => { cur[i] = c; rem[c]--; remT[L.target[i]]--; remCells--; };
+  const order = cells.slice(); for (let i = order.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [order[i], order[j]] = [order[j], order[i]]; }
+  let op = 0;
+  const gfront = []; // freie Felder neben schon belegten: dort beginnt bevorzugt der nächste Fleck
+  while (remCells > 0) {
+    let s = -1;
+    while (gfront.length && s < 0) { const k = Math.random() * gfront.length | 0, i = gfront[k]; gfront[k] = gfront[gfront.length - 1]; gfront.pop(); if (cur[i] === -1) s = i; }
+    if (s < 0) { while (cur[order[op]] !== -1) op++; s = order[op]; }
+    const t = L.target[s], size = Math.max(1, Math.round(B * (.6 + Math.random() * .8)));
+    let c = pick(t, -1), placed = 0;
+    const q = [s];
+    while (q.length && placed < size) {
+      const k = Math.random() * q.length | 0, i = q[k]; q[k] = q[q.length - 1]; q.pop();
+      if (cur[i] !== -1) continue;
+      const cc = pick(t, c);
+      if (cc !== c && placed > 0) { gfront.push(i); break; } // Farbe muss wechseln: dieser Fleck endet hier
+      assign(i, cc); c = cc; placed++;
+      for (const j of nbrs(i)) if (L.target[j] >= 0 && cur[j] === -1) (L.target[j] === t ? q : gfront).push(j);
+    }
+    for (const i of q) if (cur[i] === -1) gfront.push(i);
+  }
+  return cur;
+}
+function nbrs(i) {
+  const W = L.W, x = i % W, r = [];
+  if (x > 0) r.push(i - 1); if (x < W - 1) r.push(i + 1);
+  if (i >= W) r.push(i - W); if (i + W < L.target.length) r.push(i + W);
+  return r;
+}
+function flood(start, pred, seen) {
+  const out = [start]; seen[start] = 1;
+  for (let h = 0; h < out.length; h++) for (const j of nbrs(out[h])) if (!seen[j] && pred(j)) { seen[j] = 1; out.push(j); }
+  return out;
+}
+function groupAt(cur, i) { const c = cur[i]; return flood(i, j => cur[j] === c && L.target[j] !== c, new Uint8Array(cur.length)); }
+function regionAt(cur, i) { const t = L.target[i]; return flood(i, j => cur[j] === -1 && L.target[j] === t, new Uint8Array(cur.length)); }
+function components(cur) {
+  const seen = new Uint8Array(cur.length), groups = [], regions = [];
+  for (const i of L.cells) {
+    if (seen[i]) continue;
+    const c = cur[i];
+    if (c === -1) { const t = L.target[i]; regions.push({ c: t, cells: flood(i, j => cur[j] === -1 && L.target[j] === t, seen) }); }
+    else if (c !== L.target[i]) groups.push({ c, cells: flood(i, j => cur[j] === c && L.target[j] !== c, seen) });
+  }
+  return { groups, regions };
+}
+let COMBO = 4;          // ab so vielen Murmeln gilt ein Zug als Kombo
+let COMBO_PARK = true;  // der beste Zug darf parken, um eine Kombo vorzubereiten
+let PARK_FRAC = .8;     // Anteil der freien Ablage, den der beste Zug beim Parken höchstens belegt.
+// Eine Sackgasse gibt es nicht: Liegen Murmeln in der Ablage, gibt es genauso viele freie Löcher, und für eins davon passt immer eine Murmel.
+
+// Ein guter Zug (nur für automatische Tests, im Spiel wird nichts bewertet): der direkte Zug, der die meisten Murmeln
+// an ihren Platz bringt. Setzt der nur wenige, lieber eine Gruppe parken, nach der ein viel größerer Zug möglich wird.
+function chooseMove(cur, trayC, trayFree) {
+  const K = L.pal.length, { groups, regions } = components(cur);
+  const bigReg = new Array(K).fill(null);
+  for (const r of regions) if (!bigReg[r.c] || r.cells.length > bigReg[r.c].cells.length) bigReg[r.c] = r;
+  let best = null;
+  for (const g of groups) {
+    const r = bigReg[g.c]; if (!r) continue;
+    const n = Math.min(g.cells.length, r.cells.length);
+    if (!best || n > best.n) best = { kind: 'direct', c: g.c, from: g.cells, to: r.cells, n };
+  }
+  for (let c = 0; c < K; c++) {
+    const r = bigReg[c]; if (!trayC[c] || !r) continue;
+    const n = Math.min(trayC[c], r.cells.length);
+    if (!best || n > best.n) best = { kind: 'direct', c, fromTray: true, from: [], to: r.cells, n };
+  }
+  if (trayFree <= 0 || !groups.length || (best && !COMBO_PARK)) return best;
+  const bigGrp = new Int32Array(K), cnt = new Int32Array(K);
+  for (const g of groups) bigGrp[g.c] = Math.max(bigGrp[g.c], g.cells.length);
+  let park = null, ps = -Infinity;
+  for (const g of groups) {
+    const n = Math.min(g.cells.length, trayFree), part = g.cells.slice(0, n);
+    cnt.fill(0); for (const i of part) cnt[L.target[i]]++;
+    let follow = 0; for (let t = 0; t < K; t++) if (cnt[t]) follow = Math.max(follow, Math.min(cnt[t], bigGrp[t]));
+    const s = follow - n * .95 - (n > Math.max(1, trayFree * PARK_FRAC) ? 100 : 0);
+    if (s > ps) { ps = s; park = { kind: 'park', c: g.c, from: part, n, follow }; }
+  }
+  if (!best) return park;
+  if (park && best.n < COMBO && park.follow >= Math.max(COMBO, best.n * 3)) return park;
+  return best;
+}
+function applyMove(cur, trayC, m) {
+  if (m.kind === 'park') { for (const i of m.from.slice(0, m.n)) cur[i] = -1; trayC[m.c] += m.n; return; }
+  if (m.fromTray) trayC[m.c] -= m.n; else for (const i of m.from.slice(0, m.n)) cur[i] = -1;
+  for (const i of m.to.slice(0, m.n)) cur[i] = m.c;
+}
+function clearAnimations() { flights.length = 0; settles.length = 0; twinkles.length = 0; pendCells.clear(); pendTray.length = 0; }
+function startLevel(lvl) {
+  clearTimeout(winTimer); $('#win').hidden = true;
+  L = lvl;
+  L.cells = []; for (let i = 0; i < L.target.length; i++) if (L.target[i] >= 0) L.cells.push(i);
+  L.muted = L.pal.map(c => mix(c, T['--canvas'] || '#e9e3d6', .45));
+  G = { cur: deal(L), tray: [], hist: [], sel: null, done: false, celebrate: 0 };
+  $('#levelName').textContent = L.name;
+  clearAnimations();
+  layout(); updateHud();
+}
+function trayCounts() { const t = new Int32Array(L.pal.length); G.tray.forEach(c => t[c]++); return t; }
+function hasFree(c) { for (const i of L.cells) if (G.cur[i] === -1 && L.target[i] === c) return true; return false; }
+function snapshot() { G.hist.push({ cur: G.cur.slice(), tray: G.tray.slice() }); if (G.hist.length > 300) G.hist.shift(); }
+function undo() {
+  const h = G.hist.pop(); if (!h || G.done) return;
+  clearAnimations();
+  Object.assign(G, h); G.sel = null; updateHud(); baseDirty = true;
+  toast('Zug zurückgenommen');
+}
+// Hinweise nur die ersten Male, danach spielt man in Ruhe
+const hintCount = {};
+function hint(key, msg) { hintCount[key] = (hintCount[key] || 0) + 1; return hintCount[key] <= 2 ? msg : null; }
+function select(sel, msg) { G.sel = sel; updateHud(); baseDirty = true; if (msg) toast(msg); }
+function onCell(i) {
+  if (G.done) return;
+  const c = G.cur[i];
+  if (c === -1) {
+    if (!G.sel) return toast('Tippe zuerst auf eine Murmel, die noch nicht an ihrem Platz liegt.');
+    if (L.target[i] !== G.sel.c) return toast('In dieses Loch gehört eine andere Farbe.');
+    const to = regionAt(G.cur, i);
+    return commit({ kind: 'direct', c: G.sel.c, fromTray: G.sel.tray, from: G.sel.cells, to, n: Math.min(G.sel.n, to.length) });
+  }
+  if (c === L.target[i]) { glintAt(cellCenter(i), cell * .8); return; }
+  if (G.sel && !G.sel.tray && G.sel.cells.includes(i)) return select(null);
+  const cells = groupAt(G.cur, i);
+  select({ c, cells, n: cells.length, tray: false }, hasFree(c)
+    ? hint('ziel', 'Tippe auf ein leuchtendes Loch derselben Farbe.')
+    : hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Tippe auf die Ablage, um die Murmeln dort abzulegen.'));
+}
+function onTrayTap(k) {
+  if (G.done) return;
+  if (G.sel && !G.sel.tray) {
+    const room = trayCap - G.tray.length;
+    if (room <= 0) { shakeTray(); return toast('Die Ablage ist voll. Lege zuerst Murmeln aus der Ablage an ihren Platz.'); }
+    return commit({ kind: 'park', c: G.sel.c, from: G.sel.cells, n: Math.min(G.sel.n, room) });
+  }
+  if (k == null || k >= G.tray.length) { if (G.sel) select(null); return; }
+  const c = G.tray[k];
+  if (G.sel && G.sel.tray && G.sel.c === c) return select(null);
+  const n = G.tray.filter(x => x === c).length;
+  select({ c, n, tray: true, cells: [] }, hasFree(c) ? null : 'Für diese Farbe ist noch kein Loch frei.');
+}
+function trayIndicesOf(c, n) { const out = []; for (let k = G.tray.length - 1; k >= 0 && out.length < n; k--) if (G.tray[k] === c) out.push(k); return out; }
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const nearest = (cells, p, n) => cells.slice().sort((a, b) => dist(cellCenter(a), p) - dist(cellCenter(b), p)).slice(0, n);
+const turn = v => v % VARIANTS * Math.PI * 2 / VARIANTS;
+function commit(m) {
+  snapshot();
+  const n = m.n;
+  if (m.kind === 'park') {
+    // Die Murmeln, die der Ablage am nächsten liegen, rollen als Kette in die freien Mulden.
+    const start = G.tray.length, entry = traySlot(start);
+    const movers = nearest(m.from, entry, n);
+    for (const i of movers) G.cur[i] = -1;
+    const routes = [], dests = [];
+    for (let k = 0; k < n; k++) {
+      G.tray.push(m.c);
+      const slot = start + n - 1 - k; // die vorderste rollt am weitesten
+      const r = []; for (let s = start + 1; s <= slot; s++) r.push(traySlot(s));
+      routes.push(r); dests.push({ tray: slot }); pendTray.push(slot);
+    }
+    rollChain(m.c, movers.map(cellCenter), entry, routes, dests, movers.map(i => turn(i * 7)));
+  } else {
+    // Die Murmeln rollen hintereinander über das angetippte Loch in den Bereich. Die vorderste rollt ins hinterste Loch.
+    const dcells = m.to.slice(0, n), entry = cellCenter(dcells[0]);
+    const idx = new Map(dcells.map((c, k) => [c, k])), parent = new Array(n).fill(-1);
+    for (let k = 1; k < n; k++) { let b = -1; for (const j of nbrs(dcells[k])) { const q = idx.get(j); if (q != null && q < k && (b < 0 || q < b)) b = q; } parent[k] = b; }
+    const routeTo = k => { const r = []; while (k > 0) { r.push(cellCenter(dcells[k])); k = parent[k]; } return r.reverse(); };
+    let starts, angles;
+    if (m.fromTray) {
+      const ks = trayIndicesOf(m.c, n).sort((a, b) => dist(traySlot(a), entry) - dist(traySlot(b), entry));
+      starts = ks.map(traySlot); angles = ks.map(turn);
+      ks.slice().sort((a, b) => b - a).forEach(k => G.tray.splice(k, 1)); pendTray.length = 0;
+    } else {
+      const movers = nearest(m.from, entry, n);
+      starts = movers.map(cellCenter); angles = movers.map(i => turn(i * 7));
+      for (const i of movers) G.cur[i] = -1;
+    }
+    const routes = [], dests = [];
+    for (let k = 0; k < n; k++) { const q = n - 1 - k; routes.push(routeTo(q)); dests.push({ cell: dcells[q] }); }
+    for (const j of dcells) G.cur[j] = m.c;
+    rollChain(m.c, starts, entry, routes, dests, angles, m.fromTray);
+  }
+  G.sel = null;
+  updateHud(); baseDirty = true;
+}
+function remaining() { let n = 0; for (const i of L.cells) if (G.cur[i] !== L.target[i]) n++; return n; }
+function updateHud() { $('#bUndo').disabled = !G.hist.length || G.done; }
+let winTimer = 0;
+function checkWin() {
+  if (G.done || flights.length || remaining()) return;
+  G.done = true; G.sel = null;
+  G.celebrate = performance.now(); baseDirty = true;
+  winTimer = setTimeout(() => {
+    $('#winTitle').textContent = L.name;
+    showPainting(L, $('#winPaint'), 600);
+    $('#win').hidden = false; updateHud();
+  }, reduceMotion ? 50 : 1900);
+}
+
+// ---------- Darstellung ----------
+// Das Brett wird in zwei Ebenen gezeichnet: eine zwischengespeicherte Grundebene (Rahmen, Leinwand, Vorlage, Gemälde,
+// Löcher, liegende Murmeln), die nur nach einer Änderung neu entsteht, und darüber in jedem Bild nur das Bewegte.
+const cv = $('#cv'), ctx = cv.getContext('2d');
+let dpr = 1, Wpx = 0, Hpx = 0, cell = 10, ox = 0, oy = 0, tray = null, T = {};
+let frameW = 11, frameM = 14;
+const base = newCanvas(1, 1), bctx = base.getContext('2d');
+const maskC = newCanvas(4, 4), mctx = maskC.getContext('2d');
+let staticBg = null, paintScaled = null, paintLayer = null, trayBg = null;
+let baseDirty = true, staticDirty = true, lastTwinkle = 0;
+const flights = [], settles = [], twinkles = [], pendCells = new Set(), pendTray = [];
+let trayShake = 0;
+
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  ['--canvas', '--frame', '--gold', '--wood', '--wood-grain', '--hint', '--bg'].forEach(k => T[k] = cs.getPropertyValue(k).trim() || '#888888');
+  if (L) L.muted = L.pal.map(c => mix(c, T['--canvas'], .45));
+  sprites.clear(); trayBg = null; staticDirty = true; baseDirty = true;
+}
+function layout() {
+  const r = cv.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5); Wpx = r.width; Hpx = r.height;
+  cv.width = Math.max(1, Math.round(Wpx * dpr)); cv.height = Math.max(1, Math.round(Hpx * dpr));
+  base.width = cv.width; base.height = cv.height;
+  if (!L) return;
+  const slot = Math.max(28, Math.min(44, Wpx / 16));
+  const cols = Math.max(4, Math.min(trayCap, Math.floor((Math.min(Wpx, 840) - 28) / slot)));
+  const rows = Math.ceil(trayCap / cols), th = rows * slot + 24;
+  frameW = Wpx < 520 ? 7 : 12; frameM = Wpx < 520 ? 8 : 14;
+  const m = frameW + frameM + 10, availH = Hpx - th - 14;
+  cell = Math.max(4, Math.floor(Math.min((Wpx - 2 * m) / L.W, (availH - 2 * m) / L.H)));
+  ox = Math.round((Wpx - cell * L.W) / 2); oy = Math.round((availH - cell * L.H) / 2);
+  const tw = cols * slot + 24;
+  tray = { x: Math.round((Wpx - tw) / 2), y: Hpx - th, w: tw, h: th, slot, cols, rows };
+  sprites.clear(); trayBg = null; staticDirty = true; baseDirty = true;
+}
+const cellCenter = i => [ox + (i % L.W + .5) * cell, oy + ((i / L.W | 0) + .5) * cell];
+const traySlot = k => [tray.x + 12 + (k % tray.cols + .5) * tray.slot, tray.y + 12 + ((k / tray.cols | 0) + .5) * tray.slot];
+const isDone = i => G.cur[i] === L.target[i] && !pendCells.has(i);
+const marbleD = () => Math.round(cell * .82);
+const trayD = () => Math.round(tray.slot * .8);
+
+// --- Sprites: einmal gezeichnet, dann nur noch kopiert ---
+const sprites = new Map();
+function sprite(key, d, fn) {
+  d = Math.max(4, Math.round(d));
+  const k = key + '|' + d; let s = sprites.get(k); if (s) return s;
+  const pad = Math.ceil(d * .4), full = d + 2 * pad;
+  s = newCanvas(full * dpr, full * dpr);
+  const x = s.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.translate(pad, pad);
+  fn(x, d); s.d = d; s.full = full; sprites.set(k, s); return s;
+}
+function blit(g, s, cx, cy, d, alpha) {
+  const w = s.full * d / s.d;
+  if (alpha != null) g.globalAlpha = alpha;
+  g.drawImage(s, cx - w / 2, cy - w / 2, w, w);
+  if (alpha != null) g.globalAlpha = 1;
+}
+
+// Glasmurmel in drei Schichten: unten Schatten und Glaskörper, in der Mitte der farbige Kern (dreht sich beim Rollen),
+// oben die Spiegelungen. Licht von oben links wie im Gemälde.
+function marbleUnder(x, cx, cy, r, base) {
+  // Schatten nach unten rechts, mit gebündeltem Licht darin: typisch für Glas
+  const sx = cx + r * .3, sy = cy + r * .4;
+  let g = x.createRadialGradient(sx, sy, r * .3, sx, sy, r * 1.15);
+  g.addColorStop(0, rgba(mix(base, '#000000', .6), .4)); g.addColorStop(.75, rgba(mix(base, '#000000', .65), .18)); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g; x.beginPath(); x.ellipse(sx, sy, r * 1.12, r * 1.02, 0, 0, 7); x.fill();
+  const kx = cx + r * .72, ky = cy + r * .86;
+  g = x.createRadialGradient(kx, ky, 0, kx, ky, r * .34);
+  g.addColorStop(0, rgba(mix(base, '#ffffff', .55), .6)); g.addColorStop(1, rgba(base, 0));
+  x.fillStyle = g; x.beginPath(); x.arc(kx, ky, r * .34, 0, 7); x.fill();
+  // Glaskörper: Licht tritt oben links ein und sammelt sich unten rechts; der Rand ist dunkler und satter
+  g = x.createRadialGradient(cx + r * .3, cy + r * .34, r * .04, cx + r * .1, cy + r * .12, r * 1.08);
+  g.addColorStop(0, mix(base, '#ffffff', .5)); g.addColorStop(.32, mix(base, '#ffffff', .14)); g.addColorStop(.72, base); g.addColorStop(1, mix(base, '#000000', .5));
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+}
+function marbleCore(x, cx, cy, r, base) {
+  // Katzenauge: drei schmale, gedrehte Farbbänder im Glas, heller als die Glasfarbe (bei Weiß bläulich, damit man es sieht)
+  const light = lum(base) > 225 ? mix(base, '#7f9dbd', .55) : mix(base, '#ffffff', .45), deep = mix(base, '#000000', .3);
+  for (let k = 0; k < 3; k++) {
+    const a = k * Math.PI * 2 / 3;
+    const tip = [cx + Math.cos(a) * r * .72, cy + Math.sin(a) * r * .72];
+    const c1 = [cx + Math.cos(a - .75) * r * .5, cy + Math.sin(a - .75) * r * .5];
+    const c2 = [cx + Math.cos(a - .2) * r * .36, cy + Math.sin(a - .2) * r * .36];
+    const g = x.createLinearGradient(cx, cy, tip[0], tip[1]);
+    g.addColorStop(0, rgba(light, .95)); g.addColorStop(.7, rgba(light, .55)); g.addColorStop(1, rgba(light, 0));
+    x.fillStyle = g;
+    x.beginPath(); x.moveTo(cx, cy); x.quadraticCurveTo(c1[0], c1[1], tip[0], tip[1]); x.quadraticCurveTo(c2[0], c2[1], cx, cy); x.fill();
+    // Schattenkante: das Band ist verdreht
+    x.strokeStyle = rgba(deep, .45); x.lineWidth = Math.max(.4, r * .035);
+    x.beginPath(); x.moveTo(cx, cy); x.quadraticCurveTo(c2[0], c2[1], tip[0], tip[1]); x.stroke();
+  }
+}
+function marbleTop(x, cx, cy, r, base) {
+  // Glas über dem Kern: zum Rand und nach oben dunkler, so liegt der Kern im Glas
+  let gl = x.createRadialGradient(cx + r * .18, cy + r * .22, r * .3, cx, cy, r);
+  gl.addColorStop(0, rgba(base, 0)); gl.addColorStop(1, rgba(mix(base, '#000000', .45), .6));
+  x.fillStyle = gl; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+  gl = x.createLinearGradient(cx, cy - r, cx, cy + r * .15);
+  gl.addColorStop(0, rgba(mix(base, '#000000', .45), .34)); gl.addColorStop(1, rgba(base, 0));
+  x.fillStyle = gl; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+  // Fensterspiegelung oben links
+  x.save();
+  x.translate(cx - r * .36, cy - r * .42); x.rotate(-.75); x.scale(1, .55);
+  const g = x.createRadialGradient(0, 0, 0, 0, 0, r * .34);
+  g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.55, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.beginPath(); x.arc(0, 0, r * .34, 0, 7); x.fill();
+  x.restore();
+  x.lineCap = 'round';
+  // Lichtbogen am Rand oben links
+  x.strokeStyle = 'rgba(255,255,255,.38)'; x.lineWidth = r * .06;
+  x.beginPath(); x.arc(cx, cy, r * .82, Math.PI * 1.02, Math.PI * 1.42); x.stroke();
+  // gebrochenes Licht am Rand unten rechts
+  x.strokeStyle = rgba(mix(base, '#ffffff', .65), .6); x.lineWidth = r * .07;
+  x.beginPath(); x.arc(cx, cy, r * .9, Math.PI * .08, Math.PI * .5); x.stroke();
+  // scharfer Glanzpunkt
+  x.fillStyle = 'rgba(255,255,255,.95)'; x.beginPath(); x.arc(cx - r * .44, cy - r * .5, r * .075, 0, 7); x.fill();
+  // dunkler Glasrand
+  x.strokeStyle = rgba(mix(base, '#000000', .55), .45); x.lineWidth = Math.max(.6, r * .05); x.beginPath(); x.arc(cx, cy, r * .985, 0, 7); x.stroke();
+}
+const VARIANTS = 6;
+// fertig zusammengesetzte Murmel; die Variante dreht den Kern, damit nicht alle Murmeln gleich aussehen
+const marbleSprite = (c, d, v = 0) => sprite('m' + L.pal[c] + v, d, (x, D) => {
+  const r = D / 2 * .96, hex = L.pal[c];
+  marbleUnder(x, D / 2, D / 2, r, hex);
+  x.save(); x.translate(D / 2, D / 2); x.rotate(v * Math.PI * 2 / VARIANTS); x.translate(-D / 2, -D / 2); marbleCore(x, D / 2, D / 2, r, hex); x.restore();
+  marbleTop(x, D / 2, D / 2, r, hex);
+});
+const layerSprite = (layer, c, d) => sprite(layer + L.pal[c], d, (x, D) => (layer === 'mu' ? marbleUnder : layer === 'mc' ? marbleCore : marbleTop)(x, D / 2, D / 2, D / 2 * .96, L.pal[c]));
+// rollende Murmel: der Kern dreht sich mit dem zurückgelegten Weg
+function drawRolling(g, c, x, y, d, ang) {
+  const D = marbleD();
+  blit(g, layerSprite('mu', c, D), x, y, d);
+  g.save(); g.translate(x, y); g.rotate(ang); blit(g, layerSprite('mc', c, D), 0, 0, d); g.restore();
+  blit(g, layerSprite('mt', c, D), x, y, d);
+}
+const holeSprite = (hex, d) => sprite('h' + hex, d, (x, D) => hole(x, D / 2, D / 2, D * .37, hex));
+// Loch: Innenschatten oben links, Lichtkante unten rechts, am Grund schimmert die Zielfarbe
+function hole(x, cx, cy, r, hex) {
+  const circle = () => { x.beginPath(); x.arc(cx, cy, r, 0, 7); };
+  x.fillStyle = mix(hex, '#000000', .62); circle(); x.fill();
+  const fg = x.createRadialGradient(cx + r * .2, cy + r * .28, 0, cx + r * .2, cy + r * .28, r * .95);
+  fg.addColorStop(0, mix(hex, '#000000', .08)); fg.addColorStop(.55, mix(hex, '#000000', .36)); fg.addColorStop(1, rgba(hex, 0));
+  x.fillStyle = fg; circle(); x.fill();
+  const sg = x.createLinearGradient(cx - r, cy - r, cx + r * .25, cy + r * .25);
+  sg.addColorStop(0, 'rgba(0,0,0,.62)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = sg; circle(); x.fill();
+  x.lineWidth = Math.max(.6, r * .14);
+  x.strokeStyle = 'rgba(255,246,228,.36)'; x.beginPath(); x.arc(cx, cy, r, Math.PI * .02, Math.PI * .78); x.stroke();
+  x.strokeStyle = 'rgba(30,18,8,.3)'; x.beginPath(); x.arc(cx, cy, r, Math.PI * 1.02, Math.PI * 1.78); x.stroke();
+}
+// weicher Lichtschein, z. B. wenn eine Murmel einrastet
+function glint(g, x, y, rad, a) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+  gr.addColorStop(0, `rgba(255,250,236,${a})`); gr.addColorStop(1, 'rgba(255,250,236,0)');
+  g.fillStyle = gr; g.fillRect(x - rad, y - rad, 2 * rad, 2 * rad);
+}
+
+// --- Leinwand, Rahmen, Samt ---
+let linenCanvas = null;
+function linenPattern(g) {
+  if (!linenCanvas) {
+    linenCanvas = newCanvas(64, 64);
+    const x = linenCanvas.getContext('2d'), R = rng(5);
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 64, 64);
+    for (let i = 0; i < 64; i++) {
+      x.fillStyle = `rgba(90,70,45,${.03 + R() * .07})`; x.fillRect(0, i, 64, 1);
+      x.fillStyle = `rgba(90,70,45,${.02 + R() * .06})`; x.fillRect(i, 0, 1, 64);
+    }
+    for (let i = 0; i < 600; i++) { x.fillStyle = `rgba(70,50,30,${R() * .09})`; x.fillRect(R() * 64, R() * 64, 1, 1); }
+  }
+  return g.createPattern(linenCanvas, 'repeat');
+}
+function drawFrame(g) {
+  const m = frameM, fw = frameW, x0 = ox - m, y0 = oy - m, w = L.W * cell + 2 * m, h = L.H * cell + 2 * m;
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,.34)'; g.shadowBlur = 28 * dpr; g.shadowOffsetY = 14 * dpr;
+  g.fillStyle = T['--frame']; g.fillRect(x0 - fw, y0 - fw, w + 2 * fw, h + 2 * fw);
+  g.restore();
+  const lg = g.createLinearGradient(x0 - fw, y0 - fw, x0 + w + fw, y0 + h + fw);
+  lg.addColorStop(0, mix(T['--frame'], '#ffffff', .2)); lg.addColorStop(.45, T['--frame']); lg.addColorStop(1, mix(T['--frame'], '#000000', .4));
+  g.fillStyle = lg; g.fillRect(x0 - fw, y0 - fw, w + 2 * fw, h + 2 * fw);
+  g.strokeStyle = 'rgba(255,255,255,.14)'; g.lineWidth = 1; g.strokeRect(x0 - fw + .5, y0 - fw + .5, w + 2 * fw - 1, h + 2 * fw - 1);
+  g.strokeStyle = 'rgba(0,0,0,.35)'; g.strokeRect(x0 - fw * .45, y0 - fw * .45, w + fw * .9, h + fw * .9);
+  g.strokeStyle = T['--gold']; g.lineWidth = 2; g.strokeRect(x0 - 1, y0 - 1, w + 2, h + 2);
+  g.fillStyle = T['--canvas']; g.fillRect(x0, y0, w, h);
+  g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .55; g.fillStyle = linenPattern(g); g.fillRect(x0, y0, w, h); g.restore();
+  const sh = Math.min(16, m * 1.1);
+  const strip = (gx0, gy0, gx1, gy1, rx, ry, rw, rh, a) => { const gg = g.createLinearGradient(gx0, gy0, gx1, gy1); gg.addColorStop(0, `rgba(0,0,0,${a})`); gg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gg; g.fillRect(rx, ry, rw, rh); };
+  strip(0, y0, 0, y0 + sh, x0, y0, w, sh, .22);
+  strip(x0, 0, x0 + sh, 0, x0, y0, sh, h, .16);
+  strip(0, y0 + h, 0, y0 + h - sh * .6, x0, y0 + h - sh * .6, w, sh * .6, .08);
+  strip(x0 + w, 0, x0 + w - sh * .6, 0, x0 + w - sh * .6, y0, sh * .6, h, .08);
+}
+function buildStatic() {
+  const dw = Math.round(L.W * cell * dpr), dh = Math.round(L.H * cell * dpr);
+  paintScaled = newCanvas(dw, dh);
+  { const g = paintScaled.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(L.paint, 0, 0, dw, dh); }
+  paintLayer = newCanvas(dw, dh);
+  staticBg = newCanvas(cv.width, cv.height);
+  const g = staticBg.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawFrame(g);
+  staticDirty = false;
+}
+function rebuildBase() {
+  if (staticDirty || !staticBg) buildStatic();
+  const g = bctx;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, base.width, base.height); g.drawImage(staticBg, 0, 0);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Vorlage nur auf Feldern, die noch nicht fertig sind: gedämpft die Zielfarbe, so ist das Bild von Anfang an zu ahnen.
+  // Fertige Felder zeigen Leinwand und Gemälde, auch dort, wo das Gemälde durchsichtig ist (z. B. zwischen Grashalmen).
+  const gap = Math.max(.5, cell * .05);
+  for (const i of L.cells) if (!isDone(i)) { g.fillStyle = L.muted[L.target[i]]; g.fillRect(ox + (i % L.W) * cell + gap, oy + (i / L.W | 0) * cell + gap, cell - 2 * gap, cell - 2 * gap); }
+  // Fertige Flächen: das Gemälde scheint durch eine weich gezeichnete Maske. Felder außerhalb des Motivs neben fertigen Feldern
+  // gehören dazu, damit das Gemälde dort seine eigene Form zeigt (z. B. Grashalme, die über das Raster hinausragen).
+  const W4 = L.W * 4, H4 = L.H * 4;
+  if (maskC.width !== W4 || maskC.height !== H4) { maskC.width = W4; maskC.height = H4; }
+  mctx.clearRect(0, 0, W4, H4); mctx.fillStyle = '#ffffff';
+  let any = false;
+  for (const i of L.cells) {
+    if (!isDone(i)) continue;
+    any = true;
+    const x = i % L.W, y = i / L.W | 0;
+    mctx.fillRect(x * 4, y * 4, 4, 4);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= L.W || ny >= L.H || L.target[ny * L.W + nx] >= 0) continue;
+      mctx.fillRect(nx * 4, ny * 4, 4, 4);
+    }
+  }
+  if (any) {
+    const p = paintLayer.getContext('2d');
+    p.globalCompositeOperation = 'copy'; p.drawImage(paintScaled, 0, 0);
+    p.globalCompositeOperation = 'destination-in'; p.imageSmoothingEnabled = true; p.imageSmoothingQuality = 'high';
+    p.drawImage(maskC, 0, 0, paintLayer.width, paintLayer.height);
+    p.globalCompositeOperation = 'source-over';
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(paintLayer, Math.round(ox * dpr), Math.round(oy * dpr)); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  const sel = G.sel, selSet = sel && !sel.tray ? new Set(sel.cells) : null, md = marbleD();
+  for (const i of L.cells) {
+    if (isDone(i)) continue;
+    const [x, y] = cellCenter(i), c = G.cur[i];
+    if (c === -1 || pendCells.has(i) || (selSet && selSet.has(i))) blit(g, holeSprite(L.pal[L.target[i]], cell), x, y, cell);
+    else blit(g, marbleSprite(c, md, (i * 7) % VARIANTS), x, y, md);
+  }
+}
+// Ablage: ein helles Holzbrett mit Maserung und gebohrten Mulden
+function buildTrayBg() {
+  const M = 18;
+  trayBg = newCanvas((tray.w + 2 * M) * dpr, (tray.h + 2 * M) * dpr);
+  const g = trayBg.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.translate(M, M);
+  const w = T['--wood'], grain = T['--wood-grain'], R = rng(9);
+  g.save(); g.shadowColor = 'rgba(60,40,20,.3)'; g.shadowBlur = 14 * dpr; g.shadowOffsetY = 5 * dpr;
+  g.fillStyle = w; rrect(g, 0, 0, tray.w, tray.h, 12); g.fill(); g.restore();
+  g.save(); rrect(g, 0, 0, tray.w, tray.h, 12); g.clip();
+  const lg = g.createLinearGradient(0, 0, 0, tray.h); lg.addColorStop(0, mix(w, '#ffffff', .2)); lg.addColorStop(1, mix(w, '#000000', .08));
+  g.fillStyle = lg; g.fillRect(0, 0, tray.w, tray.h);
+  // Maserung: feine, leicht gewellte Linien längs des Bretts
+  g.lineCap = 'round';
+  for (let i = 0; i < 52; i++) {
+    const y0 = R() * tray.h, amp = 1 + R() * 3, f = .004 + R() * .01, ph = R() * 6;
+    g.strokeStyle = rgba(grain, .07 + R() * .14); g.lineWidth = .6 + R() * 1.4;
+    g.beginPath();
+    for (let x = -4; x <= tray.w + 4; x += 6) { const y = y0 + Math.sin(x * f + ph) * amp + Math.sin(x * f * 3.1 + ph * 2) * amp * .3; if (x < 0) g.moveTo(x, y); else g.lineTo(x, y); }
+    g.stroke();
+  }
+  for (let k = 0; k < 2; k++) {
+    const kx = tray.w * (.15 + R() * .7), ky = tray.h * (.25 + R() * .5), kg = g.createRadialGradient(kx, ky, 0, kx, ky, 12);
+    kg.addColorStop(0, rgba(grain, .4)); kg.addColorStop(1, rgba(grain, 0));
+    g.fillStyle = kg; g.beginPath(); g.ellipse(kx, ky, 14, 5, 0, 0, 7); g.fill();
+  }
+  g.globalCompositeOperation = 'overlay'; g.globalAlpha = .18; g.fillStyle = grainPattern(g); g.fillRect(0, 0, tray.w, tray.h);
+  g.restore();
+  // Kanten: oben Licht, innen eine gefräste Nut
+  g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1; rrect(g, .5, .5, tray.w - 1, tray.h - 1, 12); g.stroke();
+  g.strokeStyle = rgba(mix(grain, '#000000', .3), .28); g.lineWidth = 1.2; rrect(g, 6, 6, tray.w - 12, tray.h - 12, 8); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 1; rrect(g, 7.2, 7.2, tray.w - 14.4, tray.h - 14.4, 7); g.stroke();
+  for (let k = 0; k < trayCap; k++) { const [sx, sy] = traySlot(k); blit(g, holeSprite(w, tray.slot), sx - tray.x, sy - tray.y, tray.slot); }
+}
+
+// --- Bewegung: Murmeln rollen als Kette ---
+const SPEED = 15; // Zellen pro Sekunde
+// starts: Startpunkte in Kettenreihenfolge (vorderste zuerst), entry: gemeinsamer Einstieg,
+// routes[k]: Wegpunkte ab dem Einstieg bis zum Ziel der k-ten Murmel, dests[k]: Ziel (Feld oder Ablagemulde)
+function rollChain(c, starts, entry, routes, dests, angles, fromTray) {
+  const now = performance.now(), n = starts.length, spacing = marbleD() * 1.06;
+  const d0 = starts.map(p => dist(p, entry));
+  let v = cell * SPEED / 1000;                         // Pixel pro Millisekunde
+  v = Math.max(v, Math.max(...d0) / 900, spacing * (n - 1) / 1300);
+  const gap = spacing / v;
+  let T0 = 0; for (let k = 0; k < n; k++) T0 = Math.max(T0, d0[k] / v - k * gap);
+  for (let k = 0; k < n; k++) {
+    const raw = [starts[k], entry, ...routes[k]], pts = [raw[0]];
+    for (const p of raw.slice(1)) if (dist(p, pts[pts.length - 1]) > .5) pts.push(p);
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + dist(pts[i], pts[i - 1]));
+    flights.push({ c, pts, cum, len: cum[cum.length - 1], t0: reduceMotion ? now : now + T0 + k * gap - d0[k] / v, v: reduceMotion ? 1e9 : v, dest: dests[k], tray: dests[k].tray != null, fromTray: !!fromTray, a0: angles ? angles[k] : 0 });
+    if (dests[k].cell != null) pendCells.add(dests[k].cell);
+  }
+}
+function flightPos(fl, now) {
+  const s = clamp((now - fl.t0) * fl.v, 0, fl.len);
+  let i = 1; while (i < fl.cum.length - 1 && fl.cum[i] < s) i++;
+  const a = fl.pts[i - 1], b = fl.pts[i] || a, seg = (fl.cum[i] - fl.cum[i - 1]) || 1, t = clamp((s - fl.cum[i - 1]) / seg, 0, 1);
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, s];
+}
+function shakeTray() { trayShake = performance.now(); }
+function glintAt(p, size) { if (!reduceMotion) twinkles.push({ x: p[0] - size * .18, y: p[1] - size * .22, s: size, t0: performance.now(), dur: 520 }); }
+function land(fl, now) {
+  if (fl.dest.cell != null) {
+    pendCells.delete(fl.dest.cell); baseDirty = true;
+    const p = fl.pts[fl.pts.length - 1];
+    if (!reduceMotion) { settles.push({ x: p[0], y: p[1], c: fl.c, t0: now }); glintAt(p, cell * .9); }
+  } else { const p = pendTray.indexOf(fl.dest.tray); if (p >= 0) pendTray.splice(p, 1); }
+  if (!flights.length) checkWin();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!L || !G || !tray) return;
+  for (let f = flights.length - 1; f >= 0; f--) { const fl = flights[f]; if ((now - fl.t0) * fl.v >= fl.len) { flights.splice(f, 1); land(fl, now); } }
+  if (baseDirty) { rebuildBase(); baseDirty = false; }
+  if (!reduceMotion && now - lastTwinkle > 320 && twinkles.length < 4) {
+    lastTwinkle = now;
+    for (let tries = 0; tries < 6; tries++) {
+      const i = L.cells[Math.random() * L.cells.length | 0];
+      if (G.cur[i] === -1 || pendCells.has(i) || G.cur[i] === L.target[i]) continue;
+      const [x, y] = cellCenter(i);
+      twinkles.push({ x: x - cell * .16, y: y - cell * .2, s: cell * .55, t0: now, dur: 900 + Math.random() * 500 });
+      break;
+    }
+  }
+  draw(now);
+}
+function draw(now) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(base, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pulse = .5 + .5 * Math.sin(now / 240), sel = G.sel, md = marbleD();
+  // Auswahl: passende Löcher leuchten, gewählte Murmeln schweben über ihren Löchern
+  if (sel) {
+    ctx.save(); ctx.strokeStyle = T['--hint'];
+    for (const i of L.cells) {
+      if (G.cur[i] !== -1 || L.target[i] !== sel.c || pendCells.has(i)) continue;
+      const [x, y] = cellCenter(i);
+      ctx.globalAlpha = .18 + .2 * pulse; ctx.lineWidth = Math.max(3, cell * .2); ctx.beginPath(); ctx.arc(x, y, cell * .4, 0, 7); ctx.stroke();
+      ctx.globalAlpha = .7 + .3 * pulse; ctx.lineWidth = Math.max(1.2, cell * .06); ctx.stroke();
+    }
+    ctx.restore();
+    if (!sel.tray) {
+      const d = Math.round(cell * .88), lift = cell * .14 + pulse * cell * .04;
+      for (const i of sel.cells) { const [x, y] = cellCenter(i); blit(ctx, marbleSprite(sel.c, d, (i * 7) % VARIANTS), x, y - lift, d); }
+    }
+  }
+  // Ablage
+  const st = now - trayShake, sh = st < 400 ? Math.sin(st / 400 * 30) * 5 * (1 - st / 400) : 0;
+  ctx.save(); ctx.translate(sh, 0);
+  if (!trayBg) buildTrayBg();
+  ctx.drawImage(trayBg, tray.x - 18, tray.y - 18, tray.w + 36, tray.h + 36);
+  if (sel && !sel.tray && G.tray.length < trayCap) {
+    ctx.strokeStyle = T['--hint']; ctx.globalAlpha = .6 + .4 * pulse; ctx.lineWidth = 2 + pulse * 1.5;
+    rrect(ctx, tray.x - 3, tray.y - 3, tray.w + 6, tray.h + 6, 18); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  const td = trayD();
+  for (let k = 0; k < G.tray.length; k++) {
+    if (pendTray.includes(k)) continue;
+    const [x, y] = traySlot(k), c = G.tray[k], lifted = sel && sel.tray && sel.c === c;
+    blit(ctx, marbleSprite(c, td, k % VARIANTS), x, y - (lifted ? 5 + pulse * 2 : 0), td);
+  }
+  ctx.restore();
+  // Murmeln, die gerade in ihr Loch gerollt sind, gehen ins Gemälde über
+  for (let s = settles.length - 1; s >= 0; s--) {
+    const q = settles[s], t = (now - q.t0) / 480;
+    if (t >= 1) { settles.splice(s, 1); continue; }
+    blit(ctx, marbleSprite(q.c, md), q.x, q.y, md * (1 - .12 * t), 1 - t * t);
+  }
+  // rollende Murmeln; wer noch wartet, liegt an seinem Startplatz
+  for (const fl of flights) {
+    const [x, y, s] = flightPos(fl, now);
+    const f = fl.len ? s / fl.len : 1, td2 = trayD();
+    const d = fl.tray ? md + (td2 - md) * clamp((f - .5) * 2, 0, 1) : fl.fromTray ? td2 + (md - td2) * clamp(f * 2, 0, 1) : md;
+    drawRolling(ctx, fl.c, x, y, d, fl.a0 + s / (d / 2));
+  }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let w = twinkles.length - 1; w >= 0; w--) {
+    const q = twinkles[w], t = (now - q.t0) / q.dur;
+    if (t >= 1) { twinkles.splice(w, 1); continue; }
+    if (t < 0) continue;
+    const a = Math.sin(t * Math.PI);
+    glint(ctx, q.x, q.y, q.s * (.35 + .25 * a), .45 * a);
+  }
+  // Abschluss: ein Lichtstreif zieht über das fertige Gemälde
+  if (G.celebrate && !reduceMotion && now - G.celebrate < 1600) {
+    const p = (now - G.celebrate) / 1600, BW = L.W * cell, BH = L.H * cell, t = p * 1.5 - .25;
+    const gr = ctx.createLinearGradient(ox, oy, ox + BW, oy + BH);
+    gr.addColorStop(clamp(t - .14, 0, 1), 'rgba(255,255,255,0)');
+    gr.addColorStop(clamp(t, 0, 1), 'rgba(255,244,214,.5)');
+    gr.addColorStop(clamp(t + .14, 0, 1), 'rgba(255,255,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(ox, oy, BW, BH);
+  }
+  ctx.restore();
+}
+
+cv.addEventListener('pointerdown', e => {
+  if (!L || !tray) return;
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (y >= tray.y - 6) {
+    let hit = null;
+    for (let k = 0; k < G.tray.length; k++) { const [sx, sy] = traySlot(k); if (Math.hypot(x - sx, y - sy) < tray.slot * .55) { hit = k; break; } }
+    return onTrayTap(hit);
+  }
+  const gx = Math.floor((x - ox) / cell), gy = Math.floor((y - oy) / cell);
+  if (gx < 0 || gy < 0 || gx >= L.W || gy >= L.H || L.target[gy * L.W + gx] < 0) { if (G.sel) select(null); return; }
+  onCell(gy * L.W + gx);
+});
+
+// ---------- Hinweise ----------
+let toastTimer = 0;
+function toast(msg, kind = '') {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show ' + kind;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---------- Menü ----------
+function showPainting(lvl, canvas, size = 300) {
+  const a = lvl.paint.width / lvl.paint.height;
+  canvas.width = a >= 1 ? size : Math.round(size * a); canvas.height = a >= 1 ? Math.round(size / a) : size;
+  const x = canvas.getContext('2d');
+  x.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#e9e3d6';
+  x.fillRect(0, 0, canvas.width, canvas.height);
+  x.imageSmoothingQuality = 'high'; x.drawImage(lvl.paint, 0, 0, canvas.width, canvas.height);
+}
+function buildMenu() {
+  const wrap = $('#motifs'); wrap.innerHTML = '';
+  MOTIFS.forEach(m => {
+    const lvl = m.make(); m.level = lvl;
+    const b = document.createElement('button'); b.className = 'motif'; b.type = 'button';
+    const c = document.createElement('canvas'); c.className = 'painting'; showPainting(lvl, c);
+    const t = document.createElement('span'); t.className = 't'; t.textContent = m.name;
+    const d = document.createElement('span'); d.className = 'd';
+    d.textContent = `${lvl.W} × ${lvl.H} · ${lvl.pal.length} Farben` + (m.note ? ' · ' + m.note : '');
+    b.append(c, t, d);
+    b.addEventListener('click', () => { currentMotif = () => m.level; $('#menu').hidden = true; startLevel(m.level); });
+    wrap.append(b);
+  });
+}
+let photoRaw = null, photoPaint = null, photoLevel = null;
+function rebuildPhoto() {
+  if (!photoRaw) return;
+  const n = +$('#fSize').value, k = +$('#fColors').value, a = photoRaw.width / photoRaw.height;
+  const W = a >= 1 ? n : Math.max(8, Math.round(n * a)), H = a >= 1 ? Math.max(8, Math.round(n / a)) : n;
+  photoLevel = levelFromPainting('Eigenes Foto', photoRaw, W, H, k, photoPaint);
+  if (!photoLevel) return;
+  showPainting(photoLevel, $('#pvCanvas'), 280);
+  $('#photoPreview').hidden = false;
+}
+$('#fPhoto').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f), img = new Image();
+  img.onload = () => {
+    const a = img.width / img.height, PW = a >= 1 ? 720 : Math.round(720 * a), PH = a >= 1 ? Math.round(720 / a) : 720;
+    let src = img, w = img.width, h = img.height;
+    while (w / 2 >= PW * 1.5) { const n = newCanvas(w / 2, h / 2); n.getContext('2d').drawImage(src, 0, 0, n.width, n.height); src = n; w = n.width; h = n.height; }
+    photoRaw = newCanvas(PW, PH);
+    const x = photoRaw.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, PW, PH);
+    photoPaint = painterly(photoRaw, 21);
+    URL.revokeObjectURL(url);
+    rebuildPhoto();
+  };
+  img.onerror = () => toast('Dieses Bild lässt sich nicht öffnen. Versuche ein JPG oder PNG.', 'bad');
+  img.src = url;
+});
+$('#fSize').addEventListener('change', rebuildPhoto);
+$('#fColors').addEventListener('change', rebuildPhoto);
+$('#bPlayPhoto').addEventListener('click', () => { if (!photoLevel) return; const lv = photoLevel; currentMotif = () => lv; $('#menu').hidden = true; startLevel(lv); });
+$('#bMenu').addEventListener('click', () => { $('#menu').hidden = false; });
+$('#bCloseMenu').addEventListener('click', () => { if (L) $('#menu').hidden = true; });
+$('#bUndo').addEventListener('click', undo);
+$('#bAgain').addEventListener('click', () => { $('#win').hidden = true; startLevel(currentMotif()); });
+$('#bOther').addEventListener('click', () => { $('#win').hidden = true; $('#menu').hidden = false; });
+$('#bView').addEventListener('click', () => { $('#win').hidden = true; });
+
+new ResizeObserver(() => layout()).observe(cv);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+readTokens();
+buildMenu();
+currentMotif = () => MOTIFS[0].level;
+startLevel(MOTIFS[0].level);
+requestAnimationFrame(frame);
+// Testzugang für Entwickler (Konsole): spielt den besten Zug ohne Animation
+window.murmelDebug = {
+  state: () => ({ G, L }),
+  best: () => chooseMove(G.cur, trayCounts(), trayCap - G.tray.length),
+  bestMove() { if (G.done) return false; const m = chooseMove(G.cur, trayCounts(), trayCap - G.tray.length); if (!m) return false; commit(m); clearAnimations(); baseDirty = true; checkWin(); return true; },
+  start: i => startLevel(MOTIFS[i].level), pos: i => cellCenter(i), traySlot: k => traySlot(k),
+  flights: () => flights.map(f => ({ t0: Math.round(f.t0 - performance.now()), len: Math.round(f.len), pts: f.pts.length, dest: f.dest })),
+  setBlob: v => { BLOB = v; }, setParkFrac: v => { PARK_FRAC = v; }, setComboPark: v => { COMBO_PARK = v; },
+  timeRebuild() { const t = performance.now(); rebuildBase(); return performance.now() - t; },
+  // Musterkarte: Murmeln in allen Farben, darunter Löcher
+  showcase(d = 90, colors = 9) {
+    const c = newCanvas(colors * d * 1.2 * dpr, 2 * d * 1.25 * dpr), g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = T['--canvas']; g.fillRect(0, 0, c.width, c.height);
+    GEM_LIST.slice(0, colors).forEach((hex, k) => {
+      const x = (k + .5) * d * 1.2, r = d / 2 * .96;
+      const s = sprite('x' + hex, d, (q, D) => { marbleUnder(q, D / 2, D / 2, r, hex); marbleCore(q, D / 2, D / 2, r, hex); marbleTop(q, D / 2, D / 2, r, hex); });
+      blit(g, s, x, .6 * d * 1.25, d);
+      const y2 = 1.5 * d * 1.25; g.fillStyle = mix(hex, T['--canvas'], .45); g.fillRect(x - d / 2, y2 - d / 2, d, d);
+      blit(g, holeSprite(hex, d), x, y2, d);
+    });
+    c.style.cssText = `position:fixed;left:0;top:0;width:${c.width / dpr}px;z-index:99;background:#fff`; c.id = 'showcase';
+    document.body.append(c); return [c.width, c.height];
+  }
+};
+})();
+</script>

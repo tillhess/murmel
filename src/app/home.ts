@@ -1,0 +1,97 @@
+import { PAPER } from '../art/materials';
+import type { Picture } from './library';
+import { store } from './storage';
+
+/** Zeichnet die Vorschau eines Bildes: blass, wenn es neu ist; teils farbig, wenn begonnen; ganz, wenn fertig. */
+function drawPreview(canvas: HTMLCanvasElement, picture: Picture): 'neu' | 'begonnen' | 'fertig' {
+  const px = 480;
+  canvas.width = canvas.height = px;
+  const x = canvas.getContext('2d') as CanvasRenderingContext2D;
+  x.imageSmoothingQuality = 'high';
+  if (store.isFinished(picture.id)) {
+    x.drawImage(picture.painting, 0, 0, px, px);
+    return 'fertig';
+  }
+  x.fillStyle = PAPER;
+  x.fillRect(0, 0, px, px);
+  x.globalAlpha = 0.36;
+  x.drawImage(picture.painting, 0, 0, px, px);
+  x.globalAlpha = 1;
+  const saved = store.progress(picture.id);
+  if (!saved) return 'neu';
+  // was schon liegt, in voller Farbe
+  const { w, h, target } = picture.level;
+  const sw = picture.painting.width / w;
+  const sh = picture.painting.height / h;
+  const cw = px / w;
+  const ch = px / h;
+  let any = false;
+  for (let i = 0; i < target.length; i++) {
+    if (target[i] < 0 || saved.cur[i] !== target[i]) continue;
+    any = true;
+    const cx = i % w;
+    const cy = Math.floor(i / w);
+    x.drawImage(picture.painting, cx * sw, cy * sh, sw, sh, cx * cw, cy * ch, cw + 0.5, ch + 0.5);
+  }
+  return any ? 'begonnen' : 'neu';
+}
+
+const TILTS = [-1.6, 1.1, -0.7, 1.5, -1.2, 0.8];
+
+export interface HomeHandlers {
+  open(picture: Picture): void;
+  choosePhoto(): void;
+}
+
+/** Baut die Sammlung auf der Startseite neu auf. */
+export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeHandlers): void {
+  shelf.replaceChildren();
+  list.forEach((picture, k) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'print';
+    card.dataset.id = picture.id;
+    card.style.setProperty('--tilt', `${TILTS[k % TILTS.length]}deg`);
+    const canvas = document.createElement('canvas');
+    const state = drawPreview(canvas, picture);
+    const name = document.createElement('span');
+    name.className = 'print-name';
+    name.textContent = picture.name;
+    const label = document.createElement('span');
+    label.className = 'print-state';
+    const size = `${picture.level.w} × ${picture.level.h}`;
+    label.textContent = state === 'neu' ? size : `${state} · ${size}`;
+    card.append(canvas, name, label);
+    card.addEventListener('click', () => handlers.open(picture));
+    shelf.append(card);
+  });
+
+  // leeres Blatt: ein eigenes Foto
+  const own = document.createElement('button');
+  own.type = 'button';
+  own.className = 'print own';
+  own.style.setProperty('--tilt', `${TILTS[list.length % TILTS.length]}deg`);
+  const blank = document.createElement('canvas');
+  blank.width = blank.height = 480;
+  const x = blank.getContext('2d') as CanvasRenderingContext2D;
+  x.fillStyle = PAPER;
+  x.fillRect(0, 0, 480, 480);
+  x.strokeStyle = 'rgba(43,39,51,0.45)';
+  x.lineWidth = 3;
+  x.lineCap = 'round';
+  x.beginPath();
+  x.moveTo(240, 196);
+  x.lineTo(240, 284);
+  x.moveTo(196, 240);
+  x.lineTo(284, 240);
+  x.stroke();
+  const name = document.createElement('span');
+  name.className = 'print-name';
+  name.textContent = 'Eigenes Bild';
+  const label = document.createElement('span');
+  label.className = 'print-state';
+  label.textContent = 'Foto wählen';
+  own.append(blank, name, label);
+  own.addEventListener('click', () => handlers.choosePhoto());
+  shelf.append(own);
+}
