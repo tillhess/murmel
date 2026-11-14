@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 /** Das Ereignis, mit dem Chrome, Edge und Android anbieten, die Seite als App zu installieren */
 interface InstallPrompt extends Event {
   prompt(): Promise<void>;
@@ -16,13 +18,18 @@ export function isStandalone(): boolean {
   return isNativeApp() || legacy || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
 }
 
-/** Eine eigene Seite im Browser, nicht eingebettet in eine andere (wie die Einzeldatei) */
-function ownPage(): boolean {
+/** Nicht eingebettet in eine andere Seite (wie die Einzeldatei): Dann liegen die Nachbarseiten daneben. */
+export function isTopLevel(): boolean {
   try {
-    return window.self === window.top && /^https?:$/.test(location.protocol);
+    return window.self === window.top;
   } catch {
     return false;
   }
+}
+
+/** Eine eigene Seite im Browser, nicht eingebettet in eine andere */
+function ownPage(): boolean {
+  return isTopLevel() && /^https?:$/.test(location.protocol);
 }
 
 /** Wie man die Seite in diesem Browser von Hand zur App macht; null, wo es keinen Weg gibt oder er angeboten wird */
@@ -34,11 +41,6 @@ function manualWay(): 'ios' | 'mac' | null {
   if (/Macintosh/.test(ua) && /Version\/\d+.*Safari/.test(ua) && !/Chrome|Chromium|Edg|Firefox/.test(ua)) return 'mac';
   return null;
 }
-
-const HINTS = {
-  ios: 'Tippe auf das Teilen-Symbol (auf dem iPhone steckt es unter „…“) und dann auf „Zum Home-Bildschirm“. Murmel startet danach wie eine App, ohne Adressleiste, und läuft auch ohne Netz.',
-  mac: 'Wähle in Safari oben im Menü „Ablage“ und dann „Zum Dock hinzufügen“. Murmel startet danach wie eine App und läuft auch ohne Netz.',
-} as const;
 
 /**
  * Macht Murmel installierbar: Der Service Worker hält das Spiel für unterwegs ohne Netz bereit, und der Knopf
@@ -68,7 +70,6 @@ export function setupInstall(button: HTMLButtonElement, hint: HTMLDialogElement)
   });
 
   const text = hint.querySelector('[data-part="how"]');
-  if (text && way) text.textContent = HINTS[way];
   hint.querySelector('[data-part="done"]')?.addEventListener('click', () => hint.close());
   hint.addEventListener('click', (e) => {
     if (e.target === hint) hint.close();
@@ -84,6 +85,9 @@ export function setupInstall(button: HTMLButtonElement, hint: HTMLDialogElement)
       button.hidden = outcome === 'accepted' || !way;
       return;
     }
-    if (way && !hint.open) hint.showModal();
+    if (!way || hint.open) return;
+    // erst beim Öffnen geschrieben: So steht die Anleitung in der Sprache, die gerade gilt.
+    if (text) text.textContent = t(way === 'ios' ? 'install_ios' : 'install_mac');
+    hint.showModal();
   });
 }

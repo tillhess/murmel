@@ -14,3 +14,6 @@ notizen/transkript-video.txt
 
 # Vergleichsbilder zu Entwürfen, nur lokal
 entwuerfe/
+
+# Screenshots für den App Store, entstehen aus scripts/store-aufnahmen.mjs
+app-store/

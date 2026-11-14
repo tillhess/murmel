@@ -1,0 +1,2 @@
+/* Hinweis, wenn Murmel für ein eigenes Bild die Kamera öffnet */
+"NSCameraUsageDescription" = "Murmel macht aus einem Foto, das du aufnimmst, ein Bild zum Sortieren. Das Foto bleibt auf deinem Gerät.";

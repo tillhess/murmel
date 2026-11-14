@@ -1,6 +1,7 @@
 // Entwicklungsansicht: die Entwürfe für das leere Feld als Musterblatt, jede Farbe neben ihrer Murmel
 // (mit und ohne Spiegelung).
-import { HOLE_NAMES, HOLE_STYLES, hole } from '../src/art/holes';
+import { t } from '../src/app/i18n';
+import { HOLE_STYLES, hole } from '../src/art/holes';
 import { marble } from '../src/art/marble';
 import { PAPER } from '../src/art/materials';
 import { SCENES } from '../src/art/scenes';
@@ -45,7 +46,7 @@ for (const scene of SCENES) {
     }
     const figure = document.createElement('figure');
     const caption = document.createElement('figcaption');
-    caption.textContent = HOLE_NAMES[style];
+    caption.textContent = t(`hole_${style}`);
     figure.append(canvas, caption);
     row.append(figure);
   }

@@ -1,0 +1,2 @@
+/* Hinweis, wenn Murmel für ein eigenes Bild die Kamera öffnet */
+"NSCameraUsageDescription" = "Murmel transforme une photo que tu prends en image à trier. La photo reste sur ton appareil.";

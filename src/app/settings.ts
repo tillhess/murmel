@@ -1,9 +1,10 @@
-import { HOLE_NAMES, HOLE_STYLES, type HoleStyle, hole } from '../art/holes';
-import { MARBLE_NAMES, MARBLE_STYLES, type MarbleStyle, marble } from '../art/marble';
+import { HOLE_STYLES, type HoleStyle, hole } from '../art/holes';
+import { MARBLE_STYLES, type MarbleStyle, marble } from '../art/marble';
 import { PAPER } from '../art/materials';
 import { SOUND_MODES, type SoundMode } from '../audio/sound';
 import { mix } from '../core/color';
 import { PHOTO_CONTRASTS, type PhotoContrast } from '../core/quantize';
+import { LANGUAGE_NAMES, LANGUAGES, type Language, type TextKey, t } from './i18n';
 
 /** Was die Einstellungen lesen und ändern dürfen. Jede Wahl gilt sofort, es gibt kein Speichern und kein Abbrechen. */
 export interface SettingsHandlers {
@@ -25,6 +26,9 @@ export interface SettingsHandlers {
   setContrast(contrast: PhotoContrast): void;
   sound(): SoundMode;
   setSound(mode: SoundMode): void;
+  /** die gewählte Sprache; null heißt: die Sprache des Geräts */
+  language(): Language | null;
+  setLanguage(language: Language | null): void;
 }
 
 /** Was die Einstellungen zur Auswahl stellen */
@@ -35,20 +39,8 @@ export interface SettingsOptions {
   readonly tempos: readonly number[];
 }
 
-const SOUND_CHOICES: Record<SoundMode, string> = {
-  alles: 'Alles',
-  murmeln: 'Nur Murmeln',
-  aus: 'Still',
-};
-
 /** Wie die Stufen des Tempo-Reglers vorgelesen werden */
-const TEMPO_TEXT = ['sehr ruhig', 'ruhig', 'normal', 'zügig', 'schnell', 'sehr schnell'];
-
-const CONTRAST_CHOICES: Record<PhotoContrast, string> = {
-  naturnah: 'Naturnah',
-  deutlich: 'Deutlich',
-  kraeftig: 'Kräftig',
-};
+const TEMPO_TEXT: readonly TextKey[] = ['tempo_1', 'tempo_2', 'tempo_3', 'tempo_4', 'tempo_5', 'tempo_6'];
 
 /** Farben der kleinen Vorschau: eine mittlere, eine dunkle und eine helle. An den Rändern entscheidet sich die Lesbarkeit. */
 const SAMPLE = ['#35978a', '#2c3f86', '#f6e9c0'];
@@ -89,7 +81,10 @@ function drawMarbleSample(canvas: HTMLCanvasElement, style: MarbleStyle): void {
   });
 }
 
-function choice(label: string, value: string, withSample: boolean): HTMLButtonElement {
+/** Texte der Wahlmöglichkeiten, die mit der Sprache wechseln: der Textknoten und woher sein Inhalt kommt */
+const labels: [Text, () => string][] = [];
+
+function choice(label: string | (() => string), value: string, withSample: boolean): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'choice';
@@ -100,7 +95,13 @@ function choice(label: string, value: string, withSample: boolean): HTMLButtonEl
     sample.setAttribute('aria-hidden', 'true');
     button.append(sample);
   }
-  button.append(label);
+  if (typeof label === 'string') {
+    button.append(label);
+  } else {
+    const text = document.createTextNode(label());
+    labels.push([text, label]);
+    button.append(text);
+  }
   return button;
 }
 
@@ -116,6 +117,7 @@ export class SettingsSheet {
   private readonly trayNote: HTMLElement;
   private readonly contrastButtons: HTMLButtonElement[];
   private readonly tempoSlider: HTMLInputElement;
+  private readonly languageButtons: HTMLButtonElement[];
 
   constructor(
     private readonly dialog: HTMLDialogElement,
@@ -127,7 +129,7 @@ export class SettingsSheet {
     // Detailtiefe: "wie gemalt" lässt jedem Bild seine eigene Größe, sonst gilt eine Kantenlänge für alle
     const details: (number | null)[] = [null, ...options.detailSizes];
     this.detailButtons = details.map((size) => {
-      const button = choice(size === null ? 'Wie gemalt' : `${size} × ${size}`, String(size ?? ''), false);
+      const button = choice(size === null ? () => t('detail_painted') : `${size} × ${size}`, String(size ?? ''), false);
       button.addEventListener('click', () => {
         handlers.setDetail(size);
         this.sync();
@@ -159,7 +161,7 @@ export class SettingsSheet {
     });
 
     this.contrastButtons = PHOTO_CONTRASTS.map((contrast) => {
-      const button = choice(CONTRAST_CHOICES[contrast], contrast, false);
+      const button = choice(() => t(`contrast_${contrast}`), contrast, false);
       button.addEventListener('click', () => {
         handlers.setContrast(contrast);
         this.sync();
@@ -169,7 +171,7 @@ export class SettingsSheet {
     find('contrast').append(...this.contrastButtons);
 
     this.holeButtons = HOLE_STYLES.map((style) => {
-      const button = choice(HOLE_NAMES[style], style, true);
+      const button = choice(() => t(`hole_${style}`), style, true);
       button.addEventListener('click', () => {
         handlers.setHoles(style);
         this.sync();
@@ -179,7 +181,7 @@ export class SettingsSheet {
     find('holes').append(...this.holeButtons);
 
     this.marbleButtons = MARBLE_STYLES.map((style) => {
-      const button = choice(MARBLE_NAMES[style], style, true);
+      const button = choice(() => t(`marble_${style}`), style, true);
       drawMarbleSample(sampleOf(button), style);
       button.addEventListener('click', () => {
         handlers.setMarbles(style);
@@ -190,7 +192,7 @@ export class SettingsSheet {
     find('marbles').append(...this.marbleButtons);
 
     this.soundButtons = SOUND_MODES.map((mode) => {
-      const button = choice(SOUND_CHOICES[mode], mode, false);
+      const button = choice(() => t(`sound_${mode}`), mode, false);
       button.addEventListener('click', () => {
         handlers.setSound(mode);
         this.sync();
@@ -198,6 +200,20 @@ export class SettingsSheet {
       return button;
     });
     find('sound').append(...this.soundButtons);
+
+    // Sprache: "Automatisch" folgt dem Gerät. Die Sprachen selbst heißen in jeder Sprache gleich.
+    const languages: (Language | null)[] = [null, ...LANGUAGES];
+    this.languageButtons = languages.map((language) => {
+      const label = language === null ? () => t('language_auto') : LANGUAGE_NAMES[language];
+      const button = choice(label, language ?? '', false);
+      if (language) button.lang = language;
+      button.addEventListener('click', () => {
+        handlers.setLanguage(language);
+        this.sync();
+      });
+      return button;
+    });
+    find('language').append(...this.languageButtons);
 
     find('done').addEventListener('click', () => dialog.close());
     // Ein Tipp neben das Blatt schließt es. Das Blatt selbst füllt den Dialog ganz aus,
@@ -211,6 +227,12 @@ export class SettingsSheet {
     this.trayNote.hidden = true;
     this.sync();
     if (!this.dialog.open) this.dialog.showModal();
+  }
+
+  /** Die Sprache hat gewechselt: Die Wahlmöglichkeiten heißen jetzt anders. */
+  relabel(): void {
+    for (const [text, label] of labels) text.data = label();
+    this.sync();
   }
 
   private sync(): void {
@@ -232,9 +254,12 @@ export class SettingsSheet {
     const tempos = this.options.tempos;
     const step = tempos.reduce((best, t, k) => (Math.abs(t - tempo) < Math.abs(tempos[best] - tempo) ? k : best), 0);
     this.tempoSlider.value = String(step);
-    this.tempoSlider.setAttribute('aria-valuetext', TEMPO_TEXT[step] ?? '');
+    const said = TEMPO_TEXT[step];
+    this.tempoSlider.setAttribute('aria-valuetext', said ? t(said) : '');
     const contrast = this.handlers.contrast();
     for (const b of this.contrastButtons) b.setAttribute('aria-pressed', String(b.dataset.value === contrast));
     for (const b of this.soundButtons) b.setAttribute('aria-pressed', String(b.dataset.value === sound));
+    const language = this.handlers.language() ?? '';
+    for (const b of this.languageButtons) b.setAttribute('aria-pressed', String(b.dataset.value === language));
   }
 }

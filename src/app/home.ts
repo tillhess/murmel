@@ -1,4 +1,5 @@
 import { PAPER } from '../art/materials';
+import { t } from './i18n';
 import type { Picture } from './library';
 import { store } from './storage';
 
@@ -63,7 +64,8 @@ export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeH
     const label = document.createElement('span');
     label.className = 'print-state';
     const size = `${picture.level.w} × ${picture.level.h}`;
-    label.textContent = state === 'neu' ? size : `${state} · ${size}`;
+    label.textContent =
+      state === 'neu' ? size : `${t(state === 'fertig' ? 'state_finished' : 'state_started')} · ${size}`;
     card.append(canvas, name, label);
     card.addEventListener('click', () => handlers.open(picture));
     if (!picture.own) {
@@ -76,13 +78,13 @@ export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeH
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'print-remove';
-    remove.setAttribute('aria-label', `${picture.name} entfernen`);
+    remove.setAttribute('aria-label', t('remove_label', { name: picture.name }));
     remove.textContent = '×';
     let asked = 0;
     remove.addEventListener('click', () => {
       if (!remove.classList.contains('asking')) {
         remove.classList.add('asking');
-        remove.textContent = 'entfernen?';
+        remove.textContent = t('remove_ask');
         asked = window.setTimeout(() => {
           remove.classList.remove('asking');
           remove.textContent = '×';
@@ -117,10 +119,10 @@ export function renderShelf(shelf: HTMLElement, list: Picture[], handlers: HomeH
   x.stroke();
   const name = document.createElement('span');
   name.className = 'print-name';
-  name.textContent = list.some((p) => p.own) ? 'Noch ein Bild' : 'Eigenes Bild';
+  name.textContent = t(list.some((p) => p.own) ? 'own_more' : 'own_first');
   const label = document.createElement('span');
   label.className = 'print-state';
-  label.textContent = 'Foto wählen';
+  label.textContent = t('own_choose');
   own.append(blank, name, label);
   own.addEventListener('click', () => handlers.choosePhoto());
   shelf.append(own);

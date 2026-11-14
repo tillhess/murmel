@@ -1,0 +1,2 @@
+/* Hinweis, wenn Murmel für ein eigenes Bild die Kamera öffnet */
+"NSCameraUsageDescription" = "Murmel trasforma una foto che scatti in un’immagine da riordinare. La foto resta sul tuo dispositivo.";

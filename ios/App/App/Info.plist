@@ -5,7 +5,15 @@
   <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>de</string>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>it</string>
+		<string>fr</string>
+		<string>es</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>Murmel</string>
 	<key>CFBundleExecutable</key>
@@ -27,7 +35,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Murmel macht aus einem Foto, das du aufnimmst, ein Bild zum Sortieren. Das Foto bleibt auf deinem Gerät.</string>
+	<string>Murmel turns a photo you take into a picture to sort. The photo stays on your device.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

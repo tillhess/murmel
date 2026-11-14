@@ -13,7 +13,12 @@ const check = (ok, text) => {
 };
 
 const browser = await webkit.launch();
-const context = await browser.newContext({ ...devices['iPad Pro 11'], viewport: { width: 1194, height: 834 } });
+// Das Spiel folgt der Sprache des Geräts: Geprüft wird mit einem deutschen iPad, die Texte unten sind deutsch.
+const context = await browser.newContext({
+  ...devices['iPad Pro 11'],
+  viewport: { width: 1194, height: 834 },
+  locale: 'de-DE',
+});
 const page = await context.newPage();
 const errors = [];
 const hosts = new Set();
@@ -49,6 +54,8 @@ check(
   holeChoices.length >= 3 && holeChoices.includes('Schälchen'),
   `Die Einstellungen bieten Entwürfe für leere Felder an (${holeChoices.join(', ')})`,
 );
+const lang = await page.evaluate(() => document.documentElement.lang);
+check(lang === 'de', `Ein deutsches Gerät bekommt die deutsche Seite (lang="${lang}")`);
 check(soundChoices.length === 3, `Die Einstellungen bieten drei Klangstufen an (${soundChoices.join(', ')})`);
 if (shots) await page.screenshot({ path: `${shots}/live-einstellungen.png` });
 await page.locator('#settings [data-part="done"]').click();
@@ -73,6 +80,8 @@ if (shots) await page.screenshot({ path: `${shots}/live-spiel.png` });
 
 for (const [path, expected] of [
   ['manifest.webmanifest', 200],
+  ['impressum.html', 200],
+  ['datenschutz.html', 200],
   ['icon-180.png', 200],
   ['icon-512.png', 200],
   ['artifact.html', 404], // die Einzeldatei zum Einbetten gehört nicht auf die öffentliche Seite

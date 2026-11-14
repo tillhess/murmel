@@ -389,6 +389,7 @@ test('Ein angefangenes Bild wird nach dem Neuladen fortgesetzt', async ({ page }
 });
 
 test('Alle Bilder lassen sich öffnen und vollständig lösen', async ({ page }) => {
+  test.slow(); // 15 Bilder nacheinander: Der iPad-Browser auf dem Build-Server braucht dafür länger
   const errors = watchErrors(page);
   await page.goto('/');
   const ids = await page.evaluate(() => window.murmel.ids());
@@ -396,7 +397,7 @@ test('Alle Bilder lassen sich öffnen und vollständig lösen', async ({ page })
   for (const id of ids) {
     await page.evaluate((x) => window.murmel.open(x), id);
     await page.evaluate(() => window.murmel.solve());
-    await expect.poll(async () => (await status(page))?.remaining, { message: id }).toBe(0);
+    await expect.poll(async () => (await status(page))?.remaining, { message: id, timeout: 20_000 }).toBe(0);
     await page.evaluate(() => window.murmel.home());
   }
   expect(errors).toEqual([]);
@@ -746,3 +747,174 @@ test('Murmel lässt sich als App installieren und läuft danach ohne Netz', asyn
   }
   expect(errors).toEqual([]);
 });
+
+test('Impressum und Datenschutz sind von der Startseite aus erreichbar', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  const legal = page.locator('#legal a');
+  await expect(legal).toHaveText(['Impressum', 'Datenschutz']);
+  await legal.nth(0).click();
+  await expect(page.locator('h1')).toHaveText('Impressum');
+  await expect(page.locator('address')).toContainText('35606 Solms');
+  await page.locator('.foot a').click();
+  await expect(page.locator('h1')).toHaveText('Datenschutz');
+  await expect(page.locator('main')).toContainText('erhebt keine Daten');
+  // zurück ins Spiel
+  await page.locator('.back').click();
+  await expect(page.locator('#shelf')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('In der eingebetteten Einzeldatei fehlen die Verweise auf Nachbarseiten', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.body.innerHTML = '<iframe src="artifact.html" style="width:900px;height:700px;border:0"></iframe>';
+  });
+  const frame = page.frameLocator('iframe');
+  await expect(frame.locator('#shelf')).toBeVisible();
+  await expect(frame.locator('#legal')).toBeHidden();
+});
+
+test('Die Seite bringt ein Symbol für den Browser-Tab mit', async ({ page, request }) => {
+  await page.goto('/');
+  const hrefs = await page
+    .locator('link[rel="icon"]')
+    .evaluateAll((links) => links.map((l) => (l as HTMLLinkElement).href));
+  expect(hrefs.length).toBe(2);
+  for (const href of hrefs) expect((await request.get(href)).status()).toBe(200);
+});
+
+// ---------- Sprachen ----------
+
+test.describe('auf einem französischen Gerät', () => {
+  test.use({ locale: 'fr-FR' });
+
+  test('spricht das Spiel Französisch', async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+    await expect(page.locator('.lede')).toContainText('Sans points, sans hâte.');
+    await expect(page.locator('.print').first()).toContainText('Lune sur le lac');
+    await expect(page.locator('.print.own')).toContainText('Choisir une photo');
+    await expect(page.locator('#homeSettings')).toHaveText('Réglages');
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /billes de verre/);
+    // Der Name des Spiels bleibt in jeder Sprache derselbe.
+    await expect(page).toHaveTitle('Murmel');
+    await expect(page.locator('.wordmark')).toContainText('murmel');
+
+    await page.locator('#homeSettings').click();
+    await expect(page.locator('#settingsTitle')).toHaveText('Réglages');
+    await expect(page.locator('#settings [data-part="holes"] .choice')).toHaveText(['Coupelle', 'Croix', 'Anneau']);
+    const languages = page.locator('#settings [data-part="language"] .choice');
+    await expect(languages).toHaveText(['Automatique', 'English', 'Deutsch', 'Italiano', 'Français', 'Español']);
+    await expect(languages.nth(0)).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#settings [data-part="done"]').click();
+
+    await page.evaluate(() => window.murmel.open('mond'));
+    await expect(page.locator('#whisper')).toHaveText('Touche une bille.');
+    await expect(page.locator('#back')).toHaveText('Collection');
+    await expect(page.locator('#undo')).toHaveAttribute('aria-label', 'Annuler le coup');
+    await page.evaluate(() => window.murmel.solve());
+    await expect(page.locator('#finish')).toContainText('L’image est terminée.', { timeout: 15000 });
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('auf einem Gerät, dessen Sprache das Spiel nicht spricht', () => {
+  test.use({ locale: 'ja-JP' });
+
+  test('spricht das Spiel Englisch', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('.lede')).toContainText('No points, no hurry.');
+    await expect(page.locator('.print').first()).toContainText('Moon over the Lake');
+    await expect(page.locator('#homeSettings')).toHaveText('Settings');
+  });
+});
+
+test('Die Sprache lässt sich in den Einstellungen umschalten, gilt sofort und bleibt nach dem Neuladen', async ({
+  page,
+}) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await page.evaluate(() => window.murmel.open('mond'));
+  await page.locator('#playSettings').click();
+  const languages = page.locator('#settings [data-part="language"] .choice');
+  await expect(languages).toHaveText(['Automatisch', 'English', 'Deutsch', 'Italiano', 'Français', 'Español']);
+  await expect(languages.nth(0)).toHaveAttribute('aria-pressed', 'true');
+
+  // mitten im Spiel: Alles Beschriftete wechselt, das Spiel läuft weiter
+  const before = await status(page);
+  await languages.filter({ hasText: 'Italiano' }).click();
+  await expect(languages.nth(3)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'it');
+  await expect(page.locator('#settingsTitle')).toHaveText('Impostazioni');
+  await expect(languages.nth(0)).toHaveText('Automatica');
+  await expect(page.locator('#settings [data-part="sound"] .choice')).toHaveText(['Tutto', 'Solo biglie', 'Silenzio']);
+  await expect(page.locator('#settings [data-part="tempo"]')).toHaveAttribute('aria-valuetext', 'normale');
+  await page.locator('#settings [data-part="done"]').click();
+  await expect(page.locator('#back')).toHaveText('Collezione');
+  await expect(page.locator('#sound')).toHaveAttribute('aria-label', 'Suono attivo. Tocca per cambiare.');
+  expect((await status(page))?.remaining).toBe(before?.remaining);
+
+  await page.evaluate(() => window.murmel.home());
+  await expect(page.locator('.print').first()).toContainText('Luna sul lago');
+  await expect(page.locator('.print.own')).toContainText('Scegli una foto');
+
+  // die Wahl bleibt nach dem Neuladen
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'it');
+  await expect(page.locator('.print').first()).toContainText('Luna sul lago');
+  await expect(page.locator('#homeSettings')).toHaveText('Impostazioni');
+
+  // "Automatisch" folgt wieder dem Gerät
+  await page.locator('#homeSettings').click();
+  await expect(languages.nth(3)).toHaveAttribute('aria-pressed', 'true');
+  await languages.nth(0).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.locator('#settingsTitle')).toHaveText('Einstellungen');
+  await page.locator('#settings [data-part="done"]').click();
+  await expect(page.locator('.print').first()).toContainText('Mond über dem See');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  expect(errors).toEqual([]);
+});
+
+// Ein Test je Sprache: Zusammen bräuchten sie auf dem Build-Server länger, als ein einzelner Test laufen darf.
+for (const language of ['en', 'de', 'it', 'fr', 'es']) {
+  test(`${language}: Der Name jedes Bildes passt in eine Zeile und das Einstellungsblatt auf den Schirm`, async ({
+    page,
+  }) => {
+    // die Sprache steht schon im Speicher, bevor die Seite startet
+    await page.addInitScript((language) => {
+      localStorage.setItem('murmel.v1', JSON.stringify({ language }));
+    }, language);
+    for (const size of [
+      { width: 834, height: 1194 },
+      { width: 1194, height: 834 },
+    ]) {
+      const where = `${language}, ${size.width} × ${size.height}`;
+      await page.setViewportSize(size);
+      await page.goto('/');
+      await expect(page.locator('html'), where).toHaveAttribute('lang', language);
+      await expect(page.locator('.print')).toHaveCount(PRINTS);
+      const wrapped = await page.evaluate(async () => {
+        await document.fonts.ready;
+        return [...document.querySelectorAll('.print .print-name')]
+          .filter((name) => {
+            const range = document.createRange();
+            range.selectNodeContents(name);
+            return range.getClientRects().length > 1;
+          })
+          .map((name) => name.textContent);
+      });
+      expect(wrapped, where).toEqual([]);
+      // Längere Wörter dürfen weder die Startseite noch das Einstellungsblatt in die Breite treiben.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), where).toBe(true);
+      await page.locator('#homeSettings').click();
+      const sheet = page.locator('#settings .sheet-body');
+      expect(await sheet.evaluate((el) => el.scrollWidth <= el.clientWidth), where).toBe(true);
+    }
+  });
+}

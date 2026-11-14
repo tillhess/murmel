@@ -238,13 +238,21 @@ button:focus-visible,
   vertical-align: -0.02em;
 }
 
+/* Die Seite bringt ihre Texte auf Deutsch mit. Sichtbar werden sie erst in der Sprache des Geräts. */
+html:not([data-texts]) [data-t] {
+  visibility: hidden;
+}
+
 .lede {
   margin: clamp(10px, 2cqh, 18px) auto 0;
-  max-width: 32ch;
+  /* breit genug, dass der erste Satz in jeder der fünf Sprachen in eine Zeile passt */
+  max-width: 36ch;
   font-size: clamp(0.95rem, 2.2cqw, 1.1rem);
   line-height: 1.5;
   color: var(--ink-soft);
   text-wrap: balance;
+  /* der Text bringt seinen Zeilenumbruch mit */
+  white-space: pre-line;
 }
 
 /* Schmale Bildschirme: ein Regal, durch das man wischt. Der erste Druck steht in der Mitte. */
@@ -368,6 +376,19 @@ button:focus-visible,
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px;
+}
+
+/* Impressum und Datenschutz: da, aber leiser als alles andere */
+.legal .quiet {
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  text-decoration: none;
+  color: var(--ink-faint);
+}
+
+.legal .quiet:hover {
+  color: var(--ink-soft);
 }
 
 .home-foot {

@@ -8,6 +8,7 @@ import { selectionSize, trayCount } from '../core/moves';
 import { makeRng } from '../core/random';
 import { suggest } from '../core/solver';
 import { watchGestures } from './gestures';
+import { type TextKey, t } from './i18n';
 import type { Picture } from './library';
 import { store } from './storage';
 import { BoardView } from './view';
@@ -120,8 +121,8 @@ export class PlayScreen {
     this.updateUndo();
     if (!this.game.solved) {
       // Bei vielen kleinen Murmeln hilft es zu wissen, dass sich das Bild vergrößern lässt.
-      if (this.view.cellSize < 24) this.hint('zoom', 'Mit zwei Fingern lässt sich das Bild vergrößern.');
-      else this.hint('anfang', 'Tippe auf eine Murmel.');
+      if (this.view.cellSize < 24) this.hint('hint_zoom');
+      else this.hint('hint_start');
     }
   }
 
@@ -259,6 +260,11 @@ export class PlayScreen {
     return true;
   }
 
+  /** Die Sprache hat gewechselt: Die Bildunterschrift steht auf der Zeichenfläche und wird neu geschrieben. */
+  relabel(): void {
+    if (this.picture) this.view.setTitle(this.picture.name);
+  }
+
   /** Sagt einen Satz in der Leiste, der nach ein paar Sekunden wieder verschwindet. */
   tell(text: string): void {
     this.say(text);
@@ -286,13 +292,13 @@ export class PlayScreen {
       case 'gewählt':
         this.sound.pick();
         this.view.refresh();
-        if (outcome.hatLoch) this.hint('loch', 'Tippe auf ein leuchtendes Loch.');
-        else this.hint('ablage', 'Für diese Farbe ist noch kein Loch frei. Tippe auf eine freie Mulde im Holzbrett.');
+        if (outcome.hatLoch) this.hint('hint_hole');
+        else this.hint('hint_tray');
         break;
       case 'ablage-gewählt':
         this.sound.pick();
         this.view.refresh();
-        this.hint('brett', 'Tippe auf ein leuchtendes Loch.');
+        this.hint('hint_hole', 'brett');
         break;
       case 'abgewählt':
         this.view.refresh();
@@ -303,19 +309,18 @@ export class PlayScreen {
         this.save();
         this.updateUndo();
         // Nicht alles passte ins Ziel: Der Rest bleibt gewählt und wartet auf das nächste Ziel.
-        if (outcome.rest) this.hint('rest', 'Der Rest bleibt gewählt.');
-        else if (outcome.ziel === 'ablage')
-          this.hint('brett-wählen', 'Tippe auf das Holzbrett, um seine Murmeln zu wählen.');
+        if (outcome.rest) this.hint('hint_rest');
+        else if (outcome.ziel === 'ablage') this.hint('hint_pick_tray');
         break;
       case 'abgelehnt':
         this.sound.nope();
         if (outcome.reason === 'ablage-voll') {
           this.view.shake();
-          this.say('Das Holzbrett ist voll. Lege erst Murmeln von dort ins Bild.');
+          this.say(t('say_tray_full'));
         } else if (outcome.reason === 'falsche-farbe') {
-          this.say('In dieses Loch gehört eine andere Farbe.');
+          this.say(t('say_wrong_color'));
         } else if (outcome.reason === 'nichts-gewählt') {
-          this.say('Tippe zuerst auf eine Murmel.');
+          this.say(t('say_pick_first'));
         }
         break;
       case 'liegt-richtig':
@@ -366,10 +371,13 @@ export class PlayScreen {
     f.hidden = false;
   }
 
-  /** Ein Hinweis, der nur die ersten beiden Male erscheint. Danach spielt man in Ruhe. */
-  private hint(key: string, text: string): void {
-    this.told[key] = (this.told[key] ?? 0) + 1;
-    if (this.told[key] <= 2) this.say(text);
+  /**
+   * Ein Hinweis, der nur die ersten beiden Male erscheint. Danach spielt man in Ruhe.
+   * Gezählt wird je Anlass: Derselbe Satz kann zu zwei Anlässen gehören.
+   */
+  private hint(text: TextKey, occasion: string = text): void {
+    this.told[occasion] = (this.told[occasion] ?? 0) + 1;
+    if (this.told[occasion] <= 2) this.say(t(text));
   }
 
   private say(text: string): void {
