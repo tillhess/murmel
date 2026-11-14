@@ -389,6 +389,7 @@ test('Ein angefangenes Bild wird nach dem Neuladen fortgesetzt', async ({ page }
 });
 
 test('Alle Bilder lassen sich öffnen und vollständig lösen', async ({ page }) => {
+  test.slow(); // 15 Bilder nacheinander: Der iPad-Browser auf dem Build-Server braucht dafür länger
   const errors = watchErrors(page);
   await page.goto('/');
   const ids = await page.evaluate(() => window.murmel.ids());
@@ -396,7 +397,7 @@ test('Alle Bilder lassen sich öffnen und vollständig lösen', async ({ page })
   for (const id of ids) {
     await page.evaluate((x) => window.murmel.open(x), id);
     await page.evaluate(() => window.murmel.solve());
-    await expect.poll(async () => (await status(page))?.remaining, { message: id }).toBe(0);
+    await expect.poll(async () => (await status(page))?.remaining, { message: id, timeout: 20_000 }).toBe(0);
     await page.evaluate(() => window.murmel.home());
   }
   expect(errors).toEqual([]);
@@ -880,19 +881,22 @@ test('Die Sprache lässt sich in den Einstellungen umschalten, gilt sofort und b
   expect(errors).toEqual([]);
 });
 
-test('In jeder Sprache passt der Name jedes Bildes in eine Zeile und das Einstellungsblatt auf den Schirm', async ({
-  page,
-}) => {
-  for (const size of [
-    { width: 834, height: 1194 },
-    { width: 1194, height: 834 },
-  ]) {
-    await page.setViewportSize(size);
-    for (const language of ['en', 'de', 'it', 'fr', 'es']) {
+// Ein Test je Sprache: Zusammen bräuchten sie auf dem Build-Server länger, als ein einzelner Test laufen darf.
+for (const language of ['en', 'de', 'it', 'fr', 'es']) {
+  test(`${language}: Der Name jedes Bildes passt in eine Zeile und das Einstellungsblatt auf den Schirm`, async ({
+    page,
+  }) => {
+    // die Sprache steht schon im Speicher, bevor die Seite startet
+    await page.addInitScript((language) => {
+      localStorage.setItem('murmel.v1', JSON.stringify({ language }));
+    }, language);
+    for (const size of [
+      { width: 834, height: 1194 },
+      { width: 1194, height: 834 },
+    ]) {
       const where = `${language}, ${size.width} × ${size.height}`;
+      await page.setViewportSize(size);
       await page.goto('/');
-      await page.evaluate((language) => localStorage.setItem('murmel.v1', JSON.stringify({ language })), language);
-      await page.reload();
       await expect(page.locator('html'), where).toHaveAttribute('lang', language);
       await expect(page.locator('.print')).toHaveCount(PRINTS);
       const wrapped = await page.evaluate(async () => {
@@ -912,5 +916,5 @@ test('In jeder Sprache passt der Name jedes Bildes in eine Zeile und das Einstel
       const sheet = page.locator('#settings .sheet-body');
       expect(await sheet.evaluate((el) => el.scrollWidth <= el.clientWidth), where).toBe(true);
     }
-  }
-});
+  });
+}
