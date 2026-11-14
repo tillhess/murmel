@@ -4,9 +4,9 @@
 #   bauen       Build, dann Browser-Tests gegen genau diesen Build (Chromium und WebKit im iPad-Format)
 #   ausliefern  veröffentlicht den Build auf GitHub Pages
 #
-# Die Auslieferung ist abgeschaltet, bis in den Repository-Einstellungen die Variable PAGES auf "an" steht
-# (Settings → Secrets and variables → Actions → Variables) und unter Settings → Pages als Quelle
-# "GitHub Actions" gewählt ist. Achtung: Eine Pages-Seite ist öffentlich erreichbar, auch bei privatem Repository.
+# Die Auslieferung hängt an einem Schalter: Sie läuft nur, wenn in den Repository-Einstellungen die Variable PAGES
+# auf "an" steht (Settings → Secrets and variables → Actions → Variables) und unter Settings → Pages als Quelle
+# "GitHub Actions" gewählt ist. Eine Pages-Seite ist öffentlich erreichbar.
 name: Pipeline
 
 on:

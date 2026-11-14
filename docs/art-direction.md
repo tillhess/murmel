@@ -23,7 +23,7 @@ Daraus folgen vier Prüffragen für jede Änderung:
 1. Wird das Spiel dadurch sicherer, großzügiger oder weicher? Wenn nichts davon: weglassen. (K1, [1.2])
 2. Fühlt sich das Rollen der Kette danach besser an oder nur voller? (K4, [1.28])
 3. Würde das fertige Bild als Druck an der Wand bestehen? ([2.1], [2.2])
-4. Stört es jemanden, der nebenbei ein Hörbuch hört? (Nutzung laut `notizen/transkript-video.txt`)
+4. Stört es jemanden, der nebenbei ein Hörbuch hört? (So wird laut Erklärvideo des Auftraggebers gespielt.)
 
 ## Was bewusst fehlt
 

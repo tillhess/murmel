@@ -3,6 +3,8 @@
 Ein ruhiges Spiel für das iPad. Auf einem Blatt Papier liegen Glasmurmeln durcheinander. Man rollt sie Gruppe für
 Gruppe an ihren Platz, und dabei entsteht ein Bild. Es gibt keine Punkte, keine Züge, keine Zeit und keine Bestenliste.
 
+**Spielen:** <https://tillhess.github.io/murmel/>
+
 - Spielregeln und Entscheidungen: [docs/entscheidungen.md](docs/entscheidungen.md)
 - Bildsprache, Klang, Bewegung: [docs/art-direction.md](docs/art-direction.md)
 - Recherche dazu: [notizen/](notizen/)
@@ -82,6 +84,14 @@ Auf einem echten iPad ist das Spiel noch nicht geprüft, siehe „Nicht geprüft
 2. **bauen**: Build, danach Browser-Tests gegen genau diesen Build. Der Build liegt als Download am Lauf.
 3. **ausliefern**: veröffentlicht den Build von `main` auf GitHub Pages
 
-Die Auslieferung ist abgeschaltet, bis im Repository die Variable `PAGES` auf `an` steht und unter
-Settings → Pages als Quelle „GitHub Actions“ gewählt ist. Eine Pages-Seite ist öffentlich erreichbar, auch wenn das
-Repository privat ist. Auf dem iPad lässt sich die Seite über „Zum Home-Bildschirm“ wie eine App im Vollbild öffnen.
+Die Auslieferung hängt an einem Schalter: Im Repository steht die Variable `PAGES` auf `an` (Settings → Secrets and
+variables → Actions → Variables), und unter Settings → Pages ist als Quelle „GitHub Actions“ gewählt. Wer die
+Variable löscht oder ändert, hält die Auslieferung an; die Seite bleibt dann auf dem letzten Stand stehen.
+
+Das Repository ist öffentlich, weil GitHub Pages im kostenlosen Tarif kein privates Repository zulässt.
+
+## Schriften
+
+[Fraunces](https://github.com/undercasetype/Fraunces) und [Figtree](https://github.com/erikdkennedy/figtree) stehen
+unter der SIL Open Font License 1.1. Sie kommen als Pakete (`@fontsource-variable/…`, Lizenztexte liegen dort bei)
+und werden beim Bauen in die Seite eingebettet. Die Seite lädt dadurch nichts von fremden Servern.
