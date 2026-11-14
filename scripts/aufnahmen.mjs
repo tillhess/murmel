@@ -11,7 +11,7 @@ for (const [name, viewport] of Object.entries({
   hoch: { width: 834, height: 1194 },
   quer: { width: 1194, height: 834 },
 })) {
-  const context = await browser.newContext({ ...devices['iPad Pro 11'], viewport });
+  const context = await browser.newContext({ ...devices['iPad Pro 11'], viewport, locale: 'de-DE' });
   const page = await context.newPage();
   await page.goto('http://localhost:4173/');
   await page.waitForTimeout(1500);

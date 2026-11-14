@@ -2,6 +2,7 @@ import { HOLE_STYLES, type HoleStyle } from '../art/holes';
 import { MARBLE_STYLES, type MarbleStyle } from '../art/marble';
 import { SOUND_MODES, type SoundMode } from '../audio/sound';
 import { PHOTO_CONTRASTS, type PhotoContrast } from '../core/quantize';
+import { LANGUAGES, type Language } from './i18n';
 
 /**
  * Merkt sich im Browser, welche Bilder fertig sind, wo man bei einem angefangenen Bild steht und welche eigenen
@@ -47,6 +48,8 @@ interface Saved {
   tempo?: number;
   /** in den Einstellungen gewählt: wie stark sich die Murmelfarben eigener Fotos unterscheiden */
   contrast?: PhotoContrast;
+  /** in den Einstellungen gewählte Sprache; fehlt = die Sprache des Geräts */
+  language?: Language;
   /** eigene Fotos, in der Reihenfolge, in der sie dazukamen */
   own?: OwnRecord[];
 }
@@ -151,6 +154,15 @@ export const store = {
   },
   set contrast(contrast: PhotoContrast) {
     read().contrast = contrast;
+    write();
+  },
+  /** Die gewählte Sprache; null heißt: die Sprache des Geräts. */
+  get language(): Language | null {
+    const saved = read().language;
+    return LANGUAGES.find((language) => language === saved) ?? null;
+  },
+  set language(language: Language | null) {
+    read().language = language ?? undefined;
     write();
   },
   /** Eigene Fotos der Sammlung. */

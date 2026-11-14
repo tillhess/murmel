@@ -6,6 +6,9 @@ Gruppe an ihren Platz, und dabei entsteht ein Bild. Es gibt keine Punkte, keine 
 Die Sammlung hat 15 Motive, vom Mond über dem See mit 16 × 16 Murmeln bis zum Koi im Teich mit 32 × 32. Eigene Fotos
 kommen als weitere Blätter dazu.
 
+Das Spiel spricht Englisch, Deutsch, Italienisch, Französisch und Spanisch. Es folgt der Sprache des Geräts; in den
+Einstellungen lässt sie sich wählen. Die Texte stehen in `src/app/texts/`.
+
 **Spielen:** <https://tillhess.github.io/murmel/>
 
 - Spielregeln und Entscheidungen: [docs/entscheidungen.md](docs/entscheidungen.md)

@@ -11,6 +11,8 @@ export default defineConfig({
   reporter: ci ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:4173',
+    // Das Spiel folgt der Sprache des Geräts. Die Tests lesen deutsche Texte; andere Sprachen stellen sie selbst ein.
+    locale: 'de-DE',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

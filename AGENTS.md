@@ -9,14 +9,28 @@ Murmel ist ein ruhiges Spiel für das iPad, gebaut als Webseite: Glasmurmeln lie
 man rollt sie Gruppe für Gruppe an ihren Platz, und ein Bild entsteht.
 Öffentlich unter <https://tillhess.github.io/murmel/>.
 
+## Wer entscheidet
+
+Murmel wird von zwei Menschen gemeinsam entwickelt (GitHub-Konten `tillhess` und `yogihess`), jeder mit eigenen
+Agenten. Jeder der beiden kann Regeln festlegen und Veröffentlichungen freigeben. Was der andere auf `main`
+zusammengeführt hat, gilt: darauf aufbauen, nicht zurückdrehen.
+
 ## Sprache
 
-- Antworten an den Auftraggeber, Commit-Nachrichten, Kommentare, Testnamen, Dokumentation und alle Texte im Spiel
-  sind Deutsch. Bezeichner im Code sind Englisch.
+- Antworten an die Entwickler, Commit-Nachrichten, Kommentare, Testnamen und Dokumentation sind Deutsch.
+  Bezeichner im Code sind Englisch.
+- Das Spiel spricht fünf Sprachen: Englisch, Deutsch, Italienisch, Französisch, Spanisch. Deutsch ist die
+  Ausgangssprache. Kein Text für Spieler steht fest im Code oder nur in `index.html`: Jeder neue Text bekommt einen
+  Schlüssel in `src/app/texts/de.ts` und im selben Commit eine Übersetzung in allen vier anderen Wörterbüchern
+  (`en.ts`, `it.ts`, `fr.ts`, `es.ts`), sonst scheitert die Typprüfung. Ein neues Motiv braucht `scene_<Kennung>`.
+  Gelesen wird mit `t('schluessel')` aus `src/app/i18n.ts`, feste Texte der Seite tragen `data-t`.
+- Ton in jeder Sprache: ruhig, knapp, ohne Ausrufezeichen, vertraute Anrede (du, you, tu, tu, tú). Das Spiel heißt
+  überall „Murmel“.
 - Im Spiel und in der Dokumentation heißt es „Murmel“, „Holzbrett“ (die Ablage), „Mulde“ (Platz auf dem Brett),
-  „Loch“ oder „leeres Feld“ (freier Platz im Bild), „Sammlung“ (Startseite). Diese Wörter beibehalten.
+  „Loch“ oder „leeres Feld“ (freier Platz im Bild), „Sammlung“ (Startseite). Diese Wörter beibehalten. Die
+  Entsprechungen der anderen Sprachen stehen oben in jedem Wörterbuch und bleiben ebenso einheitlich.
 
-## Regeln, die nicht ohne den Auftraggeber geändert werden
+## Regeln, die nicht ohne die Entwickler geändert werden
 
 - **Spielregeln und Bedienung** stehen in `docs/entscheidungen.md`, Bildsprache, Klang und Bewegung in
   `docs/art-direction.md`. Beides ist verbindlich. Wer eine Regel ändern will, fragt zuerst. Ein Fehler in der
@@ -26,7 +40,7 @@ man rollt sie Gruppe für Gruppe an ihren Platz, und ein Bild entsteht.
 - **Nichts von fremden Servern:** keine Schriften, Skripte, Bilder oder Messdienste von außen. Alles liegt im
   Repository; `scripts/live-pruefen.mjs` prüft das an der ausgelieferten Seite.
 - **Alles bleibt auf dem Gerät:** Spielstände und eigene Fotos liegen nur im Speicher des Browsers.
-- Jede neue Entscheidung des Auftraggebers kommt mit Datum und Begründung in `docs/entscheidungen.md`, im selben
+- Jede neue Entscheidung der Entwickler kommt mit Datum und Begründung in `docs/entscheidungen.md`, im selben
   Commit wie die Änderung.
 
 ## Befehle
@@ -74,7 +88,7 @@ Die Browsertests laufen gegen den Build in `dist/`, nicht gegen die Quelldateien
 
 - **Jeder Push auf `main` geht sofort öffentlich** (`.github/workflows/pipeline.yml`: prüfen, bauen, auf GitHub
   Pages ausliefern). Deshalb: auf einem eigenen Zweig arbeiten und nichts auf `main` pushen oder dort
-  zusammenführen, auch keinen Pull Request, ohne dass der Auftraggeber es ausdrücklich freigibt.
+  zusammenführen, auch keinen Pull Request, ohne dass einer der beiden Entwickler es ausdrücklich freigibt.
 - Den Zweig vor der Übergabe auf den aktuellen Stand von `main` setzen. Nie mit Gewalt pushen.
 - Nach einem Push auf `main` die Pipeline abwarten und die Seite mit `scripts/live-pruefen.mjs` prüfen, bevor
   etwas als veröffentlicht gemeldet wird.
