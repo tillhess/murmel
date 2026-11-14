@@ -178,4 +178,3 @@ export class Game {
     return { type: 'gerollt', ziel, color: result.color, rolls: result.rolls, fertig: this.solved, rest };
   }
 }
-

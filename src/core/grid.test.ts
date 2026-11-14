@@ -29,4 +29,3 @@ describe('Stand des Bildes', () => {
     expect(colorDone(level, cur, 2)).toBe(false);
   });
 });
-

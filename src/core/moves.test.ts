@@ -256,4 +256,3 @@ describe('Spielregeln bleiben über viele Züge gültig', () => {
     }
   });
 });
-

@@ -368,4 +368,3 @@ export class PlayScreen {
     this.whisperTimer = window.setTimeout(() => w.classList.remove('heard'), 3600);
   }
 }
-

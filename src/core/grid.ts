@@ -117,4 +117,3 @@ export function colorDone(level: Level, cur: Int16Array, color: number): boolean
   }
   return any;
 }
-

@@ -269,4 +269,3 @@ describe('Spielsteuerung', () => {
     expect(game.solved).toBe(true);
   });
 });
-

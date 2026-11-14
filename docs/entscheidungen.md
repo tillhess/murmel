@@ -128,4 +128,3 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Schriften liegen bei und werden in die Seite eingebettet (14.11.2026) | Die öffentliche Seite lädt nichts von fremden Servern, auch keine Schriften von Google. Damit gehen beim Aufruf keine Besucherdaten an Dritte, und die Tests brauchen kein Netz. Preis: Die Seite wächst von 68 auf 294 kB. |
 | Auslieferung auf GitHub Pages nur nach Schalter | Die Seite ist öffentlich. Das soll eine bewusste Entscheidung sein. Seit dem 14.11.2026 ist der Schalter an (Auftraggeber). |
 | Das Repository ist öffentlich (14.11.2026) | GitHub Pages lässt im kostenlosen Tarif kein privates Repository zu. Die Abschrift des Erklärvideos liegt deshalb nicht im Repository, und die Commits tragen die GitHub-Adresse statt einer privaten Mailadresse. |
-
