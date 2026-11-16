@@ -399,6 +399,9 @@ async function almostFinished(page: Page): Promise<void> {
 }
 
 test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappenden Zügen', async ({ page }) => {
+  test.setTimeout(60_000);
+  // Die übrigen Tests schalten Bewegung zentral ab; hier ist gerade die sichtbare Rückmeldung Gegenstand.
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   await almostFinished(page);
   expect((await status(page))?.completedColors).not.toContain(0);
   for (let move = 0; move < 2; move++) {
@@ -427,7 +430,10 @@ test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappe
   expect((await status(page))?.completedColors).toContain(0);
   expect(await page.evaluate(() => window.murmel.sound())).toBe('aus');
 
-  await page.locator('#undo').click();
+  // Die Testuhr steht still: Der Mausklick braucht kein Warten auf weitere Animationsbilder.
+  const undo = await page.locator('#undo').boundingBox();
+  if (!undo) throw new Error('Rückgängig fehlt');
+  await page.mouse.click(undo.x + undo.width / 2, undo.y + undo.height / 2);
   expect((await status(page))?.completedColors).not.toContain(0);
   expect((await status(page))?.flashingColors).toEqual([]);
   await page.clock.runFor(1000);
