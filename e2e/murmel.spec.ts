@@ -394,7 +394,7 @@ async function almostFinished(page: Page): Promise<void> {
   await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-11-15T12:00:01Z'));
   await page.goto('/');
-  await page.evaluate(() => window.murmel.open('mond'));
+  await page.evaluate(() => window.murmel.open('mond', false));
   await page.clock.runFor(32);
 }
 
