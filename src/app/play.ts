@@ -38,7 +38,7 @@ export class PlayScreen {
   private game: Game | null = null;
   private picture: Picture | null = null;
   private readonly told: Record<string, number> = {};
-  /** Farben, deren Vollendung schon einmal erklungen ist */
+  /** Farben, deren Vollendung schon sichtbar oder beim Öffnen bereits abgeschlossen war */
   private readonly settled = new Set<number>();
   private readonly probe = document.createElement('div');
   private whisperTimer = 0;
@@ -57,12 +57,14 @@ export class PlayScreen {
           return;
         }
         this.sound.clink(rank, total, color);
-        // Mit der letzten Murmel einer Kette kann eine ganze Farbe fertig geworden sein: Das klingt etwas voller.
+        // Der Spielstand ändert sich vor der Bewegung. Erst die letzte sichtbare Ankunft vollendet eine Farbe.
         const game = this.game;
-        if (rank !== total - 1 || !game || game.solved || this.settled.has(color)) return;
+        if (!game || this.view.arriving(color) || this.settled.has(color)) return;
         if (colorDone(game.level, game.state.cur, color)) {
           this.settled.add(color);
-          this.sound.settle();
+          this.view.flashColor(color);
+          // Für die letzte Farbe übernimmt gleich der Abschlussakkord des ganzen Bildes.
+          if (!game.solved) this.sound.settle();
         }
       },
       finished: () => this.finished(),
@@ -112,7 +114,7 @@ export class PlayScreen {
       if (fresh) store.clearProgress(picture.key);
       this.game = Game.start(level, makeRng(Date.now() >>> 0), this.traySize);
     }
-    this.settled.clear();
+    this.rememberCompleted();
     this.sound.setRoot(picture.mood.root);
     this.el.root.hidden = false;
     this.measure();
@@ -180,6 +182,9 @@ export class PlayScreen {
     tempo: number;
     /** die Murmelfarben des Bildes */
     colors: string[];
+    flashingColors: number[];
+    completedColors: number[];
+    arrivingColors: number[];
   } | null {
     if (!this.game || !this.picture) return null;
     return {
@@ -197,6 +202,9 @@ export class PlayScreen {
       finishShown: !this.el.finish.hidden,
       tempo: this.view.tempo,
       colors: [...this.game.level.palette],
+      flashingColors: this.view.flashingColors,
+      completedColors: [...this.settled],
+      arrivingColors: this.view.arrivingColors,
     };
   }
 
@@ -333,7 +341,7 @@ export class PlayScreen {
 
   private undo(): void {
     if (!this.game?.undo()) return;
-    this.settled.clear();
+    this.rememberCompleted();
     this.view.calm();
     this.save();
     this.updateUndo();
@@ -341,6 +349,16 @@ export class PlayScreen {
 
   private updateUndo(): void {
     this.el.undo.disabled = !this.game?.canUndo || this.game.solved;
+  }
+
+  /** Bereits fertige Farben bekommen nach Öffnen oder Rückgängig kein nachträgliches Signal. */
+  private rememberCompleted(): void {
+    this.settled.clear();
+    const game = this.game;
+    if (!game) return;
+    game.level.palette.forEach((_, color) => {
+      if (colorDone(game.level, game.state.cur, color)) this.settled.add(color);
+    });
   }
 
   /** Hält den Stand fest. Nach jedem Zug geschieht das von selbst. */

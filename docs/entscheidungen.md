@@ -155,3 +155,11 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Beide Seiten sind schlichte Dateien in `public/`, ohne Skript und ohne eingebettete Schriften. | Sie müssen auch dann lesbar sein, wenn das Spiel nicht lädt, und sie ändern sich selten. |
 | In der eingebetteten Einzeldatei fehlen die Verweise. | Dort gibt es keine Nachbarseiten. |
 
+## Holzrahmen, Rollen und vollendete Farben (15.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Der Druck bekommt einen schlanken Naturholzrahmen aus vier hellen Ahornleisten mit Gehrung. | Wunsch von Yogi: Das Bild soll sich wie ein gerahmtes Bild anfühlen. Papier und Bildunterschrift bleiben innerhalb des Rahmens. |
+| Auf dem Weg zum Holzbrett rollen Murmeln auf der Oberfläche und hüpfen nur kurz über die Rahmenkante. Ihr Schatten bleibt darunter auf dem Boden. Der Rückweg folgt derselben Bewegung. | Wunsch von Yogi: Die Murmeln sollen Gewicht haben und nicht zum Brett schweben. Die Anpassung an die Muldengröße beginnt erst außerhalb des Rahmens. |
+| Sobald eine Farbe im gesamten Bild vollständig angekommen ist, leuchten ihre Flächen einmal kurz warm auf. Dazu erklingt der vorhandene leise Zweiklang; bei der letzten Farbe übernimmt der Abschlussakkord. | Wunsch von Yogi nach einem kleinen Flash und Ton als Belohnung. Die Rückmeldung wartet auch bei gleichzeitig laufenden Zügen auf die letzte sichtbare Ankunft. |
+| „Still“ bleibt still. Bei reduzierter Bewegung entfallen Sprung und Lichtimpuls. Beim Fortsetzen eines Bildes werden fertige Farben nicht nachträglich gefeiert. | Die vorhandenen Wünsche zu Klang und Bewegung gelten auch für die neue Rückmeldung. |

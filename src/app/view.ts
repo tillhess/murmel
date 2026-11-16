@@ -6,10 +6,11 @@ import {
   type MarbleStyle,
   marble,
   marbleCore,
+  marbleShadow,
   marbleTop,
   marbleUnder,
 } from '../art/marble';
-import { PAPER, paperSheet, roundedRect, WOOD, woodBoard } from '../art/materials';
+import { PAPER, paperSheet, roundedRect, WOOD, woodBoard, woodFrame } from '../art/materials';
 import { newCanvas } from '../art/paint';
 import {
   type Camera,
@@ -26,6 +27,7 @@ import { type Pt, type Run, runDuration, runPosition, scheduleChain } from '../c
 import type { Game } from '../core/game';
 import { EMPTY } from '../core/level';
 import type { Roll, Spot } from '../core/moves';
+import { transferPose } from '../core/transfer';
 import { type Sprite, Sprites } from './sprites';
 import { DISPLAY_FONT } from './theme';
 
@@ -45,6 +47,8 @@ const SETTLE_MS = 130;
 const PULSE_MS = 4000;
 /** So lange braucht eine eingerastete Murmel, um im Bild aufzugehen */
 const BLOOM_MS = 620;
+/** Ein einmaliger, warmer Lichtimpuls auf der gerade vollendeten Farbe. */
+const COLOR_FLASH_MS = 720;
 /** Vergrößern lässt sich das Bild, bis ein Feld etwa so groß ist (Bildschirmpunkte), mindestens aber aufs Doppelte */
 const ZOOM_CELL = 60;
 const LIGHT = '#fff8ea';
@@ -117,6 +121,7 @@ export class BoardView {
   private ox = 0;
   private oy = 0;
   private paper = { x: 0, y: 0, w: 0, h: 0, bottom: 0 };
+  private frameRim = 8;
   private tray = { x: 0, y: 0, w: 0, h: 0, slot: 30, cols: 15, rows: 2, side: false };
   private zone = { x: 0, y: 0, w: 0, h: 0 };
   /** Platz, den oben die Leiste und unten der Rand des Geräts brauchen */
@@ -135,6 +140,7 @@ export class BoardView {
 
   private flights: Flight[] = [];
   private blooms = new Map<number, { t0: number; color: number }>();
+  private colorFlashes = new Map<number, number>();
   private twinkles: Twinkle[] = [];
   private pendCells = new Set<number>();
   private pendSlots = new Set<number>();
@@ -170,6 +176,7 @@ export class BoardView {
   calm(): void {
     this.flights = [];
     this.blooms.clear();
+    this.colorFlashes.clear();
     this.twinkles = [];
     this.pendCells.clear();
     this.pendSlots.clear();
@@ -337,7 +344,24 @@ export class BoardView {
   }
 
   get busy(): boolean {
-    return this.flights.length > 0 || this.blooms.size > 0;
+    return this.flights.length > 0 || this.blooms.size > 0 || this.colorFlashes.size > 0;
+  }
+
+  /** Mehrere Züge dürfen gleichzeitig rollen; eine Farbe ist erst nach allen Ankünften sichtbar fertig. */
+  arriving(color: number): boolean {
+    return this.flights.some((f) => f.color === color && 'cell' in f.dest);
+  }
+
+  get arrivingColors(): number[] {
+    return [...new Set(this.flights.filter((f) => 'cell' in f.dest).map((f) => f.color))];
+  }
+
+  get flashingColors(): number[] {
+    return [...this.colorFlashes.keys()];
+  }
+
+  flashColor(color: number): void {
+    if (!this.reduceMotion) this.colorFlashes.set(color, performance.now());
   }
 
   /** Wählt den Entwurf für leere Felder im Bild. */
@@ -436,6 +460,7 @@ export class BoardView {
     this.ox = px + m;
     this.oy = py + m;
     this.paper = { x: px, y: py, w: pw, h: ph, bottom: mb };
+    this.frameRim = Math.max(5, Math.min(9, m * 0.45));
     this.tray = side
       ? {
           x: Math.round(px + pw + 30),
@@ -521,7 +546,7 @@ export class BoardView {
       this.flights.push({
         color: r.color,
         run: runs[k],
-        t0: now,
+        t0: now + (this.reduceMotion ? 0 : SETTLE_MS),
         speed,
         dest: r.to,
         chain,
@@ -593,7 +618,7 @@ export class BoardView {
     const draw = layer === 'u' ? marbleUnder : layer === 'c' ? marbleCore : marbleTop;
     const style = this.marbleStyle;
     return this.sprites.get(`${layer}${style}${color}`, d, (x, D) =>
-      draw(x, D / 2, D / 2, (D / 2) * 0.96, color, style),
+      draw(x, D / 2, D / 2, (D / 2) * 0.96, color, style, false),
     );
   }
 
@@ -619,6 +644,7 @@ export class BoardView {
     const x = this.staticBg.getContext('2d') as CanvasRenderingContext2D;
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     paperSheet(x, paper.x, paper.y, paper.w, paper.h, dpr);
+    woodFrame(x, paper.x, paper.y, paper.w, paper.h, this.frameRim);
     // Bildunterschrift auf dem unteren Papierrand, wie bei einem Druck
     const size = Math.max(12, Math.min(22, cell * 0.66));
     x.font = `italic 500 ${size}px ${DISPLAY_FONT}`;
@@ -774,6 +800,9 @@ export class BoardView {
         this.baseDirty = true;
       }
     }
+    for (const [color, t0] of this.colorFlashes) {
+      if (now - t0 >= COLOR_FLASH_MS) this.colorFlashes.delete(color);
+    }
     if (this.finishedAt === 0 && game.solved && !this.busy) {
       this.finishedAt = now;
       this.baseDirty = true;
@@ -856,7 +885,9 @@ export class BoardView {
       const pos = runPosition(fl.run, now - fl.t0, fl.speed);
       (this.inFrame(pos.from) && this.inFrame(pos.to) ? inside : between).push({ fl, pos });
     }
-    const rollingMarble = (color: string, x: number, y: number, size: number, turn: number): void => {
+    const rollingMarble = (color: string, x: number, groundY: number, size: number, turn: number, height = 0): void => {
+      marbleShadow(ctx, x, groundY, size * 0.48, height);
+      const y = groundY - height;
       Sprites.blit(ctx, this.layerSprite('u', color, md), x, y, size);
       ctx.save();
       ctx.translate(x, y);
@@ -945,10 +976,10 @@ export class BoardView {
     // rollende Murmeln im Bild; wer noch wartet, liegt an seinem Startplatz
     for (const { fl, pos } of inside) {
       // eben noch schwebte die Murmel als Teil der Auswahl: Sie sinkt zurück und rollt dann los
-      const settle = Math.max(0, 1 - (now - fl.t0) / SETTLE_MS) ** 2;
+      const settle = this.reduceMotion ? 0 : Math.min(1, Math.max(0, (fl.t0 - now) / SETTLE_MS)) ** 2;
       const size = fl.fromSlot ? md : md * (1 + 0.07 * settle);
       const lift = fl.fromSlot ? 0 : fl.lift * settle;
-      rollingMarble(level.palette[fl.color], pos.x, pos.y - lift, size, fl.turn + pos.rolled / (md / 2));
+      rollingMarble(level.palette[fl.color], pos.x, pos.y, size, fl.turn + pos.rolled / (md / 2), lift);
     }
     ctx.restore();
 
@@ -1018,20 +1049,46 @@ export class BoardView {
       const bIn = this.inFrame(pos.to);
       const a = aIn ? this.toFrameEdge(this.toView(pos.from)) : pos.from;
       const b = bIn ? this.toFrameEdge(this.toView(pos.to)) : pos.to;
-      const da = aIn ? md * zoom : td;
-      const db = bIn ? md * zoom : td;
-      const size = da + (db - da) * pos.part;
-      const settle = Math.max(0, 1 - (now - fl.t0) / SETTLE_MS) ** 2;
+      const pose =
+        aIn !== bIn
+          ? transferPose(
+              aIn ? a : b,
+              aIn ? b : a,
+              aIn ? pos.part : 1 - pos.part,
+              { ...this.paper, rim: this.frameRim },
+              md * zoom,
+              td,
+            )
+          : { x: pos.x, y: pos.y, size: td, height: 0 };
+      const settle = this.reduceMotion ? 0 : Math.min(1, Math.max(0, (fl.t0 - now) / SETTLE_MS)) ** 2;
       const lift = fl.lift * settle * (aIn ? zoom : 1);
-      const x = a[0] + (b[0] - a[0]) * pos.part;
-      const y = a[1] + (b[1] - a[1]) * pos.part - lift;
-      rollingMarble(level.palette[fl.color], x, y, size, fl.turn + pos.rolled / (md / 2));
+      rollingMarble(
+        level.palette[fl.color],
+        pose.x,
+        pose.y,
+        pose.size,
+        fl.turn + pos.rolled / (md / 2),
+        this.reduceMotion ? 0 : pose.height + lift,
+      );
     }
 
     // ---------- Lichter im Bild ----------
     ctx.save();
     this.applyCamera(ctx);
     ctx.globalCompositeOperation = 'lighter';
+    // Kein Bildschirmblitz: Nur die vollendete Farbe leuchtet einmal weich auf.
+    for (const [color, t0] of this.colorFlashes) {
+      const p = Math.min(1, (now - t0) / COLOR_FLASH_MS);
+      const alpha = Math.sin(Math.PI * p) ** 2 * 0.28;
+      ctx.fillStyle = `rgba(255,242,209,${alpha})`;
+      ctx.beginPath();
+      for (const i of level.cells) {
+        if (level.target[i] !== color || !inView(i)) continue;
+        const [cx, cy] = this.cellCenter(i);
+        ctx.rect(cx - cell / 2, cy - cell / 2, cell, cell);
+      }
+      ctx.fill();
+    }
     for (let k = this.twinkles.length - 1; k >= 0; k--) {
       const q = this.twinkles[k];
       const p = (now - q.t0) / q.dur;

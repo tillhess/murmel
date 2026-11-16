@@ -17,6 +17,22 @@ export const MARBLE_STYLES: readonly MarbleStyle[] = ['glas', 'matt'];
 const SHADOW = '#10142a';
 const LIGHT = '#fff8ea';
 
+/** Der Schatten bleibt auf der Oberfläche, auch wenn die Murmel über eine Kante hüpft. */
+export function marbleShadow(x: Ctx, cx: number, cy: number, r: number, height = 0): void {
+  const sx = cx + r * 0.26;
+  const sy = cy + r * 0.36;
+  const spread = 1 + (height / Math.max(1, r)) * 0.25;
+  const opacity = 1 / spread;
+  const g = x.createRadialGradient(sx, sy, r * 0.3, sx, sy, r * 1.12 * spread);
+  g.addColorStop(0, rgba(SHADOW, 0.38 * opacity));
+  g.addColorStop(0.7, rgba(SHADOW, 0.16 * opacity));
+  g.addColorStop(1, rgba(SHADOW, 0));
+  x.fillStyle = g;
+  x.beginPath();
+  x.ellipse(sx, sy, r * 1.1 * spread, r * 1.02 * spread, 0, 0, Math.PI * 2);
+  x.fill();
+}
+
 export function marbleUnder(
   x: Ctx,
   cx: number,
@@ -24,18 +40,10 @@ export function marbleUnder(
   r: number,
   color: string,
   style: MarbleStyle = 'glas',
+  shadow = true,
 ): void {
-  // Schatten nach unten rechts
-  const sx = cx + r * 0.26;
-  const sy = cy + r * 0.36;
-  let g = x.createRadialGradient(sx, sy, r * 0.3, sx, sy, r * 1.12);
-  g.addColorStop(0, rgba(SHADOW, 0.38));
-  g.addColorStop(0.7, rgba(SHADOW, 0.16));
-  g.addColorStop(1, rgba(SHADOW, 0));
-  x.fillStyle = g;
-  x.beginPath();
-  x.ellipse(sx, sy, r * 1.1, r * 1.02, 0, 0, Math.PI * 2);
-  x.fill();
+  if (shadow) marbleShadow(x, cx, cy, r);
+  let g: CanvasGradient;
   if (style === 'matt') {
     // matte Kugel: fast überall die reine Farbe, zum Licht hin etwas heller, zum Rand hin etwas dunkler
     g = x.createRadialGradient(cx - r * 0.32, cy - r * 0.38, r * 0.05, cx - r * 0.1, cy - r * 0.12, r * 1.1);
