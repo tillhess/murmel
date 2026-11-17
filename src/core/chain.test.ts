@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chainDuration, type Pt, runDuration, runPosition, scheduleChain } from './chain';
+import { chainDuration, type Pt, runDuration, runEntryTime, runPosition, scheduleChain } from './chain';
 
 const opts = { speed: 0.5, spacing: 20 }; // 0,5 px/ms, also 40 ms Abstand am Einstieg
 
@@ -81,5 +81,46 @@ describe('Rollende Kette', () => {
     const [run] = scheduleChain([[entry, entry]], opts);
     expect(run.length).toBe(0);
     expect(runPosition(run, 0, opts.speed).done).toBe(true);
+    expect(runEntryTime(run, opts.speed)).toBe(run.start);
+  });
+
+  it('meldet den angetippten Einstieg vor dem endgültigen Ziel', () => {
+    const soft = scheduleChain(paths, { ...opts, ease: 40 });
+    const first = soft[0];
+    const at = runEntryTime(first, opts.speed);
+    expect(runPosition(first, at, opts.speed)).toMatchObject({ x: 100, y: 0, done: false });
+    expect(at).toBeLessThan(first.start + runDuration(first, opts.speed));
+    expect(runPosition(first, at - 1, opts.speed).rolled).toBeLessThan(first.entry);
+  });
+
+  it('berücksichtigt Ausrollen, wenn Einstieg und endgültiges Loch zusammenfallen', () => {
+    const [run] = scheduleChain(
+      [
+        [
+          [0, 0],
+          [10, 0],
+        ],
+      ],
+      { ...opts, ease: 40 },
+    );
+    const at = runEntryTime(run, opts.speed);
+    expect(at).toBeCloseTo(run.start + runDuration(run, opts.speed));
+    expect(runPosition(run, at, opts.speed).rolled).toBeCloseTo(run.entry);
+  });
+
+  it('erkennt den Einstieg auch innerhalb der Bremsstrecke und nach einem doppelten Wegpunkt', () => {
+    const [braking, duplicate] = scheduleChain(
+      [
+        [
+          [0, 0],
+          [90, 0],
+          [100, 0],
+        ],
+        [entry, entry, [200, 0]],
+      ],
+      { ...opts, ease: 40 },
+    );
+    expect(runPosition(braking, runEntryTime(braking, opts.speed), opts.speed).rolled).toBeCloseTo(90);
+    expect(runEntryTime(duplicate, opts.speed)).toBe(duplicate.start);
   });
 });

@@ -163,3 +163,13 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Auf dem Weg zum Holzbrett rollen Murmeln auf der Oberfläche und hüpfen nur kurz über die Rahmenkante. Ihr Schatten bleibt darunter auf dem Boden. Der Rückweg folgt derselben Bewegung. | Wunsch von Yogi: Die Murmeln sollen Gewicht haben und nicht zum Brett schweben. Die Anpassung an die Muldengröße beginnt erst außerhalb des Rahmens. |
 | Sobald eine Farbe im gesamten Bild vollständig angekommen ist, leuchten ihre Flächen einmal kurz warm auf. Dazu erklingt der vorhandene leise Zweiklang; bei der letzten Farbe übernimmt der Abschlussakkord. | Wunsch von Yogi nach einem kleinen Flash und Ton als Belohnung. Die Rückmeldung wartet auch bei gleichzeitig laufenden Zügen auf die letzte sichtbare Ankunft. |
 | „Still“ bleibt still. Bei reduzierter Bewegung entfallen Sprung und Lichtimpuls. Beim Fortsetzen eines Bildes werden fertige Farben nicht nachträglich gefeiert. | Die vorhandenen Wünsche zu Klang und Bewegung gelten auch für die neue Rückmeldung. |
+
+## Auswahl der Hörproben (17.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Der Farbabschluss erhält Hörprobe C: einen hellen Dur-Glasklang, der mit einem hohen Grundton endet. Die Tonart folgt weiter dem Motiv. Das ersetzt den bisherigen Zweiklang; für das fertige Gesamtbild bleibt der Abschlussakkord bestehen. | Yogi hat nach dem Probehören ausdrücklich C gewählt: Der Abschluss soll positiver klingen und nach oben enden. |
+| Eine Murmel im Holzbrett erhält Hörprobe 1: einen kurzen, trockenen Kontakt mit rasch gedämpften Holzresonanzen. Sechs kleine Variationen wechseln sich ab; lange Ketten bleiben leiser. | Yogi hat ausdrücklich 1 gewählt. Das bisherige tiefe Ploppen passte nicht zu Glasmurmel und Holz. |
+| Beide Klänge werden im Browser berechnet und vor dem Rollen als Tonpuffer vorbereitet. Stummschaltung, Klangstufen und die übrigen Töne bleiben erhalten. | Die Klangentwürfe brauchen keine geladenen Audiodateien; beim Ankommen der Murmeln soll keine aufwendige Berechnung stattfinden. |
+| Der Einzelton erklingt für jede Murmel beim Erreichen des angetippten Einstiegs, von dem sie zu ihrem endgültigen Loch oder ihrer Mulde weiterrollt. Jede Murmel löst ihn genau einmal aus; das bisherige Auffächern mit möglichem Weglassen entfällt. | Nachtrag von Yogi: Das Geräusch soll schon beim sichtbaren Auftreffen beginnen, statt erst beim Versenken am Ende der Kette. Der natürliche Abstand der Murmeln bestimmt nun den Klangrhythmus. |
+| Farbabschluss und Lichtimpuls warten weiterhin auf die letzte vollständig angekommene Murmel der Farbe. | Die frühere Einzelton-Rückmeldung darf die Belohnung für einen tatsächlich abgeschlossenen Farbabschnitt nicht vorziehen. |

@@ -51,12 +51,12 @@ export class PlayScreen {
     private readonly leave: () => void,
   ) {
     this.view = new BoardView(el.canvas, {
-      land: (spot, color, rank, total) => {
-        if ('slot' in spot) {
-          this.sound.tock(rank, total);
-          return;
-        }
-        this.sound.clink(rank, total, color);
+      enter: (spot, color, rank, total) => {
+        if ('slot' in spot) this.sound.tock(rank, total);
+        else this.sound.clink(rank, total, color);
+      },
+      land: (spot, color) => {
+        if ('slot' in spot) return;
         // Der Spielstand ändert sich vor der Bewegung. Erst die letzte sichtbare Ankunft vollendet eine Farbe.
         const game = this.game;
         if (!game || this.view.arriving(color) || this.settled.has(color)) return;
@@ -185,6 +185,8 @@ export class PlayScreen {
     flashingColors: number[];
     completedColors: number[];
     arrivingColors: number[];
+    entered: number;
+    landed: number;
   } | null {
     if (!this.game || !this.picture) return null;
     return {
@@ -205,6 +207,8 @@ export class PlayScreen {
       flashingColors: this.view.flashingColors,
       completedColors: [...this.settled],
       arrivingColors: this.view.arrivingColors,
+      entered: this.view.enteredCount,
+      landed: this.view.landedCount,
     };
   }
 

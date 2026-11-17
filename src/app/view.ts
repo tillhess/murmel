@@ -23,7 +23,7 @@ import {
   WHOLE,
   zoomAt,
 } from '../core/camera';
-import { type Pt, type Run, runDuration, runPosition, scheduleChain } from '../core/chain';
+import { type Pt, type Run, runDuration, runEntryTime, runPosition, scheduleChain } from '../core/chain';
 import type { Game } from '../core/game';
 import { EMPTY } from '../core/level';
 import type { Roll, Spot } from '../core/moves';
@@ -57,8 +57,10 @@ const INK = '#1b1d30';
 export type Hit = { type: 'cell'; cell: number } | { type: 'tray'; slot: number | null } | { type: 'outside' };
 
 export interface ViewHooks {
-  /** Eine Murmel ist an ihrem Ziel angekommen. `rank` zählt die Ankünfte innerhalb der Kette ab 0. */
-  land(spot: Spot, color: number, rank: number, total: number): void;
+  /** Eine Murmel erreicht den angetippten Einstieg. Jede löst genau einen Einzelton aus. */
+  enter(spot: Spot, color: number, rank: number, total: number): void;
+  /** Eine Murmel ist in ihrem endgültigen Loch angekommen. */
+  land(spot: Spot, color: number): void;
   /** Das Bild ist fertig und alles zur Ruhe gekommen. */
   finished(): void;
   /** Das Bild ist jetzt vergrößert (true) oder wieder ganz zu sehen (false). */
@@ -71,8 +73,11 @@ interface Flight {
   t0: number;
   speed: number;
   dest: Spot;
-  /** gemeinsamer Zähler aller Murmeln dieses Zugs: wie viele schon angekommen sind */
-  chain: { landed: number; total: number };
+  entry: Spot;
+  entryAt: number;
+  entered: boolean;
+  /** gemeinsamer Zähler der Eintritte; die Klangfolge folgt der Rollfolge */
+  chain: { entered: number; total: number };
   fromSlot: boolean;
   /** so hoch schwebte die Murmel als Teil der Auswahl (Pixel) */
   lift: number;
@@ -139,6 +144,8 @@ export class BoardView {
   private staticDirty = true;
 
   private flights: Flight[] = [];
+  enteredCount = 0;
+  landedCount = 0;
   private blooms = new Map<number, { t0: number; color: number }>();
   private colorFlashes = new Map<number, number>();
   private twinkles: Twinkle[] = [];
@@ -175,6 +182,8 @@ export class BoardView {
   /** Bricht alle laufenden Bewegungen ab (z. B. nach "Rückgängig"). */
   calm(): void {
     this.flights = [];
+    this.enteredCount = 0;
+    this.landedCount = 0;
     this.blooms.clear();
     this.colorFlashes.clear();
     this.twinkles = [];
@@ -528,6 +537,7 @@ export class BoardView {
         const flight = this.flights[f];
         if (!('slot' in flight.dest)) continue;
         this.flights.splice(f, 1);
+        this.enter(flight);
         this.land(flight, now);
       }
     }
@@ -540,15 +550,19 @@ export class BoardView {
       ? 1e6
       : Math.max((this.cell * SPEED) / 1000, far / 1300, (spacing * (rolls.length - 1)) / 2800) * this.tempo;
     const runs = scheduleChain(paths, { speed, spacing, ease: this.cell * EASE_CELLS });
-    const chain = { landed: 0, total: rolls.length };
+    const chain = { entered: 0, total: rolls.length };
+    const t0 = now + (this.reduceMotion ? 0 : SETTLE_MS);
     rolls.forEach((r, k) => {
       const from = r.from;
       this.flights.push({
         color: r.color,
         run: runs[k],
-        t0: now + (this.reduceMotion ? 0 : SETTLE_MS),
+        t0,
         speed,
         dest: r.to,
+        entry: r.via[0] ?? r.to,
+        entryAt: t0 + runEntryTime(runs[k], speed),
+        entered: false,
         chain,
         fromSlot: 'slot' in from,
         lift: 'slot' in from ? 5 : this.cell * 0.13,
@@ -787,6 +801,11 @@ export class BoardView {
     const game = this.game;
     if (!game || !this.painting || this.W < 10) return;
 
+    // Auch nach einem ausgelassenen Animationsbild: einmal pro Murmel, in der tatsächlichen Eintrittsreihenfolge.
+    for (const fl of this.flights.filter((f) => !f.entered && now >= f.entryAt).sort((a, b) => a.entryAt - b.entryAt)) {
+      this.enter(fl);
+    }
+
     for (let f = this.flights.length - 1; f >= 0; f--) {
       const fl = this.flights[f];
       if (now - fl.t0 - fl.run.start >= runDuration(fl.run, fl.speed)) {
@@ -819,6 +838,8 @@ export class BoardView {
   }
 
   private land(fl: Flight, now: number): void {
+    // Rundung am Wegende oder ein vorzeitig abgeschlossener Ablagezug darf keinen Einzelton verlieren.
+    this.enter(fl);
     const game = this.game as Game;
     if ('cell' in fl.dest) {
       const cell = fl.dest.cell;
@@ -830,7 +851,15 @@ export class BoardView {
       this.pendSlots.delete(fl.dest.slot);
     }
     this.baseDirty = true;
-    this.hooks.land(fl.dest, fl.color, fl.chain.landed++, fl.chain.total);
+    this.landedCount++;
+    this.hooks.land(fl.dest, fl.color);
+  }
+
+  private enter(fl: Flight): void {
+    if (fl.entered) return;
+    fl.entered = true;
+    this.enteredCount++;
+    this.hooks.enter(fl.entry, fl.color, fl.chain.entered++, fl.chain.total);
   }
 
   private spawnTwinkle(now: number): void {

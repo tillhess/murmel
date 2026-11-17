@@ -29,6 +29,8 @@ interface Murmel {
     flashingColors: number[];
     completedColors: number[];
     arrivingColors: number[];
+    entered: number;
+    landed: number;
   } | null;
   home(): void;
   /** eine Stelle auf dem Holz des Bretts, die keine Mulde trifft */
@@ -376,14 +378,15 @@ test('Ein Bild lässt sich zu Ende spielen und hängt danach fertig in der Samml
   expect(errors).toEqual([]);
 });
 
-/** Drei noch fehlende Murmeln; die beiden blauen Löcher liegen weit auseinander. */
-async function almostFinished(page: Page): Promise<void> {
+/** Noch fehlende blaue Murmeln: wahlweise eine zusammenhängende Kette oder zwei entfernte Löcher. */
+async function almostFinished(page: Page, connected = false): Promise<void> {
   const target = Array.from(rasterize(SCENES[0]));
   const blue = target.flatMap((color, cell) => (color === 0 ? [cell] : []));
   // Das andere Loch liegt hinter beiden blauen: trayHole() liefert das erste freie Feld.
   expect(target.lastIndexOf(1)).toBeGreaterThan(blue[blue.length - 1]);
+  const missingBlue = connected ? blue.slice(0, 3) : [blue[0], blue[blue.length - 1]];
   const cur = target.slice();
-  for (const cell of [blue[0], blue[blue.length - 1], target.lastIndexOf(1)]) cur[cell] = -1;
+  for (const cell of [...missingBlue, target.lastIndexOf(1)]) cur[cell] = -1;
   await page.addInitScript(
     (progress) => {
       localStorage.setItem(
@@ -391,7 +394,7 @@ async function almostFinished(page: Page): Promise<void> {
         JSON.stringify({ finished: [], progress: { mond: progress }, sound: 'aus', tempo: 0.45 }),
       );
     },
-    { cur, tray: [0, 0, 1, ...Array(27).fill(-1)] },
+    { cur, tray: [...missingBlue.map(() => 0), 1, ...Array(29 - missingBlue.length).fill(-1)] },
   );
   await page.clock.install({ time: new Date('2026-11-15T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-11-15T12:00:01Z'));
@@ -399,6 +402,35 @@ async function almostFinished(page: Page): Promise<void> {
   await page.evaluate(() => window.murmel.open('mond', false));
   await page.clock.runFor(32);
 }
+
+test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie im Loch ankommt', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await almostFinished(page, true);
+  const wood = await page.evaluate(() => window.murmel.wood());
+  await page.mouse.click(wood.x, wood.y);
+  const hole = await page.evaluate(() => window.murmel.trayHole());
+  if (!hole) throw new Error('freies blaues Loch fehlt');
+  await page.mouse.click(hole.x, hole.y);
+  expect((await status(page))?.entered).toBe(0);
+  expect((await status(page))?.landed).toBe(0);
+
+  for (let step = 0; step < 100 && (await status(page))?.entered === 0; step++) {
+    await page.clock.runFor(64);
+  }
+  const first = await status(page);
+  expect(first?.entered).toBe(1);
+  expect(first?.landed).toBe(0);
+  expect(first?.completedColors).not.toContain(0);
+
+  await page.clock.runFor(4000);
+  const done = await status(page);
+  expect(done?.entered).toBe(3);
+  expect(done?.landed).toBe(3);
+  expect(done?.completedColors).toContain(0);
+  await page.clock.runFor(1000);
+  expect((await status(page))?.entered).toBe(3);
+});
 
 test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappenden Zügen', async ({ page }) => {
   test.setTimeout(60_000);
@@ -452,6 +484,8 @@ test('Reduzierte Bewegung unterdrückt den Farbblitz auch beim letzten Zug', asy
   expect(done?.flashingColors).toEqual([]);
   expect(done?.completedColors).toContain(0);
   expect(done?.completedColors).toContain(1);
+  expect(done?.entered).toBeGreaterThan(0);
+  expect(done?.entered).toBe(done?.landed);
 });
 
 test('Ein angefangenes Bild wird nach dem Neuladen fortgesetzt', async ({ page }) => {
