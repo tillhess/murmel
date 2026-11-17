@@ -23,7 +23,7 @@ function amplitude(data: Float32Array, frequency: number, from: number, to: numb
   return Math.hypot(re, im) / (end - start);
 }
 
-describe('Gewählte Klangfarben C und 1', () => {
+describe('Farbabschluss und Holzklang-Entwurf', () => {
   it.each([43, 50, 60])('lässt den Akkord über Grundton %i deutlich nach oben aufgehen', (root) => {
     const [left, right] = glassCompletion(root);
     const low = midiToHz(root + 12);
@@ -34,7 +34,17 @@ describe('Gewählte Klangfarben C und 1', () => {
       expect(channel.every(Number.isFinite)).toBe(true);
       expect(peak(channel)).toBeGreaterThan(0.1);
       expect(peak(channel)).toBeLessThan(0.5);
-      expect(energy(channel, 2.85, 3.02)).toBe(0);
+      // Der bisherige Puffer endete hier hörbar; der neue Ton klingt ohne vorgezogene Schlussblende weiter.
+      const late = energy(channel, 2.85, 3.05);
+      expect(late).toBeGreaterThan(0.00001);
+      expect(late).toBeLessThan(energy(channel, 2.05, 2.25));
+      expect(energy(channel, 3.65, 3.85)).toBeLessThan(late * 0.2);
+      // Der letzte Nachhall reicht über 5,5 s hinaus und endet ohne Sprung, mit stiller Reserve im Puffer.
+      const end = channel.findLastIndex((sample) => sample !== 0);
+      expect(end).toBeGreaterThan(5.5 * TIMBRE_RATE);
+      expect(Math.abs(channel[end])).toBeLessThan(1e-10);
+      expect(peak(channel.slice(end - 0.1 * TIMBRE_RATE, end + 1))).toBeLessThan(0.00003);
+      expect(energy(channel, channel.length / TIMBRE_RATE - 0.15, channel.length / TIMBRE_RATE)).toBe(0);
     }
   });
 

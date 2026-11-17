@@ -51,10 +51,7 @@ export class PlayScreen {
     private readonly leave: () => void,
   ) {
     this.view = new BoardView(el.canvas, {
-      enter: (spot, color, rank, total) => {
-        if ('slot' in spot) this.sound.tock(rank, total);
-        else this.sound.clink(rank, total, color);
-      },
+      enter: (_spot, color, rank, total) => this.sound.clink(rank, total, color),
       land: (spot, color) => {
         if ('slot' in spot) return;
         // Der Spielstand ändert sich vor der Bewegung. Erst die letzte sichtbare Ankunft vollendet eine Farbe.

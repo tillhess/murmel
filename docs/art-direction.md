@@ -118,17 +118,17 @@ Alles wird im Browser erzeugt, es gibt keine Audiodateien.
 | --- | --- | --- |
 | Klang entsteht aus dem, was man tut: Jede Murmel schlägt beim Erreichen des angetippten Einstiegs einen Ton an, bevor sie von dort zu ihrem endgültigen Loch weiterrollt. | Beleg K8, [3.4], [3.9]: Spielereignisse als Noten einer größeren Komposition. Zeitpunkt auf Wunsch von Yogi, 17.11.2026. | `runEntryTime`, `ViewHooks.enter`, `Sound.clink` |
 | Alle Töne eines Bildes stammen aus einem Tonvorrat, einer Fünftonleiter über dem Grundton des Bildes. Jedes Bild hat seinen eigenen Grundton. | Beleg [3.8], [3.9], [3.11]: Klänge werden auf die Tonart der Szene gestimmt. Die Fünftonleiter ist der einfachste Weg dorthin, als Wahl aber schwach belegt (K9, [3.16]). | `src/audio/tune.ts`, `mood.root` je Motiv |
-| Jede Murmel erhält genau einen Einzelton am Einstieg, ohne nachträgliches Auffächern oder Weglassen. Der Abstand entsteht durch die rollende Kette; lange Ketten klingen leiser. | Wunsch von Yogi, 17.11.2026: Ton und sichtbarer Kontakt gehören zusammen. Das ersetzt die bisherige Begrenzung auf einen Ton je 90 ms. | `ViewHooks.enter`, `Sound.clink`, `Sound.tock` |
+| Jede Murmel erhält genau einen Einzelton am Einstieg, ohne nachträgliches Auffächern oder Weglassen. Der Abstand entsteht durch die rollende Kette; lange Ketten klingen leiser. | Wunsch von Yogi, 17.11.2026: Ton und sichtbarer Kontakt gehören zusammen. Das ersetzt die bisherige Begrenzung auf einen Ton je 90 ms. | `ViewHooks.enter`, `Sound.clink` |
 | Eine Kette endet auf Grundton oder Quinte. Eine fertige Farbe bekommt den hellen, aufsteigenden Dur-Glasklang C mit hohem Grundton am Schluss. | Beleg [3.13]: Musikalischere Klänge markieren Erfolge und Übergänge. Auswahl von Yogi nach Hörproben, 17.11.2026. | `restStep`, `Sound.settle`, `glassCompletion` |
-| Glas auf Holz klingt kurz und trocken, mit rasch gedämpften Resonanzen und kleinen Variationen. Kein tiefer, absinkender Plopp. | Auswahl von Yogi: Hörprobe 1, 17.11.2026. Der Kontakt soll zum Material passen. | `Sound.tock`, `woodContact` |
+| Auf dem Holzbrett erklingen vorerst dieselben weichen Zieltöne wie im Bild. Der Abschlussakkord C klingt samt Reflexionen natürlich bis in die Stille aus. | Rückmeldung von Yogi nach dem Spieltest, 17.11.2026: Holzgeräusche passen noch nicht; das Ende des Akkords darf nicht hörbar abbrechen. | `Sound.clink`, `glassCompletion` |
 | Weiche, sinusartige Töne. Nichts Raues, auch nicht als Hinweis. | Beleg [3.5] (Sinusklänge bei Mini Metro), [3.21] (raue Klänge wirken als Alarm). | `Sound.bell`, `Sound.nope` |
 | Der Raum: einzelne lange Töne im Takt eines Atemzugs. Welche Töne klingen, wechselt, und etwa jeder fünfte Atemzug bleibt still. | Beleg [3.1], [3.2]: Regeln statt Schleife, Musik so überhörbar wie interessant. [3.20]: Entspannung zeigte sich am deutlichsten in der Stille. | `Sound.breath` |
 | Drei Stufen: alles, nur Murmeln, still. | Folgerung aus der Nutzung neben Hörbüchern. | `SoundMode`, wählbar in den Einstellungen und über das Symbol in der Spielleiste |
 | Der Klang mischt sich unter andere Apps und unterbricht sie nicht. Dafür schweigt er im Stummmodus des iPad. | Beleg (Technik 1.3, 1.4): Die Tonkategorie „ambient“ mischt und folgt dem Stummschalter. Eine Kategorie, die mischt und den Stummmodus übergeht, gibt es im Web nicht. | `Sound.build` |
 
 Abweichung von der Recherche: Empfohlen sind zwei Schichten, echte Aufnahmen für das Greifbare und gestimmte Töne für
-das Musikalische ([3.12], [3.13]). Murmel hat bisher nur die zweite. Das Klopfen auf dem Holzbrett ist gerechnet.
-Aufnahmen von echtem Glas auf Holz wären die naheliegende Verbesserung.
+das Musikalische ([3.12], [3.13]). Murmel verwendet nach dem Hörtest vorerst auch auf dem Holzbrett gestimmte Töne.
+Der gerechnete Holzklang bleibt als Entwurf zurückgestellt; Aufnahmen von echtem Glas auf Holz wären ein weiterer Ansatz.
 
 ## Atem
 

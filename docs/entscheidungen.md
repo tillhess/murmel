@@ -173,3 +173,10 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Beide Klänge werden im Browser berechnet und vor dem Rollen als Tonpuffer vorbereitet. Stummschaltung, Klangstufen und die übrigen Töne bleiben erhalten. | Die Klangentwürfe brauchen keine geladenen Audiodateien; beim Ankommen der Murmeln soll keine aufwendige Berechnung stattfinden. |
 | Der Einzelton erklingt für jede Murmel beim Erreichen des angetippten Einstiegs, von dem sie zu ihrem endgültigen Loch oder ihrer Mulde weiterrollt. Jede Murmel löst ihn genau einmal aus; das bisherige Auffächern mit möglichem Weglassen entfällt. | Nachtrag von Yogi: Das Geräusch soll schon beim sichtbaren Auftreffen beginnen, statt erst beim Versenken am Ende der Kette. Der natürliche Abstand der Murmeln bestimmt nun den Klangrhythmus. |
 | Farbabschluss und Lichtimpuls warten weiterhin auf die letzte vollständig angekommene Murmel der Farbe. | Die frühere Einzelton-Rückmeldung darf die Belohnung für einen tatsächlich abgeschlossenen Farbabschnitt nicht vorziehen. |
+
+## Klang nach dem Spieltest (17.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Klang C bleibt, darf aber länger natürlich ausklingen. Auch die letzten Reflexionen werden vollständig ausgespielt; erst bei sehr geringer Restlautstärke folgt die abschließende weiche Blende. | Yogi gefällt der Akkord, hört aber am Ende einen Abbruch. Die frühere Begrenzung auf 2,7 Sekunden und das Abschneiden der Reflexionen sollen entfallen. |
+| Ankommende Murmeln auf dem Holzbrett erhalten vorerst genau dieselben Zieltöne wie im Bild. Die separate Holzklang-Wiedergabe entfällt. | Nach dem Test passen die Holzgeräusche für Yogi noch nicht. Der Einzelton bleibt an den Einstieg gekoppelt und wird weiterhin genau einmal pro Murmel ausgelöst. |

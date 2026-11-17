@@ -33,7 +33,8 @@ function resonances(length: number, parts: readonly Partial[], attack: number, f
 
 /** Gewählt: C, heller Glasklang. Der Dur-Akkord öffnet sich bis zum hohen Grundton. */
 export function glassCompletion(root: number): Stereo {
-  const length = Math.round(2.7 * TIMBRE_RATE);
+  // Den natürlichen Ausklang nicht nach 2,7 s abschneiden: Erst weit unter Hörlautstärke weich auf null führen.
+  const length = Math.round(6 * TIMBRE_RATE);
   const dry: Stereo = [new Float32Array(length), new Float32Array(length)];
   const notes = [
     [12, 0, 0.36],
@@ -55,7 +56,7 @@ export function glassCompletion(root: number): Stereo {
         [f * 4.01, 0.015, 0.07],
       ],
       0.003,
-      0.18,
+      1,
     );
     const angle = (((k / (notes.length - 1) - 0.5) * 0.24 + 1) * Math.PI) / 4;
     const gains = [Math.cos(angle), Math.sin(angle)];
@@ -64,28 +65,28 @@ export function glassCompletion(root: number): Stereo {
     }
   });
   const lead = Math.round(0.12 * TIMBRE_RATE);
-  const result: Stereo = [
-    new Float32Array(Math.round(3.02 * TIMBRE_RATE)),
-    new Float32Array(Math.round(3.02 * TIMBRE_RATE)),
+  const reflections = [
+    [0.023, 0.09],
+    [0.043, 0.065],
+    [0.079, 0.045],
+    [0.137, 0.027],
   ];
+  const tail = Math.round((Math.max(...reflections.map(([delay]) => delay)) + 0.2) * TIMBRE_RATE);
+  const result: Stereo = [new Float32Array(lead + length + tail), new Float32Array(lead + length + tail)];
   for (let ch = 0; ch < 2; ch++) {
     result[ch].set(dry[ch], lead);
     // Derselbe kleine Raum wie in Hörprobe C; kein zusätzlicher langer Glockenhall.
-    for (const [delay, gain] of [
-      [0.023, 0.09],
-      [0.043, 0.065],
-      [0.079, 0.045],
-      [0.137, 0.027],
-    ]) {
+    for (const [delay, gain] of reflections) {
       const n = Math.round(delay * TIMBRE_RATE);
-      for (let i = n; i < length; i++) result[ch][lead + i] += dry[1 - ch][i - n] * gain;
+      // Auch die letzten Reflexionen dürfen vollständig ausklingen, statt am Ende des trockenen Tons abzureißen.
+      for (let i = 0; i < length; i++) result[ch][lead + n + i] += dry[1 - ch][i] * gain;
     }
     for (let i = 0; i < result[ch].length; i++) result[ch][i] *= 0.26091;
   }
   return result;
 }
 
-/** Gewählt: 1, trockenes Holz. Kleine Variationen verhindern identische Kontakte in langen Ketten. */
+/** Zurückgestellter Entwurf 1: trockenes Holz. Wird im Spiel nach Yogis Hörtest vorerst nicht verwendet. */
 export function woodContact(seed: number): Float32Array {
   const rng = makeRng(seed);
   const tuning = 1 + (rng() * 2 - 1) * 0.035;

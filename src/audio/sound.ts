@@ -1,4 +1,4 @@
-import { glassCompletion, TIMBRE_RATE, woodContact } from './timbres';
+import { glassCompletion, TIMBRE_RATE } from './timbres';
 import { midiToHz, nextStep, noteAt, restStep, startStep, type Walk } from './tune';
 
 /**
@@ -38,7 +38,6 @@ export class Sound {
   private out: GainNode | null = null;
   private wet: GainNode | null = null;
   private completion: AudioBuffer | null = null;
-  private contacts: AudioBuffer[] = [];
   private root = 50;
   private current: SoundMode;
 
@@ -100,7 +99,7 @@ export class Sound {
   }
 
   /**
-   * Eine Murmel erreicht den Einstieg ins Bild. `rank` zählt die Eintritte innerhalb der Kette ab 0.
+   * Eine Murmel erreicht den Einstieg ins Bild oder Holzbrett. `rank` zählt die Eintritte innerhalb der Kette ab 0.
    * Die Töne wandern in kleinen Schritten durch die Leiter, der letzte kommt auf Grundton oder Quinte zur Ruhe.
    */
   clink(rank: number, total: number, color: number): void {
@@ -115,24 +114,6 @@ export class Sound {
     const level = (0.1 / (1 + total / 24)) * (0.85 + Math.random() * 0.15);
     const decay = last ? 2.1 : Math.max(0.6, 1.6 - total * 0.06);
     this.bell(midiToHz(noteAt(this.root + 12, step)), last ? level * 1.15 : level, decay, at, last || total <= 8);
-  }
-
-  /** Hörprobe 1: kurzer, trockener Kontakt von Glas auf Holz, ohne tiefen Plopp. */
-  tock(rank: number, total: number): void {
-    const ctx = this.ready();
-    if (!ctx || !this.out) return;
-    const t = ctx.currentTime;
-    const soft = 1 / (1 + total / 30);
-    const src = ctx.createBufferSource();
-    src.buffer = this.contacts[rank % this.contacts.length];
-    const g = ctx.createGain();
-    g.gain.value = soft;
-    src.connect(g).connect(this.out);
-    src.onended = () => {
-      src.disconnect();
-      g.disconnect();
-    };
-    src.start(t);
   }
 
   /** Murmeln ausgewählt: ein kaum hörbarer hoher Ton */
@@ -200,7 +181,6 @@ export class Sound {
     this.out.connect(limiter);
     // Vorbereiten, bevor Murmeln rollen: Beim Ankommen wird nur noch der fertige Puffer abgespielt.
     this.completion = this.sampleBuffer(glassCompletion(this.root));
-    this.contacts = Array.from({ length: 6 }, (_, k) => this.sampleBuffer([woodContact(440 + k)]));
     // Hall: ein kurzer, weicher Raum aus verrauschtem Ausklang
     const convolver = ctx.createConvolver();
     convolver.buffer = this.impulse(ctx, 2.6);
