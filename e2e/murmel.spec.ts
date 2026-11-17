@@ -380,8 +380,10 @@ test('Ein Bild lässt sich zu Ende spielen und hängt danach fertig in der Samml
 async function almostFinished(page: Page): Promise<void> {
   const target = Array.from(rasterize(SCENES[0]));
   const blue = target.flatMap((color, cell) => (color === 0 ? [cell] : []));
+  // Das andere Loch liegt hinter beiden blauen: trayHole() liefert das erste freie Feld.
+  expect(target.lastIndexOf(1)).toBeGreaterThan(blue[blue.length - 1]);
   const cur = target.slice();
-  for (const cell of [blue[0], blue[blue.length - 1], target.indexOf(1)]) cur[cell] = -1;
+  for (const cell of [blue[0], blue[blue.length - 1], target.lastIndexOf(1)]) cur[cell] = -1;
   await page.addInitScript(
     (progress) => {
       localStorage.setItem(
