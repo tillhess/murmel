@@ -10,6 +10,8 @@ export interface Run {
   /** aufsummierte Weglänge bis zu jedem Wegpunkt */
   readonly cum: readonly number[];
   readonly length: number;
+  /** Weg bis zum angetippten Einstieg; dort entsteht der Einzelton. */
+  readonly entry: number;
   /** Abrollzeit in Millisekunden nach Beginn des Zugs; bis dahin wartet die Murmel an ihrem Platz */
   readonly start: number;
   /** Strecke vor dem Ziel, auf der die Murmel ausrollt (Pixel) */
@@ -46,7 +48,8 @@ export function scheduleChain(paths: readonly (readonly Pt[])[], { speed, spacin
     for (const p of raw.slice(1)) if (dist(p, pts[pts.length - 1]) > 0.5) pts.push(p);
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + dist(pts[i], pts[i - 1]));
-    return { pts, cum, length: cum[cum.length - 1], start: lead + k * gap - toEntry[k] / speed, ease };
+    const length = cum[cum.length - 1];
+    return { pts, cum, length, entry: Math.min(toEntry[k], length), start: lead + k * gap - toEntry[k] / speed, ease };
   });
 }
 
@@ -57,6 +60,18 @@ const easeOf = (run: Run): number => Math.max(0, Math.min(run.ease, run.length))
 export function runDuration(run: Run, speed: number): number {
   const e = easeOf(run);
   return (run.length - e) / speed + e / ((speed * (1 + ARRIVE)) / 2);
+}
+
+/** Zeitpunkt des Einstiegs, einschließlich einer möglichen Verzögerung und des Ausrollens kurz vor dem Ziel. */
+export function runEntryTime(run: Run, speed: number): number {
+  const e = easeOf(run);
+  const cruise = run.length - e;
+  if (run.entry <= cruise) return run.start + run.entry / speed;
+  const brake = e / ((speed * (1 + ARRIVE)) / 2);
+  const acceleration = (speed * (1 - ARRIVE)) / brake;
+  const distance = run.entry - cruise;
+  const discriminant = Math.max(0, speed * speed - 2 * acceleration * distance);
+  return run.start + cruise / speed + (2 * distance) / (speed + Math.sqrt(discriminant));
 }
 
 /** Zurückgelegter Weg nach `u` Millisekunden Rollen: erst gleichmäßig, auf dem letzten Stück gleichmäßig langsamer. */

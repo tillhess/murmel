@@ -44,7 +44,7 @@ lange Kette klingt als längere Tonfolge, und eine vollendete Farbe bekommt eine
 | Regel | Worauf sie beruht | Wo umgesetzt |
 | --- | --- | --- |
 | Jedes Motiv ist ein Papierschnitt: wenige flache Lagen, weiche Schatten zwischen den Lagen, Licht von oben links. | Beleg: Bildsprache entsteht durch Beschränkung (K5), echte Materialien geben Wärme (K6, [2.11], [2.12]). Folgerung: Papier passt zum Raster, weil flache Farbflächen als Murmeln lesbar bleiben. | `src/art/scenes.ts`, `src/art/paint.ts` |
-| Das Spielbrett ist ein Druck mit Papierrand und Bildunterschrift. Die Sammlung zeigt alle Drucke leicht schief wie an einer Wand. | Beleg [2.1]: Jeder Bildschirm soll als Bild an der Wand bestehen können. | `src/app/view.ts`, `src/styles.css` |
+| Das Spielbrett ist ein Druck mit Papierrand und Bildunterschrift in einem schmalen Naturholzrahmen (Wunsch vom 15.11.2026). Die Sammlung zeigt alle Drucke leicht schief wie an einer Wand. | Beleg [2.1]: Jeder Bildschirm soll als Bild an der Wand bestehen können. | `src/app/view.ts`, `src/styles.css` |
 | Fortschritt ist Bildwerdung. Wo eine Murmel richtig liegt, geht sie im Gemälde auf. Es gibt keinen Balken und keine Prozentzahl. | Beleg [1.13], [2.5]: Was man tut, verändert die Welt sichtbar. | `BoardView` in `src/app/view.ts` |
 | Fünf bis sieben Farben je Bild. | Beleg: etwa zehn Farben im ganzen Spiel bei A Little to the Left, höchstens fünf Farbkanäle je Objekt bei Dorfromantik (K5, [2.8], [2.10]). Die Zahl ist ein Richtwert aus zwei Spielen. | Paletten in `src/art/scenes.ts` |
 | Höchstens eine kräftige Farbe je Bild (Buntheit über 60), im Mittel höchstens 40. Der Himmel hinter dem Bild bleibt unter 40. | Beleg K7: In zwei Studien steigt die Erregung mit der Sättigung ([2.20], [2.21]). Die Schwellen sind eigene Festlegung. | Test in `src/art/scenes.test.ts` |
@@ -103,6 +103,8 @@ der Hügel und das Rosa der Blüten vom Rot der Sonne dahinter.
 | Ruhiges Tempo: 13 Felder in der Sekunde (zuerst 9; dem Auftraggeber war das am 14.11.2026 etwas zu langsam). Auf dem letzten Stück rollt jede Murmel aus und kommt mit zwei Fünfteln ihres Tempos an. | Beleg [1.2] (langsameres Tempo), [1.23] (Gewicht). Die Zahlen sind eigene Festlegung. | `SPEED`, `EASE_CELLS` in `src/app/view.ts`, `ARRIVE` in `src/core/chain.ts` |
 | Niemand wartet auf eine Bewegung. Man kann weitertippen, während die Kette noch rollt. | Folgerung aus K3: Kontrolle statt Druck, das Tempo bestimmt die Spielerin. | `PlayScreen.tap` |
 | Gewählte Murmeln schweben leicht und sinken zurück, bevor sie rollen. Passende Löcher leuchten in einem langsamen Puls von vier Sekunden. | Beleg [1.23]: Jede Berührung bekommt sofort Rückmeldung. | `BoardView.draw` |
+| Beim Wechsel zwischen Bild und Holzbrett rollen die Murmeln am Boden und hüpfen nur über die Rahmenkante. Der Schatten bleibt auf der Oberfläche; die Murmelgröße passt sich erst außerhalb des Rahmens an. | Vorgabe vom 15.11.2026: Gewicht statt Schweben. | `src/core/transfer.ts`, `BoardView.draw` |
+| Wird eine Farbe vollständig, leuchten nur ihre Flächen einmal für 720 ms warm auf. Das Signal wartet auf alle sichtbaren Ankünfte dieser Farbe. | Wunsch vom 15.11.2026 nach einem kleinen Flash zur Belohnung. Keine Punkte und kein Dialog. | `BoardView.flashColor`, `PlayScreen` |
 | Kein Glitzern. Höchstens zwei Lichter wandern gleichzeitig langsam über Murmeln. | Beleg [1.28]: Keine Animation darf die Ruhe stören. K1: Grelle Reize zerstören Behaglichkeit. | `spawnTwinkle` |
 | Geht etwas nicht, wiegt sich das Holzbrett einmal sacht. Kein Schütteln. | Folgerung aus [1.31]: sehr weiche Fehlzustände. | `BoardView.shake` |
 | Bewegung rechnet mit der Uhr, nicht mit Bildern. | Beleg (Technik 3.4): Safari zeichnet je nach Lage mit 30, 60 oder 120 Bildern in der Sekunde. | `BoardView.frame` |
@@ -114,18 +116,19 @@ Alles wird im Browser erzeugt, es gibt keine Audiodateien.
 
 | Regel | Worauf sie beruht | Wo umgesetzt |
 | --- | --- | --- |
-| Klang entsteht aus dem, was man tut: Jede einrastende Murmel schlägt einen Ton an. | Beleg K8, [3.4], [3.9]: Spielereignisse als Noten einer größeren Komposition. | `Sound.clink` |
+| Klang entsteht aus dem, was man tut: Jede Murmel schlägt beim Erreichen des angetippten Einstiegs einen Ton an, bevor sie von dort zu ihrem endgültigen Loch weiterrollt. | Beleg K8, [3.4], [3.9]: Spielereignisse als Noten einer größeren Komposition. Zeitpunkt auf Wunsch von Yogi, 17.11.2026. | `runEntryTime`, `ViewHooks.enter`, `Sound.clink` |
 | Alle Töne eines Bildes stammen aus einem Tonvorrat, einer Fünftonleiter über dem Grundton des Bildes. Jedes Bild hat seinen eigenen Grundton. | Beleg [3.8], [3.9], [3.11]: Klänge werden auf die Tonart der Szene gestimmt. Die Fünftonleiter ist der einfachste Weg dorthin, als Wahl aber schwach belegt (K9, [3.16]). | `src/audio/tune.ts`, `mood.root` je Motiv |
-| Gleichzeitige Töne werden aufgefächert: mindestens 90 ms Abstand, höchstens eine halbe Sekunde Verzug, der Rest entfällt. | Beleg [3.4], [3.6]: Mini Metro begrenzt Ereignisse und fächert sie rhythmisch auf. Gemessen: Rollt eine Kette in einen Gang, kommen sechs Murmeln innerhalb von 32 ms zur Ruhe. | `Spread` in `src/audio/tune.ts` |
-| Eine Kette endet auf Grundton oder Quinte. Wird eine Farbe vollständig, klingen Grundton und Quinte leise darunter auf. | Beleg [3.13]: Musikalischere Klänge markieren Erfolge und Übergänge. Folgerung: So bekommt ein guter Zug ein Zeichen ohne Zahl. | `restStep`, `Sound.settle` |
+| Jede Murmel erhält genau einen Einzelton am Einstieg, ohne nachträgliches Auffächern oder Weglassen. Der Abstand entsteht durch die rollende Kette; lange Ketten klingen leiser. | Wunsch von Yogi, 17.11.2026: Ton und sichtbarer Kontakt gehören zusammen. Das ersetzt die bisherige Begrenzung auf einen Ton je 90 ms. | `ViewHooks.enter`, `Sound.clink` |
+| Eine Kette endet auf Grundton oder Quinte. Eine fertige Farbe bekommt den hellen, aufsteigenden Dur-Glasklang C mit hohem Grundton am Schluss. | Beleg [3.13]: Musikalischere Klänge markieren Erfolge und Übergänge. Auswahl von Yogi nach Hörproben, 17.11.2026. | `restStep`, `Sound.settle`, `glassCompletion` |
+| Auf dem Holzbrett erklingen vorerst dieselben weichen Zieltöne wie im Bild. Der Abschlussakkord C klingt samt Reflexionen natürlich bis in die Stille aus. | Rückmeldung von Yogi nach dem Spieltest, 17.11.2026: Holzgeräusche passen noch nicht; das Ende des Akkords darf nicht hörbar abbrechen. | `Sound.clink`, `glassCompletion` |
 | Weiche, sinusartige Töne. Nichts Raues, auch nicht als Hinweis. | Beleg [3.5] (Sinusklänge bei Mini Metro), [3.21] (raue Klänge wirken als Alarm). | `Sound.bell`, `Sound.nope` |
 | Der Raum: einzelne lange Töne im Takt eines Atemzugs. Welche Töne klingen, wechselt, und etwa jeder fünfte Atemzug bleibt still. | Beleg [3.1], [3.2]: Regeln statt Schleife, Musik so überhörbar wie interessant. [3.20]: Entspannung zeigte sich am deutlichsten in der Stille. | `Sound.breath` |
 | Drei Stufen: alles, nur Murmeln, still. | Folgerung aus der Nutzung neben Hörbüchern. | `SoundMode`, wählbar in den Einstellungen und über das Symbol in der Spielleiste |
 | Der Klang mischt sich unter andere Apps und unterbricht sie nicht. Dafür schweigt er im Stummmodus des iPad. | Beleg (Technik 1.3, 1.4): Die Tonkategorie „ambient“ mischt und folgt dem Stummschalter. Eine Kategorie, die mischt und den Stummmodus übergeht, gibt es im Web nicht. | `Sound.build` |
 
 Abweichung von der Recherche: Empfohlen sind zwei Schichten, echte Aufnahmen für das Greifbare und gestimmte Töne für
-das Musikalische ([3.12], [3.13]). Murmel hat bisher nur die zweite. Das Klopfen auf dem Holzbrett ist gerechnet.
-Aufnahmen von echtem Glas auf Holz wären die naheliegende Verbesserung.
+das Musikalische ([3.12], [3.13]). Murmel verwendet nach dem Hörtest vorerst auch auf dem Holzbrett gestimmte Töne.
+Der gerechnete Holzklang bleibt als Entwurf zurückgestellt; Aufnahmen von echtem Glas auf Holz wären ein weiterer Ansatz.
 
 ## Atem
 
