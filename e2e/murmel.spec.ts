@@ -31,10 +31,12 @@ interface Murmel {
     arrivingColors: number[];
     entered: number;
     landed: number;
+    reveals: { cell: number; progress: number; waiting: boolean }[];
   } | null;
   home(): void;
   /** eine Stelle auf dem Holz des Bretts, die keine Mulde trifft */
   wood(): { x: number; y: number };
+  cell(index: number): { x: number; y: number } | null;
   /** die kleinste noch nicht gewählte Gruppe falsch liegender Murmeln im Bild */
   group(): { x: number; y: number } | null;
   /** eine Murmel auf dem Holzbrett, deren Farbe gerade nicht im Bild gewählt ist */
@@ -311,6 +313,54 @@ test('Bei vollem Holzbrett lässt sich trotz gewähltem Rest eine Farbe auf dem 
   expect(errors).toEqual([]);
 });
 
+test('Ein Fehlziel bei voller Ablage bewegt keine andere Farbe und erhält die Restgruppe', async ({ page }) => {
+  const target = Array.from(rasterize(SCENES[0]));
+  const width = SCENES[0].size;
+  const source = target.findIndex(
+    (c, i) => c === 1 && i % width < width - 2 && target[i + 1] === 1 && target[i + 2] === 1,
+  );
+  const hole = target.findIndex((c, i) => c === 0 && i % width < width - 1 && target[i + 1] === 0);
+  const third = target.findIndex((c, i) => c === 0 && i !== hole && i !== hole + 1);
+  expect(source).toBeGreaterThanOrEqual(0);
+  expect(hole).toBeGreaterThanOrEqual(0);
+  const wrongHoles = target.flatMap((c, i) => (c === 1 && (i < source || i > source + 2) ? [i] : [])).slice(0, 28);
+  expect(wrongHoles).toHaveLength(28);
+  const cur = [...target];
+  cur[hole] = cur[hole + 1] = -1;
+  cur[third] = 1;
+  cur[source] = cur[source + 1] = cur[source + 2] = 0;
+  for (const i of wrongHoles) cur[i] = -1;
+  await page.addInitScript((cur) => {
+    localStorage.setItem(
+      'murmel.v1',
+      JSON.stringify({ finished: [], progress: { mond: { cur, tray: Array(30).fill(1) } }, sound: 'aus' }),
+    );
+  }, cur);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('mond', false));
+  async function tapCell(index: number): Promise<void> {
+    const point = await page.evaluate((i) => window.murmel.cell(i), index);
+    if (!point) throw new Error('Testfeld fehlt');
+    await page.mouse.click(point.x, point.y);
+  }
+  await tapCell(source);
+  expect((await status(page))?.selected).toBe(3);
+  await tapCell(hole);
+  await expect.poll(async () => (await status(page))?.busy).toBe(false);
+  const before = await status(page);
+  expect(before?.selected).toBe(1);
+  expect(before?.inTray).toBe(30);
+  const saved = await page.evaluate(() => localStorage.getItem('murmel.v1'));
+  await tapCell(wrongHoles[0]);
+  const after = await status(page);
+  expect(after?.selected).toBe(1);
+  expect(after?.trayActive).toBe(false);
+  expect(after?.inTray).toBe(30);
+  expect(after?.remaining).toBe(before?.remaining);
+  expect(after?.entered).toBe(before?.entered);
+  expect(await page.evaluate(() => localStorage.getItem('murmel.v1'))).toBe(saved);
+});
+
 test('Passt eine Gruppe nicht ganz ins Ziel, bleibt der Rest gewählt', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/');
@@ -474,6 +524,42 @@ test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappe
   expect((await status(page))?.flashingColors).toEqual([]);
 });
 
+test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich über', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await almostFinished(page, true);
+  const wood = await page.evaluate(() => window.murmel.wood());
+  await page.mouse.click(wood.x, wood.y);
+  const hole = await page.evaluate(() => window.murmel.trayHole());
+  if (!hole) throw new Error('freies Loch fehlt');
+  await page.mouse.click(hole.x, hole.y);
+  let waitingSeen = false;
+  let arrived = false;
+  for (let step = 0; step < 500; step++) {
+    await page.clock.runFor(16);
+    const current = await status(page);
+    if (current?.reveals.some((r) => r.waiting)) {
+      waitingSeen = true;
+      expect(current.reveals.every((r) => r.progress === 0)).toBe(true);
+    }
+    if (current?.landed === 3) {
+      arrived = true;
+      break;
+    }
+  }
+  expect(waitingSeen).toBe(true);
+  expect(arrived).toBe(true);
+  const start = (await status(page))?.reveals ?? [];
+  expect(start).toHaveLength(3);
+  expect(start.every((r) => !r.waiting && r.progress < 0.01)).toBe(true);
+  await page.clock.runFor(500);
+  const middle = (await status(page))?.reveals ?? [];
+  expect(middle).toHaveLength(3);
+  expect(middle.every((r) => r.progress > 0.48 && r.progress < 0.54)).toBe(true);
+  await page.clock.runFor(520);
+  expect((await status(page))?.reveals).toEqual([]);
+});
+
 test('Reduzierte Bewegung unterdrückt den Farbblitz auch beim letzten Zug', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await almostFinished(page);
@@ -482,6 +568,7 @@ test('Reduzierte Bewegung unterdrückt den Farbblitz auch beim letzten Zug', asy
   const done = await status(page);
   expect(done?.solved).toBe(true);
   expect(done?.flashingColors).toEqual([]);
+  expect(done?.reveals).toEqual([]);
   expect(done?.completedColors).toContain(0);
   expect(done?.completedColors).toContain(1);
   expect(done?.entered).toBeGreaterThan(0);

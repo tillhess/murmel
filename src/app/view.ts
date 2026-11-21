@@ -27,6 +27,7 @@ import { type Pt, type Run, runDuration, runEntryTime, runPosition, scheduleChai
 import type { Game } from '../core/game';
 import { EMPTY } from '../core/level';
 import type { Roll, Spot } from '../core/moves';
+import { revealProgress } from '../core/reveal';
 import { transferPose } from '../core/transfer';
 import { type Sprite, Sprites } from './sprites';
 import { DISPLAY_FONT } from './theme';
@@ -45,8 +46,6 @@ const EASE_CELLS = 0.8;
 const SETTLE_MS = 130;
 /** Ein Atemzug der Auswahl: Ringe und leuchtende Löcher schwellen in vier Sekunden an und ab */
 const PULSE_MS = 4000;
-/** So lange braucht eine eingerastete Murmel, um im Bild aufzugehen */
-const BLOOM_MS = 620;
 /** Ein einmaliger, warmer Lichtimpuls auf der gerade vollendeten Farbe. */
 const COLOR_FLASH_MS = 720;
 /** Vergrößern lässt sich das Bild, bis ein Feld etwa so groß ist (Bildschirmpunkte), mindestens aber aufs Doppelte */
@@ -77,7 +76,7 @@ interface Flight {
   entryAt: number;
   entered: boolean;
   /** gemeinsamer Zähler der Eintritte; die Klangfolge folgt der Rollfolge */
-  chain: { entered: number; total: number };
+  chain: { entered: number; total: number; landed: number };
   fromSlot: boolean;
   /** so hoch schwebte die Murmel als Teil der Auswahl (Pixel) */
   lift: number;
@@ -146,7 +145,7 @@ export class BoardView {
   private flights: Flight[] = [];
   enteredCount = 0;
   landedCount = 0;
-  private blooms = new Map<number, { t0: number; color: number }>();
+  private blooms = new Map<number, { t0: number | null; color: number; chain: Flight['chain'] }>();
   private colorFlashes = new Map<number, number>();
   private twinkles: Twinkle[] = [];
   private pendCells = new Set<number>();
@@ -365,6 +364,12 @@ export class BoardView {
     return [...new Set(this.flights.filter((f) => 'cell' in f.dest).map((f) => f.color))];
   }
 
+  /** Fortschritt der sichtbaren Übergänge; wartende Ketten bleiben bei null. */
+  get reveals(): { cell: number; progress: number; waiting: boolean }[] {
+    const now = performance.now();
+    return [...this.blooms].map(([cell, b]) => ({ cell, progress: revealProgress(b.t0, now), waiting: b.t0 === null }));
+  }
+
   get flashingColors(): number[] {
     return [...this.colorFlashes.keys()];
   }
@@ -550,7 +555,7 @@ export class BoardView {
       ? 1e6
       : Math.max((this.cell * SPEED) / 1000, far / 1300, (spacing * (rolls.length - 1)) / 2800) * this.tempo;
     const runs = scheduleChain(paths, { speed, spacing, ease: this.cell * EASE_CELLS });
-    const chain = { entered: 0, total: rolls.length };
+    const chain = { entered: 0, total: rolls.length, landed: 0 };
     const t0 = now + (this.reduceMotion ? 0 : SETTLE_MS);
     rolls.forEach((r, k) => {
       const from = r.from;
@@ -669,7 +674,7 @@ export class BoardView {
     this.staticDirty = false;
   }
 
-  private rebuildBase(): void {
+  private rebuildBase(now: number): void {
     const game = this.game;
     const painting = this.painting;
     if (!game || !painting) return;
@@ -722,10 +727,14 @@ export class BoardView {
       m.fillStyle = '#ffffff';
       let any = false;
       for (const i of level.cells) {
-        if (!this.shown(i)) continue;
+        const bloom = this.blooms.get(i);
+        const opacity = bloom ? revealProgress(bloom.t0, now) : this.shown(i) ? 1 : 0;
+        if (opacity === 0) continue;
         any = true;
+        m.globalAlpha = opacity;
         m.fillRect((i % w) * 4, Math.floor(i / w) * 4, 4, 4);
       }
+      m.globalAlpha = 1;
       const layer = this.paintLayer;
       if (any && layer) {
         const p = layer.getContext('2d') as CanvasRenderingContext2D;
@@ -814,9 +823,9 @@ export class BoardView {
       }
     }
     for (const [cell, b] of this.blooms) {
-      if (now - b.t0 >= BLOOM_MS) {
-        this.blooms.delete(cell);
+      if (b.t0 !== null) {
         this.baseDirty = true;
+        if (revealProgress(b.t0, now) === 1) this.blooms.delete(cell);
       }
     }
     for (const [color, t0] of this.colorFlashes) {
@@ -830,7 +839,7 @@ export class BoardView {
       this.hooks.finished();
     }
     if (this.baseDirty) {
-      this.rebuildBase();
+      this.rebuildBase(now);
       this.baseDirty = false;
     }
     this.spawnTwinkle(now);
@@ -845,10 +854,16 @@ export class BoardView {
       const cell = fl.dest.cell;
       this.pendCells.delete(cell);
       if (!this.reduceMotion && game.state.cur[cell] === game.level.target[cell]) {
-        this.blooms.set(cell, { t0: now, color: fl.color });
+        this.blooms.set(cell, { t0: null, color: fl.color, chain: fl.chain });
       }
     } else {
       this.pendSlots.delete(fl.dest.slot);
+    }
+    fl.chain.landed++;
+    if (fl.chain.landed === fl.chain.total) {
+      for (const bloom of this.blooms.values()) {
+        if (bloom.chain === fl.chain) bloom.t0 = now;
+      }
     }
     this.baseDirty = true;
     this.landedCount++;
@@ -887,7 +902,6 @@ export class BoardView {
 
   private draw(now: number): void {
     const game = this.game as Game;
-    const painting = this.painting as HTMLCanvasElement;
     const { level, state } = game;
     const { ctx, cell, dpr } = this;
     const zoom = this.cam.zoom;
@@ -972,34 +986,13 @@ export class BoardView {
       }
     }
 
-    // Murmeln, die gerade eingerastet sind, gehen im Bild auf: das Bild wächst aus der Mitte des Felds
+    // Angekommene Murmeln warten auf ihre Kette und verblassen dann gemeinsam.
+    // Die Bildfarbe benutzt dabei dieselbe weiche Maske wie der dauerhafte Bildstand.
     for (const [i, b] of this.blooms) {
       if (!inView(i)) continue;
-      const p = Math.min(1, (now - b.t0) / BLOOM_MS);
-      const ease = 1 - (1 - p) ** 3;
+      const opacity = 1 - revealProgress(b.t0, now);
       const [cx, cy] = this.cellCenter(i);
-      const x0 = cx - cell / 2;
-      const y0 = cy - cell / 2;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(x0, y0, cell, cell);
-      ctx.clip();
-      ctx.beginPath();
-      ctx.arc(cx, cy, cell * 0.74 * ease, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(
-        painting,
-        ((i % level.w) / level.w) * painting.width,
-        (Math.floor(i / level.w) / level.h) * painting.height,
-        painting.width / level.w,
-        painting.height / level.h,
-        x0,
-        y0,
-        cell,
-        cell,
-      );
-      ctx.restore();
-      Sprites.blit(ctx, this.marbleSprite(level.palette[b.color], md, 0), cx, cy, md * (1 - 0.25 * ease), 1 - ease);
+      Sprites.blit(ctx, this.marbleSprite(level.palette[b.color], md, 0), cx, cy, md, opacity);
     }
 
     // rollende Murmeln im Bild; wer noch wartet, liegt an seinem Startplatz
