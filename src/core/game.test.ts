@@ -183,16 +183,42 @@ describe('Spielsteuerung', () => {
       expect(trayCount(game.state)).toBe(2); // nichts wurde abgelegt
     });
 
-    it('legt bei vollem Holzbrett und gewähltem Rest trotzdem Murmeln vom Brett ins Bild', () => {
-      // Der gemeldete Fehler: Das Brett ist voll, ein Rest ist noch gewählt, und jeder Tipp auf das Brett
-      // wurde als Ablegen verstanden und mit "Das Holzbrett ist voll" beantwortet.
+    it('bewegt bei gewähltem Rest keine fremde Farbe vom vollen Holzbrett', () => {
       const game = withTray();
-      game.tapCell(0); // zwei B gewählt, aber nur eine Mulde frei
-      expect(game.tapTray(null)).toMatchObject({ type: 'gerollt', rest: { source: 'board', color: 1 } });
+      game.tapCell(0);
+      game.tapTray(null);
       expect(trayCount(game.state)).toBe(3);
-      // die A auf dem Brett rollen ins Bild, ohne dass der Rest seine Auswahl verliert
-      expect(game.tapCell(5)).toMatchObject({ type: 'gerollt', ziel: 'bild', color: 0 });
+      const before = Array.from(game.state.cur);
+      const tray = Array.from(game.state.tray);
+      expect(game.tapCell(5)).toEqual({ type: 'abgelehnt', reason: 'falsche-farbe' });
+      expect(Array.from(game.state.cur)).toEqual(before);
+      expect(Array.from(game.state.tray)).toEqual(tray);
       expect(game.selection).toMatchObject({ source: 'board', color: 1 });
+      expect(game.trayActive).toBe(false);
+      // Ein bewusster Tipp auf eine andere Farbe im Holzbrett erlaubt den Wechsel weiterhin.
+      expect(game.tapTray(0)).toEqual({ type: 'ablage-gewählt' });
+      expect(game.tapCell(5)).toMatchObject({ type: 'gerollt', ziel: 'bild', color: 0 });
+    });
+
+    it.each([3, 4])('behält nach zwei von drei roten Murmeln die letzte gewählt (Brettgröße %i)', (size) => {
+      // A = Rot, B = Blau: drei rote Murmeln liegen unten; zwei rote Ziele oben sind verbunden.
+      const level = levelFromRows(['AABBA', 'BBBAB']);
+      const state = newState(new Int16Array([EMPTY, EMPTY, EMPTY, 1, 1, 0, 0, 0, 0, 1]), size);
+      state.tray.set([1, 1, 1]);
+      const game = new Game(level, state);
+      game.tapCell(5);
+      expect(game.tapCell(0)).toMatchObject({ type: 'gerollt', rest: { color: 0, cells: [7] } });
+      const before = Array.from(game.state.cur);
+      const tray = Array.from(game.state.tray);
+      expect(game.tapCell(2)).toEqual({ type: 'abgelehnt', reason: 'falsche-farbe' });
+      expect(Array.from(game.state.cur)).toEqual(before);
+      expect(Array.from(game.state.tray)).toEqual(tray);
+      expect(game.selection).toMatchObject({ color: 0, cells: [7] });
+      expect(game.trayActive).toBe(false);
+      // Der Fehlversuch erzeugt keinen Rückgängig-Schritt.
+      expect(game.undo()).toBe(true);
+      expect(Array.from(game.state.cur)).toEqual([EMPTY, EMPTY, EMPTY, 1, 1, 0, 0, 0, 0, 1]);
+      expect(game.undo()).toBe(false);
     });
 
     it('lehnt bei vollem Holzbrett nur das Ablegen ab', () => {

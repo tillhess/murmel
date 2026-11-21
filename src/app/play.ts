@@ -184,6 +184,7 @@ export class PlayScreen {
     arrivingColors: number[];
     entered: number;
     landed: number;
+    reveals: { cell: number; progress: number; waiting: boolean }[];
   } | null {
     if (!this.game || !this.picture) return null;
     return {
@@ -206,7 +207,14 @@ export class PlayScreen {
       arrivingColors: this.view.arrivingColors,
       entered: this.view.enteredCount,
       landed: this.view.landedCount,
+      reveals: this.view.reveals,
     };
+  }
+
+  /** Bildschirmposition eines Rasterfelds für reproduzierbare Bedienungstests. */
+  cellPoint(cell: number): { x: number; y: number } | null {
+    if (!this.game || !Number.isInteger(cell) || !this.game.level.cells.includes(cell)) return null;
+    return this.view.clientPoint({ cell });
   }
 
   /**

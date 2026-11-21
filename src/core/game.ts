@@ -78,8 +78,8 @@ export class Game {
       if (selection && selection.color === level.target[cell]) {
         return this.roll('bild', selection, (s) => place(level, s, selection, cell));
       }
-      // Ist eine Gruppe im Bild gewählt, kann eine andere Farbe vom Brett weiterhin direkt einspringen.
-      const fromTray = selection || this.trayActive ? selectColor(state, level.target[cell]) : null;
+      // Nur ein ausdrücklich gewähltes Holzbrett darf die Quelle eines Zieltipps sein.
+      const fromTray = this.trayActive ? selectColor(state, level.target[cell]) : null;
       if (fromTray) return this.roll('bild', fromTray, (s) => place(level, s, fromTray, cell), true);
       return { type: 'abgelehnt', reason: selection ? 'falsche-farbe' : 'nichts-gewählt' };
     }
@@ -171,7 +171,7 @@ export class Game {
     this.history.push(before);
     if (this.history.length > 200) this.history.shift();
     // Was nicht mitrollen konnte, bleibt gewählt.
-    // Kam der Zug vom Holzbrett, bleibt die Auswahl im Bild unberührt.
+    // Bei gewähltem Holzbrett bleibt dessen gemeinsame Auswahl für weitere Farben aktiv.
     const rest = keep ? null : remainder(selection, result.rolls);
     if (!keep) this.selection = rest;
     if (this.traySelected && !this.state.tray.some((c) => c !== EMPTY)) this.traySelected = false;

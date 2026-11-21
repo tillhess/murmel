@@ -16,7 +16,7 @@ Was für Murmel festgelegt ist und warum. Neue Entscheidungen kommen unten dazu,
 | Was nicht hineinpasst, bleibt gewählt. Das gilt auch, wenn auf dem Holzbrett nicht für alle Platz ist. | Vom Auftraggeber so festgelegt (14.11.2026). Man tippt gleich das nächste Ziel an, statt die Gruppe neu zu wählen. Ein Tipp daneben oder auf den Rest hebt die Auswahl auf. |
 | Es rollen die Murmeln, die dem Ziel am nächsten liegen. | Ergibt kurze, nachvollziehbare Wege. |
 | Die Ablage hat 30 Mulden, in den Einstellungen wählbar bis 120. | Die 30 hat der Auftraggeber festgelegt, am 14.11.2026 dann die Wahl: Große Bilder brauchen mehr Vorrat. Im laufenden Spiel wächst das Brett sofort; kleiner wird es nur, wenn alle Murmeln darauf noch Platz haben. |
-| Ein Tipp auf das Holzbrett wählt alle Farben darauf. Die Murmeln schweben, das Brett bekommt einen hellen Rahmen und passende Löcher leuchten. Ein zweiter Tipp aufs Brett oder ein Tipp daneben hebt die Auswahl auf. Nach einem vollständigen Zug aus dem Bild bleibt alles unmarkiert. | Vom Auftraggeber so festgelegt (14.11.2026), damit sich das Brett schnell verteilen lässt. Eine im Bild gewählte Gruppe hat Vorrang für Löcher ihrer Farbe und bleibt gewählt, wenn ein Loch anderer Farbe vom Brett gefüllt wird. |
+| Ein Tipp auf das Holzbrett wählt alle Farben darauf. Die Murmeln schweben, das Brett bekommt einen hellen Rahmen und passende Löcher leuchten. Ein zweiter Tipp aufs Brett oder ein Tipp daneben hebt die Auswahl auf. Nach einem vollständigen Zug aus dem Bild bleibt alles unmarkiert. | Vom Auftraggeber so festgelegt (14.11.2026), damit sich das Brett schnell verteilen lässt. Seit dem 20.11.2026 gilt: Ein Zieltippen verwendet nur die ausdrücklich gewählte Quelle; ein Loch anderer Farbe lässt die gewählte Bildgruppe unverändert. |
 | Beim Ablegen ordnet sich das Holzbrett nach Farben: Gleiche Farben liegen lückenlos beieinander, eine neue Farbe kommt hinten an. | Vom Auftraggeber so festgelegt (14.11.2026). Murmeln, die schon lagen, rücken dafür still zusammen. |
 | Es gibt keine Sackgasse. | Liegen Murmeln in der Ablage, gibt es genauso viele freie Löcher, und für mindestens eins passt immer eine Murmel. Das ist als Test abgesichert. |
 
@@ -180,3 +180,11 @@ Warum, steht in [art-direction.md](art-direction.md).
 | --- | --- |
 | Klang C bleibt, darf aber länger natürlich ausklingen. Auch die letzten Reflexionen werden vollständig ausgespielt; erst bei sehr geringer Restlautstärke folgt die abschließende weiche Blende. | Yogi gefällt der Akkord, hört aber am Ende einen Abbruch. Die frühere Begrenzung auf 2,7 Sekunden und das Abschneiden der Reflexionen sollen entfallen. |
 | Ankommende Murmeln auf dem Holzbrett erhalten vorerst genau dieselben Zieltöne wie im Bild. Die separate Holzklang-Wiedergabe entfällt. | Nach dem Test passen die Holzgeräusche für Yogi noch nicht. Der Einzelton bleibt an den Einstieg gekoppelt und wird weiterhin genau einmal pro Murmel ausgelöst. |
+
+## Zielauswahl und weiche Bildfarbe (20.11.2026)
+
+| Entscheidung | Warum |
+| --- | --- |
+| Bei einer gewählten Bildgruppe darf ein Zieltippen keine Murmeln vom Holzbrett holen. Ein Loch anderer Farbe lässt Zustand und Auswahl unverändert, auch bei voller Ablage und nach einem Teilzug. | Yogi meldete einen unbeabsichtigten blauen Zug bei noch gewählter roter Restmurmel und bestätigte diese Korrektur. Sie ersetzt das direkte Einspringen einer anderen Brettfarbe aus der Regel vom 14.11.2026. Das Holzbrett wird weiterhin durch bewusstes Antippen gewählt. |
+| Angekommene Murmeln warten, bis alle Murmeln ihres Zuges ruhig liegen. Dann verblassen sie gemeinsam über eine Sekunde, während die Originalbildfarbe weich sichtbar wird. | Von Yogi bestätigt: ein Erwachen der Bildfarbe statt eines abrupten Umschlags. Andere Züge können währenddessen weiterlaufen. |
+| Bei reduzierter Bewegung erscheint das Bild ohne zusätzlichen Übergang. Rückgängig und Motivwechsel beenden laufende Übergänge. | Bestehende Systemeinstellung respektieren und keinen alten Bildstand nachträglich einblenden. |
