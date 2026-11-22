@@ -285,6 +285,7 @@ export function startApp(): void {
       home: () => play.close(),
       sound: () => sound.mode,
       wood: () => play.points()?.wood,
+      cell: (cell: number) => play.cellPoint(cell),
       group: () => play.points()?.group ?? null,
       slot: () => play.points()?.slot ?? null,
       trayHole: () => play.points()?.trayHole ?? null,
