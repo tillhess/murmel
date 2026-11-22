@@ -138,6 +138,9 @@ export class BoardView {
 
   private staticBg: HTMLCanvasElement | null = null;
   private paintLayer: HTMLCanvasElement | null = null;
+  /** Fertig maskierte Bildfarbe der Felder, die gerade aufgehen, je Kette mit ihrer Startzeit */
+  private revealLayers: { t0: number; canvas: HTMLCanvasElement }[] = [];
+  private readonly revealPool: HTMLCanvasElement[] = [];
   private trayBg: HTMLCanvasElement | null = null;
   private baseDirty = true;
   private staticDirty = true;
@@ -618,6 +621,53 @@ export class BoardView {
     return ((n % VARIANTS) * Math.PI * 2) / VARIANTS;
   }
 
+  /**
+   * Zeichnet den sichtbaren Ausschnitt des Gemäldes nach `target`, nur dort, wo `cells` liegen, mit weich
+   * gezeichneten Rändern. Gibt false zurück, wenn es nichts zu zeigen gibt.
+   */
+  private maskedPainting(
+    target: HTMLCanvasElement,
+    cells: readonly number[],
+    view: { x: number; y: number; w: number; h: number },
+    frame: Frame,
+  ): boolean {
+    const painting = this.painting;
+    const level = this.game?.level;
+    if (!painting || !level || !cells.length) return false;
+    const { w, h } = level;
+    const mw = w * 4;
+    const mh = h * 4;
+    if (this.mask.width !== mw || this.mask.height !== mh) {
+      this.mask.width = mw;
+      this.mask.height = mh;
+    }
+    const m = this.mask.getContext('2d') as CanvasRenderingContext2D;
+    m.clearRect(0, 0, mw, mh);
+    m.fillStyle = '#ffffff';
+    for (const i of cells) m.fillRect((i % w) * 4, Math.floor(i / w) * 4, 4, 4);
+    const kx = painting.width / frame.w;
+    const ky = painting.height / frame.h;
+    const p = target.getContext('2d') as CanvasRenderingContext2D;
+    p.imageSmoothingEnabled = true;
+    p.imageSmoothingQuality = 'high';
+    p.globalCompositeOperation = 'copy';
+    p.drawImage(painting, view.x * kx, view.y * ky, view.w * kx, view.h * ky, 0, 0, target.width, target.height);
+    p.globalCompositeOperation = 'destination-in';
+    p.drawImage(
+      this.mask,
+      (view.x / frame.w) * mw,
+      (view.y / frame.h) * mh,
+      (view.w / frame.w) * mw,
+      (view.h / frame.h) * mh,
+      0,
+      0,
+      target.width,
+      target.height,
+    );
+    p.globalCompositeOperation = 'source-over';
+    return true;
+  }
+
   /** Zeigt dieses Feld schon das Bild? (Die Murmel liegt richtig und ist fertig eingerollt und aufgegangen.) */
   private shown(i: number): boolean {
     const game = this.game as Game;
@@ -674,13 +724,13 @@ export class BoardView {
     this.staticDirty = false;
   }
 
-  private rebuildBase(now: number): void {
+  private rebuildBase(): void {
     const game = this.game;
     const painting = this.painting;
     if (!game || !painting) return;
     if (this.staticDirty || !this.staticBg) this.buildStatic();
     const { level, state } = game;
-    const { w, h } = level;
+    const { w } = level;
     const { cell, dpr, ox, oy } = this;
     const g = this.bctx;
     const frame = this.frameSize();
@@ -688,6 +738,7 @@ export class BoardView {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, this.base.width, this.base.height);
     g.drawImage(this.staticBg as HTMLCanvasElement, 0, 0);
+    this.revealLayers = [];
 
     // Der Bildrahmen ist ein Fenster: Gezeichnet wird nur der Teil des Gemäldes, der gerade darin liegt.
     const view = visible(this.cam, frame);
@@ -716,46 +767,32 @@ export class BoardView {
       g.drawImage(painting, sx, sy, sw, sh, ox, oy, frame.w, frame.h);
       g.globalAlpha = 1;
       // Fertige Flächen: das Bild scheint durch eine weich gezeichnete Maske.
-      const mw = w * 4;
-      const mh = h * 4;
-      if (this.mask.width !== mw || this.mask.height !== mh) {
-        this.mask.width = mw;
-        this.mask.height = mh;
-      }
-      const m = this.mask.getContext('2d') as CanvasRenderingContext2D;
-      m.clearRect(0, 0, mw, mh);
-      m.fillStyle = '#ffffff';
-      let any = false;
-      for (const i of level.cells) {
-        const bloom = this.blooms.get(i);
-        const opacity = bloom ? revealProgress(bloom.t0, now) : this.shown(i) ? 1 : 0;
-        if (opacity === 0) continue;
-        any = true;
-        m.globalAlpha = opacity;
-        m.fillRect((i % w) * 4, Math.floor(i / w) * 4, 4, 4);
-      }
-      m.globalAlpha = 1;
+      const shown = level.cells.filter((i) => this.shown(i));
       const layer = this.paintLayer;
-      if (any && layer) {
-        const p = layer.getContext('2d') as CanvasRenderingContext2D;
-        p.imageSmoothingEnabled = true;
-        p.imageSmoothingQuality = 'high';
-        p.globalCompositeOperation = 'copy';
-        p.drawImage(painting, sx, sy, sw, sh, 0, 0, layer.width, layer.height);
-        p.globalCompositeOperation = 'destination-in';
-        p.drawImage(
-          this.mask,
-          (view.x / frame.w) * mw,
-          (view.y / frame.h) * mh,
-          (view.w / frame.w) * mw,
-          (view.h / frame.h) * mh,
-          0,
-          0,
-          layer.width,
-          layer.height,
-        );
-        p.globalCompositeOperation = 'source-over';
-        g.drawImage(layer, ox, oy, frame.w, frame.h);
+      if (layer && this.maskedPainting(layer, shown, view, frame)) g.drawImage(layer, ox, oy, frame.w, frame.h);
+      // Übergänge bekommen je Kette eine eigene Ebene mit derselben Maske. Sie wird hier einmal gebaut und beim
+      // Zeichnen nur noch mit wachsender Deckkraft aufgelegt: Die ganze Grundebene in jedem Bild neu zu bauen,
+      // war auf langsamen iPads (und dem Build-Server) zu teuer.
+      const groups = new Map<number, number[]>();
+      for (const [i, b] of this.blooms) {
+        if (b.t0 === null) continue;
+        const cells = groups.get(b.t0);
+        if (cells) cells.push(i);
+        else groups.set(b.t0, [i]);
+      }
+      let k = 0;
+      for (const [t0, cells] of groups) {
+        if (!layer) break;
+        let canvas = this.revealPool[k];
+        if (!canvas) {
+          canvas = newCanvas(layer.width, layer.height);
+          this.revealPool[k] = canvas;
+        } else if (canvas.width !== layer.width || canvas.height !== layer.height) {
+          canvas.width = layer.width;
+          canvas.height = layer.height;
+        }
+        k++;
+        if (this.maskedPainting(canvas, cells, view, frame)) this.revealLayers.push({ t0, canvas });
       }
 
       // Leere Felder und liegende Murmeln, soweit sie im Fenster liegen
@@ -823,9 +860,9 @@ export class BoardView {
       }
     }
     for (const [cell, b] of this.blooms) {
-      if (b.t0 !== null) {
+      if (b.t0 !== null && revealProgress(b.t0, now) === 1) {
+        this.blooms.delete(cell);
         this.baseDirty = true;
-        if (revealProgress(b.t0, now) === 1) this.blooms.delete(cell);
       }
     }
     for (const [color, t0] of this.colorFlashes) {
@@ -839,7 +876,7 @@ export class BoardView {
       this.hooks.finished();
     }
     if (this.baseDirty) {
-      this.rebuildBase(now);
+      this.rebuildBase();
       this.baseDirty = false;
     }
     this.spawnTwinkle(now);
@@ -909,6 +946,14 @@ export class BoardView {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.drawImage(this.base, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (this.revealLayers.length && this.finishedAt === 0) {
+      const frame = this.frameSize();
+      for (const r of this.revealLayers) {
+        ctx.globalAlpha = revealProgress(r.t0, now);
+        ctx.drawImage(r.canvas, this.ox, this.oy, frame.w, frame.h);
+      }
+      ctx.globalAlpha = 1;
+    }
 
     const pulse = this.reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin((now / PULSE_MS) * Math.PI * 2);
     const sel = this.finishedAt === 0 ? game.selection : null;
