@@ -48,6 +48,56 @@ export function paperSheet(x: Ctx, px: number, py: number, w: number, h: number,
   x.restore();
 }
 
+/** Vier schmale Ahornleisten mit Gehrung; die Maserung folgt jeder einzelnen Leiste. */
+export function woodFrame(x: Ctx, px: number, py: number, w: number, h: number, rim: number): void {
+  const rng = makeRng(31);
+  x.save();
+  x.translate(px, py);
+  for (let side = 0; side < 4; side++) {
+    const length = side % 2 === 0 ? w : h;
+    x.save();
+    if (side === 1) x.translate(w, 0);
+    else if (side === 2) x.translate(w, h);
+    else if (side === 3) x.translate(0, h);
+    x.rotate((side * Math.PI) / 2);
+    x.beginPath();
+    x.moveTo(0, 0);
+    x.lineTo(length, 0);
+    x.lineTo(length - rim, rim);
+    x.lineTo(rim, rim);
+    x.closePath();
+    x.clip();
+    const g = x.createLinearGradient(0, 0, 0, rim);
+    g.addColorStop(0, mix(WOOD, '#fff8e8', 0.35));
+    g.addColorStop(0.18, WOOD);
+    g.addColorStop(0.78, mix(WOOD, WOOD_GRAIN, 0.25));
+    g.addColorStop(1, mix(WOOD_GRAIN, '#4e3421', 0.22));
+    x.fillStyle = g;
+    x.fillRect(0, 0, length, rim);
+    x.lineWidth = 0.5;
+    for (let line = 0; line < 9; line++) {
+      const y = rng() * rim;
+      const phase = rng() * Math.PI * 2;
+      x.strokeStyle = rgba(WOOD_GRAIN, 0.13 + rng() * 0.2);
+      x.beginPath();
+      for (let at = 0; at <= length; at += 4) {
+        const grain = y + Math.sin(at * 0.026 + phase) * 0.7;
+        if (at === 0) x.moveTo(at, grain);
+        else x.lineTo(at, grain);
+      }
+      x.stroke();
+    }
+    x.restore();
+  }
+  // Die dunkle Innenkante gibt der schmalen Leiste fühlbare Höhe.
+  x.strokeStyle = 'rgba(74,48,25,0.26)';
+  x.lineWidth = 1;
+  x.strokeRect(rim + 0.5, rim + 0.5, w - 2 * rim - 1, h - 2 * rim - 1);
+  x.strokeStyle = 'rgba(255,249,232,0.55)';
+  x.strokeRect(0.5, 0.5, w - 1, h - 1);
+  x.restore();
+}
+
 /** Die Ablage: ein helles Holzbrett mit ruhiger Maserung. Die Mulden zeichnet die Ansicht darüber. */
 export function woodBoard(x: Ctx, w: number, h: number, dpr: number): void {
   const rng = makeRng(9);

@@ -1,9 +1,10 @@
-import { midiToHz, nextStep, noteAt, restStep, Spread, startStep, type Walk } from './tune';
+import { glassCompletion, TIMBRE_RATE } from './timbres';
+import { midiToHz, nextStep, noteAt, restStep, startStep, type Walk } from './tune';
 
 /**
  * Klang, vollständig im Browser erzeugt (keine Audiodateien). Zwei Schichten:
  *
- * - Murmeln: Jede Murmel, die einrastet, schlägt einen leisen Glockenton an. Alle Töne stammen aus der Fünftonleiter
+ * - Murmeln: Jede Murmel schlägt am angetippten Einstieg einen leisen Glockenton an. Alle Töne stammen aus der Fünftonleiter
  *   des Bildes, eine rollende Kette wird so von selbst zu einer kleinen Tonfolge, die auf einem Ruheton endet.
  * - Raum: einzelne lange Töne, die im Takt eines ruhigen Atemzugs kommen und gehen, gemeinsam mit dem Licht des
  *   Himmels. Welche Töne klingen, wechselt, und manche Atemzüge bleiben still.
@@ -36,14 +37,10 @@ export class Sound {
   private ctx: AudioContext | null = null;
   private out: GainNode | null = null;
   private wet: GainNode | null = null;
-  private noise: AudioBuffer | null = null;
+  private completion: AudioBuffer | null = null;
   private root = 50;
   private current: SoundMode;
 
-  /** Töne der Murmeln im Bild: höchstens elf in der Sekunde, höchstens eine halbe Sekunde nach ihrem Anlass */
-  private readonly bells = new Spread(0.09, 0.5);
-  /** Klopfen auf dem Holzbrett */
-  private readonly knocks = new Spread(0.06, 0.3);
   private walk: Walk = { step: 0, dir: 1 };
 
   private swells: { osc: OscillatorNode; gain: GainNode }[] = [];
@@ -96,20 +93,20 @@ export class Sound {
   setRoot(midi: number): void {
     if (midi === this.root) return;
     this.root = midi;
+    if (this.ctx) this.completion = this.sampleBuffer(glassCompletion(midi));
     // Töne der alten Tonart klingen rasch aus, damit sie sich nicht mit der neuen reiben.
     this.hushRoom(0.6);
   }
 
   /**
-   * Eine Murmel rastet im Bild ein. `rank` zählt die Ankünfte innerhalb der Kette ab 0.
+   * Eine Murmel erreicht den Einstieg ins Bild oder Holzbrett. `rank` zählt die Eintritte innerhalb der Kette ab 0.
    * Die Töne wandern in kleinen Schritten durch die Leiter, der letzte kommt auf Grundton oder Quinte zur Ruhe.
    */
   clink(rank: number, total: number, color: number): void {
     const ctx = this.ready();
     if (!ctx) return;
     const last = rank === total - 1;
-    const at = this.bells.at(ctx.currentTime, last);
-    if (at === null) return;
+    const at = ctx.currentTime;
     const before = this.walk.step;
     this.walk = rank === 0 ? { step: startStep(color), dir: 1 } : nextStep(this.walk, Math.random());
     const step = last && total > 2 ? restStep(this.walk.step, before) : this.walk.step;
@@ -117,36 +114,6 @@ export class Sound {
     const level = (0.1 / (1 + total / 24)) * (0.85 + Math.random() * 0.15);
     const decay = last ? 2.1 : Math.max(0.6, 1.6 - total * 0.06);
     this.bell(midiToHz(noteAt(this.root + 12, step)), last ? level * 1.15 : level, decay, at, last || total <= 8);
-  }
-
-  /** Eine Murmel fällt in eine Mulde des Holzbretts: ein kurzes, trockenes Klopfen. */
-  tock(rank: number, total: number): void {
-    const ctx = this.ready();
-    if (!ctx || !this.out) return;
-    const t = this.knocks.at(ctx.currentTime, rank === total - 1);
-    if (t === null) return;
-    const soft = 1 / (1 + total / 30);
-    const src = ctx.createBufferSource();
-    src.buffer = this.noiseBuffer(ctx);
-    const band = ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 620 + (rank % 5) * 45 + Math.random() * 60;
-    band.Q.value = 1.4;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.2 * soft, t);
-    g.gain.exponentialRampToValueAtTime(0.0008, t + 0.07);
-    src.connect(band).connect(g).connect(this.out);
-    src.start(t);
-    src.stop(t + 0.09);
-    const osc = ctx.createOscillator();
-    osc.frequency.setValueAtTime(165, t);
-    osc.frequency.exponentialRampToValueAtTime(96, t + 0.1);
-    const og = ctx.createGain();
-    og.gain.setValueAtTime(0.16 * soft, t);
-    og.gain.exponentialRampToValueAtTime(0.0008, t + 0.13);
-    osc.connect(og).connect(this.out);
-    osc.start(t);
-    osc.stop(t + 0.15);
   }
 
   /** Murmeln ausgewählt: ein kaum hörbarer hoher Ton */
@@ -159,13 +126,15 @@ export class Sound {
     this.bell(midiToHz(this.root), 0.06, 0.4);
   }
 
-  /** Eine Farbe des Bildes ist vollständig: Grundton und Quinte klingen leise darunter auf. */
+  /** Hörprobe C: heller Dur-Akkord mit aufsteigendem, hohem Schlusston. */
   settle(): void {
     const ctx = this.ready();
-    if (!ctx) return;
-    const at = ctx.currentTime + 0.35;
-    this.bell(midiToHz(this.root), 0.05, 3.4, at);
-    this.bell(midiToHz(this.root + 7), 0.036, 3.0, at + 0.12);
+    if (!ctx || !this.out || !this.completion) return;
+    const src = ctx.createBufferSource();
+    src.buffer = this.completion;
+    src.connect(this.out);
+    src.onended = () => src.disconnect();
+    src.start();
   }
 
   /** Das Bild ist fertig: ein langsam aufsteigender Akkord. */
@@ -210,6 +179,8 @@ export class Sound {
     this.out = ctx.createGain();
     this.out.gain.value = 0.9;
     this.out.connect(limiter);
+    // Vorbereiten, bevor Murmeln rollen: Beim Ankommen wird nur noch der fertige Puffer abgespielt.
+    this.completion = this.sampleBuffer(glassCompletion(this.root));
     // Hall: ein kurzer, weicher Raum aus verrauschtem Ausklang
     const convolver = ctx.createConvolver();
     convolver.buffer = this.impulse(ctx, 2.6);
@@ -235,13 +206,13 @@ export class Sound {
     return buffer;
   }
 
-  private noiseBuffer(ctx: AudioContext): AudioBuffer {
-    if (!this.noise) {
-      this.noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.1), ctx.sampleRate);
-      const data = this.noise.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    }
-    return this.noise;
+  private sampleBuffer(channels: readonly Float32Array[]): AudioBuffer {
+    const ctx = this.ctx as AudioContext;
+    const buffer = ctx.createBuffer(channels.length, channels[0].length, TIMBRE_RATE);
+    channels.forEach((data, ch) => {
+      buffer.getChannelData(ch).set(data);
+    });
+    return buffer;
   }
 
   /**
