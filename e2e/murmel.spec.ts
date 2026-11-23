@@ -560,6 +560,51 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   expect((await status(page))?.reveals).toEqual([]);
 });
 
+test('An fertigen Nachbarflächen bleibt die Bildkante am Ende der Überblendung stetig', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await almostFinished(page, true);
+  const wood = await page.evaluate(() => window.murmel.wood());
+  const hole = await page.evaluate(() => window.murmel.trayHole());
+  if (!hole) throw new Error('freies Loch fehlt');
+  await page.mouse.click(wood.x, wood.y);
+  await page.mouse.click(hole.x, hole.y);
+  for (let step = 0; step < 500 && (await status(page))?.landed !== 3; step++) {
+    await page.clock.runFor(16);
+  }
+  expect((await status(page))?.landed).toBe(3);
+  await page.clock.runFor(960);
+  expect((await status(page))?.reveals).toHaveLength(3);
+  // Die drei neuen Felder grenzen an fertige Bildflächen. Dort darf beim Zusammenfassen
+  // der Masken kein Rasterrand springen; der Rest des Bildes bewegt sich hier nicht.
+  const pixels = () =>
+    page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('#board');
+      const a = window.murmel.cell(0);
+      const b = window.murmel.cell(3);
+      if (!canvas || !a || !b) throw new Error('Bildfläche fehlt');
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      const cell = (b.x - a.x) / 3;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Zeichenfläche fehlt');
+      return Array.from(
+        ctx.getImageData(
+          Math.round((a.x - rect.left - cell * 0.4) * scale),
+          Math.round((a.y - rect.top - cell * 0.4) * scale),
+          Math.round(cell * 3.4 * scale),
+          Math.round(cell * 1.4 * scale),
+        ).data,
+      );
+    });
+  const before = await pixels();
+  await page.clock.runFor(80);
+  expect((await status(page))?.reveals).toEqual([]);
+  const after = await pixels();
+  const largestJump = before.reduce((largest, value, i) => Math.max(largest, Math.abs(value - after[i])), 0);
+  expect(largestJump).toBeLessThanOrEqual(4);
+});
+
 test('Reduzierte Bewegung unterdrückt den Farbblitz auch beim letzten Zug', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await almostFinished(page);

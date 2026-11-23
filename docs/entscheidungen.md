@@ -197,3 +197,10 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Bei einer gewählten Bildgruppe darf ein Zieltippen keine Murmeln vom Holzbrett holen. Ein Loch anderer Farbe lässt Zustand und Auswahl unverändert, auch bei voller Ablage und nach einem Teilzug. | Yogi meldete einen unbeabsichtigten blauen Zug bei noch gewählter roter Restmurmel und bestätigte diese Korrektur. Sie ersetzt das direkte Einspringen einer anderen Brettfarbe aus der Regel vom 14.11.2026. Das Holzbrett wird weiterhin durch bewusstes Antippen gewählt. |
 | Angekommene Murmeln warten, bis alle Murmeln ihres Zuges ruhig liegen. Dann verblassen sie gemeinsam über eine Sekunde, während die Originalbildfarbe weich sichtbar wird. | Von Yogi bestätigt: ein Erwachen der Bildfarbe statt eines abrupten Umschlags. Andere Züge können währenddessen weiterlaufen. |
 | Bei reduzierter Bewegung erscheint das Bild ohne zusätzlichen Übergang. Rückgängig und Motivwechsel beenden laufende Übergänge. | Bestehende Systemeinstellung respektieren und keinen alten Bildstand nachträglich einblenden. |
+
+## Stetige Bildkanten beim Einblenden (23.11.2026)
+
+Yogi beobachtet am Ende der Überblendung noch springende Rasterkanten zwischen benachbarten Farbflächen.
+Die Übergangsstufen verwenden deshalb bereits die gemeinsame Maske der fertigen und neu hinzukommenden
+Flächen. Löcher und ruhende Murmeln bleiben vor diesen Bildflächen. Dauer, Klang und Spielregeln bleiben gleich.
+Die Ebenen werden weiterhin nur bei Zustandsänderungen berechnet, nicht in jedem Animationsbild.

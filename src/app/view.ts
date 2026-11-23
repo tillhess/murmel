@@ -137,6 +137,7 @@ export class BoardView {
   private crisp = 1;
 
   private staticBg: HTMLCanvasElement | null = null;
+  private readonly pieces = newCanvas(1, 1);
   private paintLayer: HTMLCanvasElement | null = null;
   /** Fertig maskierte Bildfarbe der Felder, die gerade aufgehen, je Kette mit ihrer Startzeit */
   private revealLayers: { t0: number; canvas: HTMLCanvasElement }[] = [];
@@ -431,6 +432,8 @@ export class BoardView {
     this.canvas.height = Math.max(1, Math.round(this.H * this.dpr));
     this.base.width = this.canvas.width;
     this.base.height = this.canvas.height;
+    this.pieces.width = this.canvas.width;
+    this.pieces.height = this.canvas.height;
     this.sprites.dpr = this.dpr * this.crisp;
     this.sprites.clear();
     this.trayBg = null;
@@ -732,7 +735,10 @@ export class BoardView {
     const { level, state } = game;
     const { w } = level;
     const { cell, dpr, ox, oy } = this;
-    const g = this.bctx;
+    let g = this.bctx;
+    const pieces = this.pieces.getContext('2d') as CanvasRenderingContext2D;
+    pieces.setTransform(1, 0, 0, 1, 0, 0);
+    pieces.clearRect(0, 0, this.pieces.width, this.pieces.height);
     const frame = this.frameSize();
 
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -770,9 +776,9 @@ export class BoardView {
       const shown = level.cells.filter((i) => this.shown(i));
       const layer = this.paintLayer;
       if (layer && this.maskedPainting(layer, shown, view, frame)) g.drawImage(layer, ox, oy, frame.w, frame.h);
-      // Übergänge bekommen je Kette eine eigene Ebene mit derselben Maske. Sie wird hier einmal gebaut und beim
-      // Zeichnen nur noch mit wachsender Deckkraft aufgelegt: Die ganze Grundebene in jedem Bild neu zu bauen,
-      // war auf langsamen iPads (und dem Build-Server) zu teuer.
+      // Jede Stufe enthält bereits die gemeinsame Maske mit allen früheren Flächen. Zwei getrennt
+      // geglättete Masken übereinander hinterlassen sonst eine Naht, die am Ende plötzlich verschwindet.
+      // Die deckende Vorzeichnung macht daraus eine Überblendung statt einer zweiten Farbschicht.
       const groups = new Map<number, number[]>();
       for (const [i, b] of this.blooms) {
         if (b.t0 === null) continue;
@@ -781,7 +787,8 @@ export class BoardView {
         else groups.set(b.t0, [i]);
       }
       let k = 0;
-      for (const [t0, cells] of groups) {
+      const cumulative = [...shown];
+      for (const [t0, cells] of [...groups].sort(([a], [b]) => a - b)) {
         if (!layer) break;
         let canvas = this.revealPool[k];
         if (!canvas) {
@@ -792,10 +799,25 @@ export class BoardView {
           canvas.height = layer.height;
         }
         k++;
-        if (this.maskedPainting(canvas, cells, view, frame)) this.revealLayers.push({ t0, canvas });
+        cumulative.push(...cells);
+        const r = canvas.getContext('2d') as CanvasRenderingContext2D;
+        r.fillStyle = PAPER;
+        r.fillRect(0, 0, canvas.width, canvas.height);
+        r.globalAlpha = 0.36;
+        r.drawImage(painting, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        r.globalAlpha = 1;
+        if (this.maskedPainting(layer, cumulative, view, frame)) r.drawImage(layer, 0, 0);
+        this.revealLayers.push({ t0, canvas });
       }
 
-      // Leere Felder und liegende Murmeln, soweit sie im Fenster liegen
+      // Löcher und ruhende Murmeln liegen auch während der Überblendung vor dem Bild.
+      g.restore();
+      g = pieces;
+      g.save();
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.beginPath();
+      g.rect(ox, oy, frame.w, frame.h);
+      g.clip();
       g.translate(ox - this.cam.x, oy - this.cam.y);
       g.scale(this.cam.zoom, this.cam.zoom);
       g.translate(-ox, -oy);
@@ -954,6 +976,10 @@ export class BoardView {
       }
       ctx.globalAlpha = 1;
     }
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.pieces, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const pulse = this.reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin((now / PULSE_MS) * Math.PI * 2);
     const sel = this.finishedAt === 0 ? game.selection : null;
