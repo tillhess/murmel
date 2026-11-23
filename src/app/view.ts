@@ -24,13 +24,14 @@ import {
   zoomAt,
 } from '../core/camera';
 import { type Pt, type Run, runDuration, runEntryTime, runPosition, scheduleChain } from '../core/chain';
+import { openCounts } from '../core/counts';
 import type { Game } from '../core/game';
 import { EMPTY } from '../core/level';
 import type { Roll, Spot } from '../core/moves';
 import { revealProgress } from '../core/reveal';
 import { transferPose } from '../core/transfer';
 import { type Sprite, Sprites } from './sprites';
-import { DISPLAY_FONT } from './theme';
+import { DISPLAY_FONT, UI_FONT } from './theme';
 
 const VARIANTS = 6;
 /** Rolltempo in Feldern pro Sekunde: ruhig genug zum Zusehen. Weiterspielen kann man, während die Kette noch rollt. */
@@ -364,6 +365,10 @@ export class BoardView {
     return this.flights.some((f) => f.color === color && 'cell' in f.dest);
   }
 
+  get openCounts(): number[] {
+    return this.game ? openCounts(this.game.level, this.game.state.cur, this.pendCells) : [];
+  }
+
   get arrivingColors(): number[] {
     return [...new Set(this.flights.filter((f) => 'cell' in f.dest).map((f) => f.color))];
   }
@@ -468,9 +473,16 @@ export class BoardView {
     const areaW = side ? W - trayW - 64 : W - 28;
     const areaH = side ? H - top - bottom - 22 : H - top - bottom - trayH - 44;
     // Das Blatt hat ringsum einen Papierrand und unten einen breiteren für die Bildunterschrift.
-    const cell = Math.max(4, Math.floor(Math.min(areaW / (w + 1.6), areaH / (h + 2.9))));
+    let cell = Math.max(4, Math.floor(Math.min(areaW / (w + 1.6), areaH / (h + 2.9))));
+    const captionHeight = (c: number): number => {
+      const columns = Math.max(1, Math.floor((w * c) / Math.max(52, 37 + 9 * String(game.level.cells.length).length)));
+      const rows = Math.ceil(game.level.palette.length / columns);
+      return Math.max(Math.round(c * 2.1), Math.max(12, Math.min(22, c * 0.66)) + 12 + rows * 22);
+    };
+    // Nur bei sehr feinem Raster oder vielen Fotofarben braucht die lesbare Anzeige mehr Rand.
+    while (cell > 4 && h * cell + Math.round(cell * 0.8) + captionHeight(cell) > areaH) cell--;
     const m = Math.round(cell * 0.8);
-    const mb = Math.round(cell * 2.1);
+    const mb = captionHeight(cell);
     const pw = w * cell + 2 * m;
     const ph = h * cell + m + mb;
     const gap = side ? Math.max(0, (W - pw - trayW - 30) / 2) : 0;
@@ -723,8 +735,35 @@ export class BoardView {
     x.textAlign = 'center';
     x.textBaseline = 'middle';
     x.fillStyle = 'rgba(43,39,51,0.78)';
-    x.fillText(this.title, paper.x + paper.w / 2, oy + h * cell + paper.bottom * 0.52);
+    x.fillText(this.title, paper.x + paper.w / 2, oy + h * cell + Math.max(12, Math.min(22, cell * 0.66)) / 2 + 7);
     this.staticDirty = false;
+  }
+
+  private drawCounts(x: CanvasRenderingContext2D): void {
+    const game = this.game as Game;
+    const { cell, paper, oy } = this;
+    const width = game.level.w * cell;
+    const columns = Math.max(1, Math.floor(width / Math.max(52, 37 + 9 * String(game.level.cells.length).length)));
+    const counts = this.openCounts;
+    const titleSize = Math.max(12, Math.min(22, cell * 0.66));
+    const top = oy + game.level.h * cell + titleSize + 12;
+    x.save();
+    x.font = `500 14px ${UI_FONT}`;
+    x.textAlign = 'left';
+    x.textBaseline = 'middle';
+    x.fillStyle = 'rgba(43,39,51,0.78)';
+    for (let start = 0; start < counts.length; start += columns) {
+      const row = counts.slice(start, start + columns);
+      const widths = row.map((count) => 18 + 5 + x.measureText(String(count)).width + 14);
+      let left = paper.x + paper.w / 2 - widths.reduce((sum, value) => sum + value, 0) / 2;
+      const y = top + Math.floor(start / columns) * 22 + 9;
+      row.forEach((count, i) => {
+        Sprites.blit(x, this.marbleSprite(game.level.palette[start + i], 18, 0), left + 9, y, 18);
+        x.fillText(String(count), left + 23, y);
+        left += widths[i];
+      });
+    }
+    x.restore();
   }
 
   private rebuildBase(): void {
@@ -744,6 +783,10 @@ export class BoardView {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, this.base.width, this.base.height);
     g.drawImage(this.staticBg as HTMLCanvasElement, 0, 0);
+    g.save();
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.drawCounts(g);
+    g.restore();
     this.revealLayers = [];
 
     // Der Bildrahmen ist ein Fenster: Gezeichnet wird nur der Teil des Gemäldes, der gerade darin liegt.

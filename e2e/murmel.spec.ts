@@ -31,6 +31,7 @@ interface Murmel {
     arrivingColors: number[];
     entered: number;
     landed: number;
+    openCounts: number[];
     reveals: { cell: number; progress: number; waiting: boolean }[];
   } | null;
   home(): void;
@@ -457,6 +458,7 @@ test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie 
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await almostFinished(page, true);
+  expect((await status(page))?.openCounts[0]).toBe(3);
   const wood = await page.evaluate(() => window.murmel.wood());
   await page.mouse.click(wood.x, wood.y);
   const hole = await page.evaluate(() => window.murmel.trayHole());
@@ -471,15 +473,22 @@ test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie 
   const first = await status(page);
   expect(first?.entered).toBe(1);
   expect(first?.landed).toBe(0);
+  expect(first?.openCounts[0]).toBe(3);
   expect(first?.completedColors).not.toContain(0);
 
   await page.clock.runFor(4000);
   const done = await status(page);
   expect(done?.entered).toBe(3);
   expect(done?.landed).toBe(3);
+  expect(done?.openCounts[0]).toBe(0);
+  expect(done?.openCounts[1]).toBe(1);
   expect(done?.completedColors).toContain(0);
   await page.clock.runFor(1000);
   expect((await status(page))?.entered).toBe(3);
+  const undo = await page.locator('#undo').boundingBox();
+  if (!undo) throw new Error('Rückgängig fehlt');
+  await page.mouse.click(undo.x + undo.width / 2, undo.y + undo.height / 2);
+  expect((await status(page))?.openCounts[0]).toBe(3);
 });
 
 test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappenden Zügen', async ({ page }) => {
@@ -528,6 +537,7 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await almostFinished(page, true);
+  expect((await status(page))?.openCounts[0]).toBe(3);
   const wood = await page.evaluate(() => window.murmel.wood());
   await page.mouse.click(wood.x, wood.y);
   const hole = await page.evaluate(() => window.murmel.trayHole());
@@ -551,6 +561,7 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   expect(arrived).toBe(true);
   const start = (await status(page))?.reveals ?? [];
   expect(start).toHaveLength(3);
+  expect((await status(page))?.openCounts[0]).toBe(0);
   expect(start.every((r) => !r.waiting && r.progress < 0.01)).toBe(true);
   await page.clock.runFor(500);
   const middle = (await status(page))?.reveals ?? [];
@@ -564,6 +575,7 @@ test('An fertigen Nachbarflächen bleibt die Bildkante am Ende der Überblendung
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await almostFinished(page, true);
+  expect((await status(page))?.openCounts[0]).toBe(3);
   const wood = await page.evaluate(() => window.murmel.wood());
   const hole = await page.evaluate(() => window.murmel.trayHole());
   if (!hole) throw new Error('freies Loch fehlt');

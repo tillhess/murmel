@@ -204,3 +204,10 @@ Yogi beobachtet am Ende der Überblendung noch springende Rasterkanten zwischen 
 Die Übergangsstufen verwenden deshalb bereits die gemeinsame Maske der fertigen und neu hinzukommenden
 Flächen. Löcher und ruhende Murmeln bleiben vor diesen Bildflächen. Dauer, Klang und Spielregeln bleiben gleich.
 Die Ebenen werden weiterhin nur bei Zustandsänderungen berechnet, nicht in jedem Animationsbild.
+
+## Offene Murmeln je Farbe (23.11.2026)
+
+Auf Wunsch von Yogi steht der Motivtitel höher im hellen Papierrand. Darunter zeigt eine zentrierte Reihe
+je eine Murmel und die noch offene Anzahl ihrer Farbe, einschließlich Holzbrett. Die Zahl sinkt erst bei
+der sichtbaren Ankunft am richtigen Ziel; Rückgängig und Fortsetzen folgen dem Spielstand. Nullwerte bleiben.
+Die Anzeige ist nicht antippbar und kein Punktestand. Bei vielen Fotofarben bricht sie lesbar in weitere Zeilen um.
