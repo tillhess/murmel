@@ -184,6 +184,7 @@ export class PlayScreen {
     arrivingColors: number[];
     entered: number;
     landed: number;
+    openCounts: number[];
     reveals: { cell: number; progress: number; waiting: boolean }[];
   } | null {
     if (!this.game || !this.picture) return null;
@@ -207,6 +208,7 @@ export class PlayScreen {
       arrivingColors: this.view.arrivingColors,
       entered: this.view.enteredCount,
       landed: this.view.landedCount,
+      openCounts: this.view.openCounts,
       reveals: this.view.reveals,
     };
   }
