@@ -1188,3 +1188,14 @@ for (const language of ['en', 'de', 'it', 'fr', 'es']) {
     }
   });
 }
+
+test('Der Build-Stand bleibt beim Neuladen unverändert, auch mit einer anderen Geräteuhr', async ({ page }) => {
+  await page.goto('/');
+  const label = page.locator('#buildInfo');
+  await expect(label).toBeVisible();
+  await expect(label).toHaveText(/^(Testversion|Version) \d+\.\d+\.\d+ · Stand \d{2}\.\d{2}\.\d{4}, \d{2}:\d{2} Uhr$/);
+  const first = await label.textContent();
+  await page.clock.setFixedTime(new Date('2035-07-01T00:00:00Z'));
+  await page.reload();
+  await expect(label).toHaveText(first ?? '');
+});

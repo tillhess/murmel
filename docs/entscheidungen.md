@@ -219,3 +219,16 @@ weiterhin sofort; Schließen speichert oder bestätigt nichts zusätzlich. Die S
 44 × 44 Pixel große Trefferfläche und einen übersetzten zugänglichen Namen „Einstellungen schließen“.
 Ein Tipp außerhalb sowie Escape schließen das Blatt weiterhin. So bleibt der Ausgang auch ohne
 Kenntnis der Hintergrundgeste sichtbar und mit Tastatur oder Vorlesefunktion erreichbar.
+
+## Version und Build-Stand auf der Startseite (24.11.2026)
+
+Yogi wünscht unter den Links im Startbild die Versionsnummer sowie Datum und Uhrzeit des Builds,
+fest in deutscher Ortszeit (Europe/Berlin, einschließlich Sommerzeit). Die Anzeige ändert sich nicht
+beim Öffnen oder Neuladen. Testfassungen tragen „Testversion“. Die Nummer stammt aus package.json;
+wir erhöhen sie bewusst für ein gemeinsam veröffentlichtes Paket, nicht bei jedem Testbuild.
+0.x.x kennzeichnet die Entwicklungsphase; 1.0.0 ist die erste reguläre Veröffentlichung. Danach
+steht die erste Zahl für große Entwicklungsschritte, die zweite für Erweiterungen und die dritte
+für Korrekturen. Unsere aktuelle Testreihe bleibt zunächst bei 0.1.0.
+
+Lokale Testfassungen entstehen mit `npm run build:preview`. PR-Builds erkennt Vite automatisch am
+GitHub-Ereignis; `npm run build` erzeugt außerhalb eines PR-Laufs eine reguläre Fassung mit „Version“.

@@ -83,6 +83,8 @@ export const es: Texts = {
   set_language: 'Idioma',
   language_auto: 'Automático',
   settings_close: 'Cerrar ajustes',
+  build_preview: 'Versión de prueba {version} · Compilada el {date} (Berlín)',
+  build_release: 'Versión {version} · Compilada el {date} (Berlín)',
   done: 'Listo',
 
   install_title: 'Instalar como app',
