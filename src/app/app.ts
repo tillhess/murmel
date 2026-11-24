@@ -4,6 +4,7 @@ import { grainCanvas } from '../art/paint';
 import { SOUND_MODES, Sound, type SoundMode } from '../audio/sound';
 import type { PhotoContrast } from '../core/quantize';
 import { DETAIL_SIZES, type Mood } from '../core/scene';
+import { buildLabel } from './build';
 import { renderShelf } from './home';
 import { applyTexts, onLanguage, setLanguage, t } from './i18n';
 import { isStandalone, isTopLevel, setupInstall } from './install';
@@ -48,6 +49,7 @@ export function startApp(): void {
   // Die Sprache steht fest, bevor irgendetwas beschriftet wird: die gewählte, sonst die des Geräts.
   setLanguage(store.language);
   applyTexts(document);
+  el('buildInfo').textContent = buildLabel();
 
   const sound = new Sound(store.sound);
   const home = el('home');
@@ -223,6 +225,7 @@ export function startApp(): void {
   // Ein Wechsel gilt sofort: Alles Beschriftete wird neu geschrieben, das Spiel läuft dabei weiter.
   onLanguage(() => {
     applyTexts(document);
+    el('buildInfo').textContent = buildLabel();
     settings.relabel();
     showSound();
     play.relabel();

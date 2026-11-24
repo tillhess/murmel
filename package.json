@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "ios": "npm run build && cap sync ios",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "build:preview": "vite build --mode test-preview && node scripts/artifact.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",

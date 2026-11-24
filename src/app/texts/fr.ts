@@ -87,6 +87,8 @@ export const fr: Texts = {
   set_language: 'Langue',
   language_auto: 'Automatique',
   settings_close: 'Fermer les réglages',
+  build_preview: 'Version de test {version} · Compilation du {date} (Berlin)',
+  build_release: 'Version {version} · Compilation du {date} (Berlin)',
   done: 'Terminé',
 
   install_title: 'Installer comme app',
