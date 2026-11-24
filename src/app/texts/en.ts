@@ -81,6 +81,7 @@ export const en: Texts = {
   sound_note: 'Sound follows the silent mode of the device. That way an audiobook keeps playing undisturbed.',
   set_language: 'Language',
   language_auto: 'Automatic',
+  settings_close: 'Close settings',
   done: 'Done',
 
   install_title: 'Install as an app',
