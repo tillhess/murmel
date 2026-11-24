@@ -192,7 +192,7 @@ test('Der Klang hat drei Stufen und merkt sich die gewählte', async ({ page }) 
   await choices.nth(2).click();
   await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.murmel.sound())).toBe('aus');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   await expect(page.locator('#settings')).toBeHidden();
 
   await page.reload();
@@ -221,7 +221,16 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
   await choices.nth(1).click();
   await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'false');
-  await sheet.locator('[data-part="done"]').click();
+  const close = sheet.getByRole('button', { name: 'Einstellungen schließen' });
+  const beforeScroll = await close.boundingBox();
+  await sheet.locator('[data-part="language"] button').last().scrollIntoViewIfNeeded();
+  const afterScroll = await close.boundingBox();
+  if (!beforeScroll || !afterScroll) throw new Error('Schließen ist nicht sichtbar');
+  expect(Math.abs(afterScroll.y - beforeScroll.y)).toBeLessThan(1);
+  expect(afterScroll.width).toBeGreaterThanOrEqual(44);
+  expect(afterScroll.height).toBeGreaterThanOrEqual(44);
+  await close.focus();
+  await page.keyboard.press('Enter');
   await expect(sheet).toBeHidden();
 
   // Die Wahl bleibt, und im Spiel führt das Symbol in der Leiste zu denselben Einstellungen.
@@ -247,7 +256,7 @@ test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Feld
   await expect(marbles.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await marbles.nth(1).click();
   await expect(marbles.nth(1)).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
 
   // Jeder Entwurf wird einmal gewählt und einen Zug lang gespielt: Dabei darf nichts kaputtgehen.
   await page.evaluate(() => window.murmel.open('mond'));
@@ -256,7 +265,7 @@ test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Feld
     await page.locator('#playSettings').click();
     await holes.nth(k).click();
     await expect(holes.nth(k)).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#settings [data-part="done"]').click();
+    await page.locator('#settings [data-part="close"]').click();
     const move = await page.evaluate(() => window.murmel.next());
     if (!move) throw new Error('kein Zug gefunden');
     await page.mouse.click(move.select.x, move.select.y);
@@ -715,7 +724,7 @@ test('Die Detailtiefe lässt sich für alle Bilder wählen, jede Größe hat ihr
   await expect(detail).toHaveText(['Wie gemalt', '16 × 16', '20 × 20', '24 × 24', '28 × 28', '36 × 36', '50 × 50']);
   await expect(detail.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await detail.nth(5).click();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   // Die Sammlung zeigt jetzt jedes Bild in der gewählten Größe.
   await expect(page.locator('.print').first()).toContainText('36 × 36');
   await expect(page.locator('.print').nth(4)).toContainText('36 × 36');
@@ -733,12 +742,12 @@ test('Die Detailtiefe lässt sich für alle Bilder wählen, jede Größe hat ihr
   // Im Spiel umgestellt, wechselt das offene Bild sofort die Größe. Der Stand der alten bleibt liegen.
   await page.locator('#playSettings').click();
   await detail.nth(0).click();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.size).toBe(16);
   expect((await status(page))?.inTray).toBe(0);
   await page.locator('#playSettings').click();
   await detail.nth(5).click();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.size).toBe(36);
   expect((await status(page))?.inTray).toBe(parked);
   expect(errors).toEqual([]);
@@ -754,7 +763,7 @@ test('Das Holzbrett lässt sich vergrößern und verkleinern', async ({ page }) 
   await expect(tray).toHaveText(['30', '45', '60', '90', '120']);
   await tray.nth(2).click();
   await expect(tray.nth(2)).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.tray).toBe(60);
 
   // Mehr als 30 Murmeln ablegen: Danach passt das Brett nicht mehr auf 30 zurück, und das wird gesagt.
@@ -769,7 +778,7 @@ test('Das Holzbrett lässt sich vergrößern und verkleinern', async ({ page }) 
   await page.locator('#playSettings').click();
   await tray.nth(0).click();
   await expect(page.locator('#settings [data-part="trayNote"]')).toBeVisible();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.tray).toBe(60);
 
   // Ein neues Bild beginnt mit der zuletzt gewählten Größe, auch nach dem Neuladen.
@@ -926,7 +935,7 @@ test('Die Farben eines eigenen Fotos lassen sich stärker voneinander abheben', 
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await choices.nth(2).click();
   await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
 
   const after = await status(page);
   expect(after?.colors).not.toEqual(before?.colors);
@@ -952,11 +961,11 @@ test('Ein Regler stellt das Tempo der Murmeln ein', async ({ page }) => {
   const setTempo = async (step: number): Promise<void> => {
     await page.locator('#playSettings').click();
     await slider.fill(String(step));
-    await page.locator('#settings [data-part="done"]').click();
+    await page.locator('#settings [data-part="close"]').click();
   };
   await page.locator('#playSettings').click();
   await expect(slider).toHaveValue('2'); // Voreinstellung in der Mitte
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
 
   expect((await status(page))?.tempo).toBe(1);
   await setTempo(0);
@@ -1069,7 +1078,7 @@ test.describe('auf einem französischen Gerät', () => {
     const languages = page.locator('#settings [data-part="language"] .choice');
     await expect(languages).toHaveText(['Automatique', 'English', 'Deutsch', 'Italiano', 'Français', 'Español']);
     await expect(languages.nth(0)).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#settings [data-part="done"]').click();
+    await page.locator('#settings [data-part="close"]').click();
 
     await page.evaluate(() => window.murmel.open('mond'));
     await expect(page.locator('#whisper')).toHaveText('Touche une bille.');
@@ -1114,7 +1123,7 @@ test('Die Sprache lässt sich in den Einstellungen umschalten, gilt sofort und b
   await expect(languages.nth(0)).toHaveText('Automatica');
   await expect(page.locator('#settings [data-part="sound"] .choice')).toHaveText(['Tutto', 'Solo biglie', 'Silenzio']);
   await expect(page.locator('#settings [data-part="tempo"]')).toHaveAttribute('aria-valuetext', 'normale');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   await expect(page.locator('#back')).toHaveText('Collezione');
   await expect(page.locator('#sound')).toHaveAttribute('aria-label', 'Suono attivo. Tocca per cambiare.');
   expect((await status(page))?.remaining).toBe(before?.remaining);
@@ -1135,7 +1144,7 @@ test('Die Sprache lässt sich in den Einstellungen umschalten, gilt sofort und b
   await languages.nth(0).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(page.locator('#settingsTitle')).toHaveText('Einstellungen');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   await expect(page.locator('.print').first()).toContainText('Mond über dem See');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');

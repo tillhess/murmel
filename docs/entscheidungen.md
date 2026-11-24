@@ -211,3 +211,11 @@ Auf Wunsch von Yogi steht der Motivtitel höher im hellen Papierrand. Darunter z
 je eine Murmel und die noch offene Anzahl ihrer Farbe, einschließlich Holzbrett. Die Zahl sinkt erst bei
 der sichtbaren Ankunft am richtigen Ziel; Rückgängig und Fortsetzen folgen dem Spielstand. Nullwerte bleiben.
 Die Anzeige ist nicht antippbar und kein Punktestand. Bei vielen Fotofarben bricht sie lesbar in weitere Zeilen um.
+
+## Einstellungen ausdrücklich schließen (24.11.2026)
+
+Yogi ersetzt „Fertig“ durch ein dezentes × oben rechts im dauerhaft sichtbaren Kopf. Jede Wahl gilt
+weiterhin sofort; Schließen speichert oder bestätigt nichts zusätzlich. Die Schaltfläche hat eine
+44 × 44 Pixel große Trefferfläche und einen übersetzten zugänglichen Namen „Einstellungen schließen“.
+Ein Tipp außerhalb sowie Escape schließen das Blatt weiterhin. So bleibt der Ausgang auch ohne
+Kenntnis der Hintergrundgeste sichtbar und mit Tastatur oder Vorlesefunktion erreichbar.

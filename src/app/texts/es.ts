@@ -82,6 +82,7 @@ export const es: Texts = {
   sound_note: 'El sonido sigue el modo silencio del dispositivo. Así un audiolibro sigue sonando sin interrupciones.',
   set_language: 'Idioma',
   language_auto: 'Automático',
+  settings_close: 'Cerrar ajustes',
   done: 'Listo',
 
   install_title: 'Instalar como app',

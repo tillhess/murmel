@@ -215,7 +215,7 @@ export class SettingsSheet {
     });
     find('language').append(...this.languageButtons);
 
-    find('done').addEventListener('click', () => dialog.close());
+    find('close').addEventListener('click', () => dialog.close());
     // Ein Tipp neben das Blatt schließt es. Das Blatt selbst füllt den Dialog ganz aus,
     // deshalb trifft nur ein Tipp auf den Hintergrund den Dialog direkt.
     dialog.addEventListener('click', (e) => {

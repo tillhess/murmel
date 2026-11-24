@@ -573,6 +573,35 @@ html:not([data-texts]) [data-t] {
   padding: 26px 24px 16px;
 }
 
+/* Der Kopf bleibt erreichbar, während nur die Einstellungen darunter scrollen. */
+.settings-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px 24px;
+  background: var(--paper);
+}
+
+.settings-header + .sheet-body {
+  padding-top: 10px;
+  padding-bottom: 26px;
+}
+
+.settings-close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
 .sheet-title:focus {
   outline: none;
 }
