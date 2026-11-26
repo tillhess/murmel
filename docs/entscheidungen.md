@@ -240,3 +240,9 @@ Versionsanzeige freigegeben. Dieses Erweiterungspaket erhöht die Versionsnummer
 Außerhalb laufender Überblendungen werden ruhende Murmeln bereits in die Grundebene aufgenommen,
 um die zusätzliche große Canvas-Kopie pro Animationsbild einzusparen. Die sichtbare Reihenfolge
 während einer Überblendung bleibt gleich.
+
+## Tipp-Toleranz (26.11.2026)
+
+Auch bei gewählter Gruppe oder gewähltem Holzbrett trifft ein Tipp auf fertige Bildfläche auch eine eindeutig benachbarte Gruppe von bis zu drei
+Murmeln. Eine Feldbreite in alle acht Richtungen zählt. Die Gruppe muss ringsum von fertigen Spielfeldern
+oder dem Bildrand umgeben sein. Direkte Treffer auf Murmeln oder freie Löcher behalten Vorrang.

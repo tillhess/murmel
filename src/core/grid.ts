@@ -117,3 +117,19 @@ export function colorDone(level: Level, cur: Int16Array, color: number): boolean
   }
   return any;
 }
+
+/** Auf fertiger Bildfläche darf ein Tipp eine eindeutig benachbarte, isolierte Kleingruppe treffen. */
+export function nearbyGroupCell(level: Level, cur: Int16Array, cell: number): number {
+  if (cur[cell] !== level.target[cell] || level.target[cell] < 0) return cell;
+  const open = around(level, cell).filter((i) => level.target[i] >= 0 && cur[i] !== level.target[i]);
+  const first = open[0];
+  if (first === undefined || cur[first] === EMPTY) return cell;
+  const group = groupAt(level, cur, first);
+  if (group.length > 3 || open.some((i) => !group.includes(i))) return cell;
+  for (const member of group) {
+    for (const i of around(level, member)) {
+      if (level.target[i] >= 0 && cur[i] !== level.target[i] && !group.includes(i)) return cell;
+    }
+  }
+  return first;
+}
