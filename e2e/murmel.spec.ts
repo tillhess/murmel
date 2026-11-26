@@ -477,7 +477,7 @@ test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie 
   expect((await status(page))?.landed).toBe(0);
 
   for (let step = 0; step < 100 && (await status(page))?.entered === 0; step++) {
-    await page.clock.runFor(64);
+    await page.clock.fastForward(64);
   }
   const first = await status(page);
   expect(first?.entered).toBe(1);
@@ -485,14 +485,14 @@ test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie 
   expect(first?.openCounts[0]).toBe(3);
   expect(first?.completedColors).not.toContain(0);
 
-  await page.clock.runFor(4000);
+  await page.clock.fastForward(4000);
   const done = await status(page);
   expect(done?.entered).toBe(3);
   expect(done?.landed).toBe(3);
   expect(done?.openCounts[0]).toBe(0);
   expect(done?.openCounts[1]).toBe(1);
   expect(done?.completedColors).toContain(0);
-  await page.clock.runFor(1000);
+  await page.clock.fastForward(1000);
   expect((await status(page))?.entered).toBe(3);
   const undo = await page.locator('#undo').boundingBox();
   if (!undo) throw new Error('Rückgängig fehlt');
@@ -521,13 +521,13 @@ test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappe
   expect((await status(page))?.completedColors).not.toContain(0);
   let flashed = false;
   for (let step = 0; step < 40 && !flashed; step++) {
-    await page.clock.runFor(200);
+    await page.clock.fastForward(200);
     const current = await status(page);
     flashed = current?.flashingColors.includes(0) ?? false;
     if (current?.arrivingColors.includes(0)) expect(flashed).toBe(false);
   }
   expect(flashed).toBe(true);
-  await page.clock.runFor(800);
+  await page.clock.fastForward(800);
   expect((await status(page))?.flashingColors).toEqual([]);
   expect((await status(page))?.completedColors).toContain(0);
   expect(await page.evaluate(() => window.murmel.sound())).toBe('aus');
@@ -538,7 +538,7 @@ test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappe
   await page.mouse.click(undo.x + undo.width / 2, undo.y + undo.height / 2);
   expect((await status(page))?.completedColors).not.toContain(0);
   expect((await status(page))?.flashingColors).toEqual([]);
-  await page.clock.runFor(1000);
+  await page.clock.fastForward(1000);
   expect((await status(page))?.flashingColors).toEqual([]);
 });
 
@@ -555,7 +555,7 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   let waitingSeen = false;
   let arrived = false;
   for (let step = 0; step < 500; step++) {
-    await page.clock.runFor(16);
+    await page.clock.fastForward(64);
     const current = await status(page);
     if (current?.reveals.some((r) => r.waiting)) {
       waitingSeen = true;
@@ -572,11 +572,11 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   expect(start).toHaveLength(3);
   expect((await status(page))?.openCounts[0]).toBe(0);
   expect(start.every((r) => !r.waiting && r.progress < 0.01)).toBe(true);
-  await page.clock.runFor(500);
+  await page.clock.fastForward(500);
   const middle = (await status(page))?.reveals ?? [];
   expect(middle).toHaveLength(3);
   expect(middle.every((r) => r.progress > 0.48 && r.progress < 0.54)).toBe(true);
-  await page.clock.runFor(520);
+  await page.clock.fastForward(520);
   expect((await status(page))?.reveals).toEqual([]);
 });
 
@@ -591,10 +591,10 @@ test('An fertigen Nachbarflächen bleibt die Bildkante am Ende der Überblendung
   await page.mouse.click(wood.x, wood.y);
   await page.mouse.click(hole.x, hole.y);
   for (let step = 0; step < 500 && (await status(page))?.landed !== 3; step++) {
-    await page.clock.runFor(16);
+    await page.clock.fastForward(64);
   }
   expect((await status(page))?.landed).toBe(3);
-  await page.clock.runFor(960);
+  await page.clock.fastForward(960);
   expect((await status(page))?.reveals).toHaveLength(3);
   // Die drei neuen Felder grenzen an fertige Bildflächen. Dort darf beim Zusammenfassen
   // der Masken kein Rasterrand springen; der Rest des Bildes bewegt sich hier nicht.

@@ -1,7 +1,7 @@
 {
   "name": "murmel",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Meditatives Murmelspiel: Glasmurmeln rollen an ihren Platz, bis ein Bild entsteht.",
   "engines": {

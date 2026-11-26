@@ -232,3 +232,11 @@ für Korrekturen. Unsere aktuelle Testreihe bleibt zunächst bei 0.1.0.
 
 Lokale Testfassungen entstehen mit `npm run build:preview`. PR-Builds erkennt Vite automatisch am
 GitHub-Ereignis; `npm run build` erzeugt außerhalb eines PR-Laufs eine reguläre Fassung mit „Version“.
+
+## Gemeinsame Veröffentlichung 0.2.0 (24.11.2026)
+
+Yogi hat den gemeinsamen Merge der getesteten Bildkanten, Farbzähler, Schließen-Schaltfläche und
+Versionsanzeige freigegeben. Dieses Erweiterungspaket erhöht die Versionsnummer von 0.1.0 auf 0.2.0.
+Außerhalb laufender Überblendungen werden ruhende Murmeln bereits in die Grundebene aufgenommen,
+um die zusätzliche große Canvas-Kopie pro Animationsbild einzusparen. Die sichtbare Reihenfolge
+während einer Überblendung bleibt gleich.

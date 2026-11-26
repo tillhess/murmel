@@ -889,6 +889,12 @@ export class BoardView {
     g.strokeStyle = 'rgba(40,34,30,0.16)';
     g.lineWidth = 1;
     g.strokeRect(ox - 0.5, oy - 0.5, frame.w + 1, frame.h + 1);
+    // Nur während einer Überblendung müssen die ruhenden Murmeln darüberliegen.
+    // Sonst reicht eine vorberechnete Ebene statt einer weiteren großen Kopie pro Bild.
+    if (!this.revealLayers.length) {
+      this.bctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.bctx.drawImage(this.pieces, 0, 0);
+    }
   }
 
   private buildTray(): void {
@@ -1021,7 +1027,7 @@ export class BoardView {
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(this.pieces, 0, 0);
+    if (this.revealLayers.length) ctx.drawImage(this.pieces, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const pulse = this.reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin((now / PULSE_MS) * Math.PI * 2);
