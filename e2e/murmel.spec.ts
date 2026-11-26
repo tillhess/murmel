@@ -555,7 +555,7 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich Ã
   let waitingSeen = false;
   let arrived = false;
   for (let step = 0; step < 500; step++) {
-    await page.clock.fastForward(64);
+    await page.clock.runFor(16);
     const current = await status(page);
     if (current?.reveals.some((r) => r.waiting)) {
       waitingSeen = true;
