@@ -197,3 +197,46 @@ Warum, steht in [art-direction.md](art-direction.md).
 | Bei einer gewählten Bildgruppe darf ein Zieltippen keine Murmeln vom Holzbrett holen. Ein Loch anderer Farbe lässt Zustand und Auswahl unverändert, auch bei voller Ablage und nach einem Teilzug. | Yogi meldete einen unbeabsichtigten blauen Zug bei noch gewählter roter Restmurmel und bestätigte diese Korrektur. Sie ersetzt das direkte Einspringen einer anderen Brettfarbe aus der Regel vom 14.11.2026. Das Holzbrett wird weiterhin durch bewusstes Antippen gewählt. |
 | Angekommene Murmeln warten, bis alle Murmeln ihres Zuges ruhig liegen. Dann verblassen sie gemeinsam über eine Sekunde, während die Originalbildfarbe weich sichtbar wird. | Von Yogi bestätigt: ein Erwachen der Bildfarbe statt eines abrupten Umschlags. Andere Züge können währenddessen weiterlaufen. |
 | Bei reduzierter Bewegung erscheint das Bild ohne zusätzlichen Übergang. Rückgängig und Motivwechsel beenden laufende Übergänge. | Bestehende Systemeinstellung respektieren und keinen alten Bildstand nachträglich einblenden. |
+
+## Stetige Bildkanten beim Einblenden (23.11.2026)
+
+Yogi beobachtet am Ende der Überblendung noch springende Rasterkanten zwischen benachbarten Farbflächen.
+Die Übergangsstufen verwenden deshalb bereits die gemeinsame Maske der fertigen und neu hinzukommenden
+Flächen. Löcher und ruhende Murmeln bleiben vor diesen Bildflächen. Dauer, Klang und Spielregeln bleiben gleich.
+Die Ebenen werden weiterhin nur bei Zustandsänderungen berechnet, nicht in jedem Animationsbild.
+
+## Offene Murmeln je Farbe (23.11.2026)
+
+Auf Wunsch von Yogi steht der Motivtitel höher im hellen Papierrand. Darunter zeigt eine zentrierte Reihe
+je eine Murmel und die noch offene Anzahl ihrer Farbe, einschließlich Holzbrett. Die Zahl sinkt erst bei
+der sichtbaren Ankunft am richtigen Ziel; Rückgängig und Fortsetzen folgen dem Spielstand. Nullwerte bleiben.
+Die Anzeige ist nicht antippbar und kein Punktestand. Bei vielen Fotofarben bricht sie lesbar in weitere Zeilen um.
+
+## Einstellungen ausdrücklich schließen (24.11.2026)
+
+Yogi ersetzt „Fertig“ durch ein dezentes × oben rechts im dauerhaft sichtbaren Kopf. Jede Wahl gilt
+weiterhin sofort; Schließen speichert oder bestätigt nichts zusätzlich. Die Schaltfläche hat eine
+44 × 44 Pixel große Trefferfläche und einen übersetzten zugänglichen Namen „Einstellungen schließen“.
+Ein Tipp außerhalb sowie Escape schließen das Blatt weiterhin. So bleibt der Ausgang auch ohne
+Kenntnis der Hintergrundgeste sichtbar und mit Tastatur oder Vorlesefunktion erreichbar.
+
+## Version und Build-Stand auf der Startseite (24.11.2026)
+
+Yogi wünscht unter den Links im Startbild die Versionsnummer sowie Datum und Uhrzeit des Builds,
+fest in deutscher Ortszeit (Europe/Berlin, einschließlich Sommerzeit). Die Anzeige ändert sich nicht
+beim Öffnen oder Neuladen. Testfassungen tragen „Testversion“. Die Nummer stammt aus package.json;
+wir erhöhen sie bewusst für ein gemeinsam veröffentlichtes Paket, nicht bei jedem Testbuild.
+0.x.x kennzeichnet die Entwicklungsphase; 1.0.0 ist die erste reguläre Veröffentlichung. Danach
+steht die erste Zahl für große Entwicklungsschritte, die zweite für Erweiterungen und die dritte
+für Korrekturen. Unsere aktuelle Testreihe bleibt zunächst bei 0.1.0.
+
+Lokale Testfassungen entstehen mit `npm run build:preview`. PR-Builds erkennt Vite automatisch am
+GitHub-Ereignis; `npm run build` erzeugt außerhalb eines PR-Laufs eine reguläre Fassung mit „Version“.
+
+## Gemeinsame Veröffentlichung 0.2.0 (24.11.2026)
+
+Yogi hat den gemeinsamen Merge der getesteten Bildkanten, Farbzähler, Schließen-Schaltfläche und
+Versionsanzeige freigegeben. Dieses Erweiterungspaket erhöht die Versionsnummer von 0.1.0 auf 0.2.0.
+Außerhalb laufender Überblendungen werden ruhende Murmeln bereits in die Grundebene aufgenommen,
+um die zusätzliche große Canvas-Kopie pro Animationsbild einzusparen. Die sichtbare Reihenfolge
+während einer Überblendung bleibt gleich.

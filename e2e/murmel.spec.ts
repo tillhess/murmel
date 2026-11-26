@@ -31,6 +31,7 @@ interface Murmel {
     arrivingColors: number[];
     entered: number;
     landed: number;
+    openCounts: number[];
     reveals: { cell: number; progress: number; waiting: boolean }[];
   } | null;
   home(): void;
@@ -191,7 +192,7 @@ test('Der Klang hat drei Stufen und merkt sich die gewählte', async ({ page }) 
   await choices.nth(2).click();
   await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.murmel.sound())).toBe('aus');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   await expect(page.locator('#settings')).toBeHidden();
 
   await page.reload();
@@ -220,7 +221,16 @@ test('In den Einstellungen wählt man, wie leere Felder aussehen', async ({ page
   await choices.nth(1).click();
   await expect(choices.nth(1)).toHaveAttribute('aria-pressed', 'true');
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'false');
-  await sheet.locator('[data-part="done"]').click();
+  const close = sheet.getByRole('button', { name: 'Einstellungen schließen' });
+  const beforeScroll = await close.boundingBox();
+  await sheet.locator('[data-part="language"] button').last().scrollIntoViewIfNeeded();
+  const afterScroll = await close.boundingBox();
+  if (!beforeScroll || !afterScroll) throw new Error('Schließen ist nicht sichtbar');
+  expect(Math.abs(afterScroll.y - beforeScroll.y)).toBeLessThan(1);
+  expect(afterScroll.width).toBeGreaterThanOrEqual(44);
+  expect(afterScroll.height).toBeGreaterThanOrEqual(44);
+  await close.focus();
+  await page.keyboard.press('Enter');
   await expect(sheet).toBeHidden();
 
   // Die Wahl bleibt, und im Spiel führt das Symbol in der Leiste zu denselben Einstellungen.
@@ -246,7 +256,7 @@ test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Feld
   await expect(marbles.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await marbles.nth(1).click();
   await expect(marbles.nth(1)).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
 
   // Jeder Entwurf wird einmal gewählt und einen Zug lang gespielt: Dabei darf nichts kaputtgehen.
   await page.evaluate(() => window.murmel.open('mond'));
@@ -255,7 +265,7 @@ test('Murmeln gibt es mit und ohne Spiegelung, und jeder Entwurf für leere Feld
     await page.locator('#playSettings').click();
     await holes.nth(k).click();
     await expect(holes.nth(k)).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#settings [data-part="done"]').click();
+    await page.locator('#settings [data-part="close"]').click();
     const move = await page.evaluate(() => window.murmel.next());
     if (!move) throw new Error('kein Zug gefunden');
     await page.mouse.click(move.select.x, move.select.y);
@@ -457,6 +467,7 @@ test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie 
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await almostFinished(page, true);
+  expect((await status(page))?.openCounts[0]).toBe(3);
   const wood = await page.evaluate(() => window.murmel.wood());
   await page.mouse.click(wood.x, wood.y);
   const hole = await page.evaluate(() => window.murmel.trayHole());
@@ -466,20 +477,27 @@ test('Jede Murmel löst ihren Einzelton genau einmal am Einstieg aus, bevor sie 
   expect((await status(page))?.landed).toBe(0);
 
   for (let step = 0; step < 100 && (await status(page))?.entered === 0; step++) {
-    await page.clock.runFor(64);
+    await page.clock.fastForward(64);
   }
   const first = await status(page);
   expect(first?.entered).toBe(1);
   expect(first?.landed).toBe(0);
+  expect(first?.openCounts[0]).toBe(3);
   expect(first?.completedColors).not.toContain(0);
 
-  await page.clock.runFor(4000);
+  await page.clock.fastForward(4000);
   const done = await status(page);
   expect(done?.entered).toBe(3);
   expect(done?.landed).toBe(3);
+  expect(done?.openCounts[0]).toBe(0);
+  expect(done?.openCounts[1]).toBe(1);
   expect(done?.completedColors).toContain(0);
-  await page.clock.runFor(1000);
+  await page.clock.fastForward(1000);
   expect((await status(page))?.entered).toBe(3);
+  const undo = await page.locator('#undo').boundingBox();
+  if (!undo) throw new Error('Rückgängig fehlt');
+  await page.mouse.click(undo.x + undo.width / 2, undo.y + undo.height / 2);
+  expect((await status(page))?.openCounts[0]).toBe(3);
 });
 
 test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappenden Zügen', async ({ page }) => {
@@ -503,13 +521,13 @@ test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappe
   expect((await status(page))?.completedColors).not.toContain(0);
   let flashed = false;
   for (let step = 0; step < 40 && !flashed; step++) {
-    await page.clock.runFor(200);
+    await page.clock.fastForward(200);
     const current = await status(page);
     flashed = current?.flashingColors.includes(0) ?? false;
     if (current?.arrivingColors.includes(0)) expect(flashed).toBe(false);
   }
   expect(flashed).toBe(true);
-  await page.clock.runFor(800);
+  await page.clock.fastForward(800);
   expect((await status(page))?.flashingColors).toEqual([]);
   expect((await status(page))?.completedColors).toContain(0);
   expect(await page.evaluate(() => window.murmel.sound())).toBe('aus');
@@ -520,7 +538,7 @@ test('Eine Farbe leuchtet erst nach der letzten Ankunft auf, auch bei überlappe
   await page.mouse.click(undo.x + undo.width / 2, undo.y + undo.height / 2);
   expect((await status(page))?.completedColors).not.toContain(0);
   expect((await status(page))?.flashingColors).toEqual([]);
-  await page.clock.runFor(1000);
+  await page.clock.fastForward(1000);
   expect((await status(page))?.flashingColors).toEqual([]);
 });
 
@@ -528,6 +546,7 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await almostFinished(page, true);
+  expect((await status(page))?.openCounts[0]).toBe(3);
   const wood = await page.evaluate(() => window.murmel.wood());
   await page.mouse.click(wood.x, wood.y);
   const hole = await page.evaluate(() => window.murmel.trayHole());
@@ -551,13 +570,60 @@ test('Die Bildfarbe wartet auf die Kette und blendet danach eine Sekunde weich �
   expect(arrived).toBe(true);
   const start = (await status(page))?.reveals ?? [];
   expect(start).toHaveLength(3);
+  expect((await status(page))?.openCounts[0]).toBe(0);
   expect(start.every((r) => !r.waiting && r.progress < 0.01)).toBe(true);
-  await page.clock.runFor(500);
+  await page.clock.fastForward(500);
   const middle = (await status(page))?.reveals ?? [];
   expect(middle).toHaveLength(3);
   expect(middle.every((r) => r.progress > 0.48 && r.progress < 0.54)).toBe(true);
-  await page.clock.runFor(520);
+  await page.clock.fastForward(520);
   expect((await status(page))?.reveals).toEqual([]);
+});
+
+test('An fertigen Nachbarflächen bleibt die Bildkante am Ende der Überblendung stetig', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await almostFinished(page, true);
+  expect((await status(page))?.openCounts[0]).toBe(3);
+  const wood = await page.evaluate(() => window.murmel.wood());
+  const hole = await page.evaluate(() => window.murmel.trayHole());
+  if (!hole) throw new Error('freies Loch fehlt');
+  await page.mouse.click(wood.x, wood.y);
+  await page.mouse.click(hole.x, hole.y);
+  for (let step = 0; step < 500 && (await status(page))?.landed !== 3; step++) {
+    await page.clock.fastForward(64);
+  }
+  expect((await status(page))?.landed).toBe(3);
+  await page.clock.fastForward(960);
+  expect((await status(page))?.reveals).toHaveLength(3);
+  // Die drei neuen Felder grenzen an fertige Bildflächen. Dort darf beim Zusammenfassen
+  // der Masken kein Rasterrand springen; der Rest des Bildes bewegt sich hier nicht.
+  const pixels = () =>
+    page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('#board');
+      const a = window.murmel.cell(0);
+      const b = window.murmel.cell(3);
+      if (!canvas || !a || !b) throw new Error('Bildfläche fehlt');
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      const cell = (b.x - a.x) / 3;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Zeichenfläche fehlt');
+      return Array.from(
+        ctx.getImageData(
+          Math.round((a.x - rect.left - cell * 0.4) * scale),
+          Math.round((a.y - rect.top - cell * 0.4) * scale),
+          Math.round(cell * 3.4 * scale),
+          Math.round(cell * 1.4 * scale),
+        ).data,
+      );
+    });
+  const before = await pixels();
+  await page.clock.runFor(80);
+  expect((await status(page))?.reveals).toEqual([]);
+  const after = await pixels();
+  const largestJump = before.reduce((largest, value, i) => Math.max(largest, Math.abs(value - after[i])), 0);
+  expect(largestJump).toBeLessThanOrEqual(4);
 });
 
 test('Reduzierte Bewegung unterdrückt den Farbblitz auch beim letzten Zug', async ({ page }) => {
@@ -658,7 +724,7 @@ test('Die Detailtiefe lässt sich für alle Bilder wählen, jede Größe hat ihr
   await expect(detail).toHaveText(['Wie gemalt', '16 × 16', '20 × 20', '24 × 24', '28 × 28', '36 × 36', '50 × 50']);
   await expect(detail.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await detail.nth(5).click();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   // Die Sammlung zeigt jetzt jedes Bild in der gewählten Größe.
   await expect(page.locator('.print').first()).toContainText('36 × 36');
   await expect(page.locator('.print').nth(4)).toContainText('36 × 36');
@@ -676,12 +742,12 @@ test('Die Detailtiefe lässt sich für alle Bilder wählen, jede Größe hat ihr
   // Im Spiel umgestellt, wechselt das offene Bild sofort die Größe. Der Stand der alten bleibt liegen.
   await page.locator('#playSettings').click();
   await detail.nth(0).click();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.size).toBe(16);
   expect((await status(page))?.inTray).toBe(0);
   await page.locator('#playSettings').click();
   await detail.nth(5).click();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.size).toBe(36);
   expect((await status(page))?.inTray).toBe(parked);
   expect(errors).toEqual([]);
@@ -697,7 +763,7 @@ test('Das Holzbrett lässt sich vergrößern und verkleinern', async ({ page }) 
   await expect(tray).toHaveText(['30', '45', '60', '90', '120']);
   await tray.nth(2).click();
   await expect(tray.nth(2)).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.tray).toBe(60);
 
   // Mehr als 30 Murmeln ablegen: Danach passt das Brett nicht mehr auf 30 zurück, und das wird gesagt.
@@ -712,7 +778,7 @@ test('Das Holzbrett lässt sich vergrößern und verkleinern', async ({ page }) 
   await page.locator('#playSettings').click();
   await tray.nth(0).click();
   await expect(page.locator('#settings [data-part="trayNote"]')).toBeVisible();
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   expect((await status(page))?.tray).toBe(60);
 
   // Ein neues Bild beginnt mit der zuletzt gewählten Größe, auch nach dem Neuladen.
@@ -869,7 +935,7 @@ test('Die Farben eines eigenen Fotos lassen sich stärker voneinander abheben', 
   await expect(choices.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await choices.nth(2).click();
   await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
 
   const after = await status(page);
   expect(after?.colors).not.toEqual(before?.colors);
@@ -895,11 +961,11 @@ test('Ein Regler stellt das Tempo der Murmeln ein', async ({ page }) => {
   const setTempo = async (step: number): Promise<void> => {
     await page.locator('#playSettings').click();
     await slider.fill(String(step));
-    await page.locator('#settings [data-part="done"]').click();
+    await page.locator('#settings [data-part="close"]').click();
   };
   await page.locator('#playSettings').click();
   await expect(slider).toHaveValue('2'); // Voreinstellung in der Mitte
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
 
   expect((await status(page))?.tempo).toBe(1);
   await setTempo(0);
@@ -1012,7 +1078,7 @@ test.describe('auf einem französischen Gerät', () => {
     const languages = page.locator('#settings [data-part="language"] .choice');
     await expect(languages).toHaveText(['Automatique', 'English', 'Deutsch', 'Italiano', 'Français', 'Español']);
     await expect(languages.nth(0)).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('#settings [data-part="done"]').click();
+    await page.locator('#settings [data-part="close"]').click();
 
     await page.evaluate(() => window.murmel.open('mond'));
     await expect(page.locator('#whisper')).toHaveText('Touche une bille.');
@@ -1057,7 +1123,7 @@ test('Die Sprache lässt sich in den Einstellungen umschalten, gilt sofort und b
   await expect(languages.nth(0)).toHaveText('Automatica');
   await expect(page.locator('#settings [data-part="sound"] .choice')).toHaveText(['Tutto', 'Solo biglie', 'Silenzio']);
   await expect(page.locator('#settings [data-part="tempo"]')).toHaveAttribute('aria-valuetext', 'normale');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   await expect(page.locator('#back')).toHaveText('Collezione');
   await expect(page.locator('#sound')).toHaveAttribute('aria-label', 'Suono attivo. Tocca per cambiare.');
   expect((await status(page))?.remaining).toBe(before?.remaining);
@@ -1078,7 +1144,7 @@ test('Die Sprache lässt sich in den Einstellungen umschalten, gilt sofort und b
   await languages.nth(0).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(page.locator('#settingsTitle')).toHaveText('Einstellungen');
-  await page.locator('#settings [data-part="done"]').click();
+  await page.locator('#settings [data-part="close"]').click();
   await expect(page.locator('.print').first()).toContainText('Mond über dem See');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
@@ -1122,3 +1188,14 @@ for (const language of ['en', 'de', 'it', 'fr', 'es']) {
     }
   });
 }
+
+test('Der Build-Stand bleibt beim Neuladen unverändert, auch mit einer anderen Geräteuhr', async ({ page }) => {
+  await page.goto('/');
+  const label = page.locator('#buildInfo');
+  await expect(label).toBeVisible();
+  await expect(label).toHaveText(/^(Testversion|Version) \d+\.\d+\.\d+ · Stand \d{2}\.\d{2}\.\d{4}, \d{2}:\d{2} Uhr$/);
+  const first = await label.textContent();
+  await page.clock.setFixedTime(new Date('2035-07-01T00:00:00Z'));
+  await page.reload();
+  await expect(label).toHaveText(first ?? '');
+});

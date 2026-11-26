@@ -82,6 +82,9 @@ export const it: Texts = {
   sound_note: 'Il suono segue la modalità silenziosa del dispositivo. Così un audiolibro continua indisturbato.',
   set_language: 'Lingua',
   language_auto: 'Automatica',
+  settings_close: 'Chiudi impostazioni',
+  build_preview: 'Versione di prova {version} · Creata il {date} (Berlino)',
+  build_release: 'Versione {version} · Creata il {date} (Berlino)',
   done: 'Fine',
 
   install_title: 'Installa come app',

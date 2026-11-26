@@ -87,6 +87,9 @@ export const de = {
   sound_note: 'Der Klang folgt dem Stummmodus des Geräts. So läuft ein Hörbuch ungestört weiter.',
   set_language: 'Sprache',
   language_auto: 'Automatisch',
+  settings_close: 'Einstellungen schließen',
+  build_preview: 'Testversion {version} · Stand {date} Uhr',
+  build_release: 'Version {version} · Stand {date} Uhr',
   done: 'Fertig',
 
   // ---------- Installation ----------

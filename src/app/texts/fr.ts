@@ -86,6 +86,9 @@ export const fr: Texts = {
   sound_note: 'Le son suit le mode silencieux de l’appareil. Un livre audio continue ainsi sans être dérangé.',
   set_language: 'Langue',
   language_auto: 'Automatique',
+  settings_close: 'Fermer les réglages',
+  build_preview: 'Version de test {version} · Compilation du {date} (Berlin)',
+  build_release: 'Version {version} · Compilation du {date} (Berlin)',
   done: 'Terminé',
 
   install_title: 'Installer comme app',

@@ -44,6 +44,7 @@
             <a class="quiet" href="./impressum.html" data-t="legal_imprint">Impressum</a>
             <a class="quiet" href="./datenschutz.html" data-t="legal_privacy">Datenschutz</a>
           </div>
+          <p class="build-info" id="buildInfo"></p>
         </footer>
       </section>
 
@@ -90,9 +91,12 @@
     </main>
 
     <dialog class="sheet" id="settings" aria-labelledby="settingsTitle">
-      <div class="sheet-body">
+      <div class="settings-header">
         <!-- Beim Öffnen liegt der Fokus auf der Überschrift, nicht auf der ersten Wahl. -->
         <h2 class="sheet-title" id="settingsTitle" tabindex="-1" autofocus data-t="settings">Einstellungen</h2>
+        <button class="settings-close" data-part="close" type="button" aria-label="Einstellungen schließen" data-t-label="settings_close"><span aria-hidden="true">×</span></button>
+      </div>
+      <div class="sheet-body">
         <fieldset class="setting">
           <legend data-t="set_holes">Leere Felder</legend>
           <div class="choices" data-part="holes"></div>
@@ -135,7 +139,6 @@
           <legend data-t="set_language">Sprache</legend>
           <div class="choices" data-part="language"></div>
         </fieldset>
-        <button class="sheet-done" data-part="done" type="button" data-t="done">Fertig</button>
       </div>
     </dialog>
 
