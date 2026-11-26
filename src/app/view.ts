@@ -26,6 +26,7 @@ import {
 import { type Pt, type Run, runDuration, runEntryTime, runPosition, scheduleChain } from '../core/chain';
 import { openCounts } from '../core/counts';
 import type { Game } from '../core/game';
+import { nearbyGroupCell } from '../core/grid';
 import { EMPTY } from '../core/level';
 import type { Roll, Spot } from '../core/moves';
 import { revealProgress } from '../core/reveal';
@@ -547,7 +548,9 @@ export class BoardView {
     const gy = Math.floor(py / this.cell);
     const { w, h, target } = game.level;
     if (gx < 0 || gy < 0 || gx >= w || gy >= h || target[gy * w + gx] < 0) return { type: 'outside' };
-    return { type: 'cell', cell: gy * w + gx };
+    const cell = gy * w + gx;
+    if (game.selection || game.trayActive) return { type: 'cell', cell };
+    return { type: 'cell', cell: nearbyGroupCell(game.level, game.state.cur, cell) };
   }
 
   /** Lässt die Murmeln eines Zugs als Kette rollen. Der Spielstand ist dabei schon der neue. */
