@@ -549,7 +549,6 @@ export class BoardView {
     const { w, h, target } = game.level;
     if (gx < 0 || gy < 0 || gx >= w || gy >= h || target[gy * w + gx] < 0) return { type: 'outside' };
     const cell = gy * w + gx;
-    if (game.selection || game.trayActive) return { type: 'cell', cell };
     return { type: 'cell', cell: nearbyGroupCell(game.level, game.state.cur, cell) };
   }
 
