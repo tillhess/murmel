@@ -341,7 +341,10 @@ describe('Letzte Murmel mit abweichender Farbe', () => {
     for (const [cur, tray] of [
       [[EMPTY, 0, EMPTY], [0]],
       [[1, 0, EMPTY], [0]],
-      [[0, 0, EMPTY], [0, 0]],
+      [
+        [0, 0, EMPTY],
+        [0, 0],
+      ],
     ]) {
       const game = new Game(level, { cur: Int16Array.from(cur), tray: Int16Array.from(tray) });
       game.tapTray(null);
