@@ -32,6 +32,7 @@ export interface OwnRecord {
 }
 
 interface Saved {
+  colorIssues?: { at: string; picture: string; phase: string; delta: number[] }[];
   finished: string[];
   progress: Record<string, Progress>;
   /** frühere Stände kannten nur an und aus */
@@ -83,6 +84,13 @@ function write(): void {
 }
 
 export const store = {
+  logColorIssue(picture: string, phase: string, delta: number[]): void {
+    const entry = { at: new Date().toISOString(), picture, phase, delta };
+    console.warn('Murmel: Abweichung der Farbbilanz', entry);
+    const saved = read();
+    saved.colorIssues = [...(saved.colorIssues ?? []).slice(-19), entry];
+    write();
+  },
   isFinished: (id: string): boolean => read().finished.includes(id),
   progress: (id: string): Progress | undefined => read().progress[id],
   saveProgress(id: string, progress: Progress): void {

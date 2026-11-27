@@ -45,6 +45,18 @@ export class PlayScreen {
   private whisperTimer = 0;
   private finishTimer = 0;
   private vacuumOn = false;
+  private balance: number[] = [];
+
+  private checkBalance(phase: string): void {
+    const game = this.game;
+    if (!game || !this.picture) return;
+    const delta = game.colorBalance();
+    if (delta.some((n) => n !== 0) && delta.some((n, i) => n !== this.balance[i])) {
+      store.logColorIssue(this.picture.key, phase, delta);
+    }
+    this.balance = delta;
+  }
+
   private traySize = TRAY_DEFAULT;
 
   constructor(
@@ -118,6 +130,8 @@ export class PlayScreen {
       if (fresh) store.clearProgress(picture.key);
       this.game = Game.start(level, makeRng(Date.now() >>> 0), this.traySize);
     }
+    this.balance = [];
+    this.checkBalance(saved ? 'Laden' : 'Start');
     this.rememberCompleted();
     this.sound.setRoot(picture.mood.root);
     this.el.root.hidden = false;
@@ -339,6 +353,10 @@ export class PlayScreen {
         this.view.refresh();
         break;
       case 'gerollt':
+        if (outcome.fertig && this.balance.some((n) => n !== 0)) {
+          store.logColorIssue(this.picture?.key ?? '', 'Letzte Murmel eingesetzt', this.balance);
+        }
+        this.checkBalance('Zug');
         this.view.roll(outcome.rolls);
         this.view.refresh();
         this.save();
@@ -368,6 +386,7 @@ export class PlayScreen {
 
   private undo(): void {
     if (!this.game?.undo()) return;
+    this.checkBalance('Rückgängig');
     this.rememberCompleted();
     this.view.calm();
     this.save();

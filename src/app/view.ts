@@ -69,6 +69,7 @@ export interface ViewHooks {
 }
 
 interface Flight {
+  travelColor: number;
   color: number;
   run: Run;
   t0: number;
@@ -584,6 +585,7 @@ export class BoardView {
       const from = r.from;
       this.flights.push({
         color: r.color,
+        travelColor: r.travelColor ?? r.color,
         run: runs[k],
         t0,
         speed,
@@ -1126,7 +1128,7 @@ export class BoardView {
       const settle = this.reduceMotion ? 0 : Math.min(1, Math.max(0, (fl.t0 - now) / SETTLE_MS)) ** 2;
       const size = fl.fromSlot ? md : md * (1 + 0.07 * settle);
       const lift = fl.fromSlot ? 0 : fl.lift * settle;
-      rollingMarble(level.palette[fl.color], pos.x, pos.y, size, fl.turn + pos.rolled / (md / 2), lift);
+      rollingMarble(level.palette[fl.travelColor], pos.x, pos.y, size, fl.turn + pos.rolled / (md / 2), lift);
     }
     ctx.restore();
 
@@ -1210,7 +1212,7 @@ export class BoardView {
       const settle = this.reduceMotion ? 0 : Math.min(1, Math.max(0, (fl.t0 - now) / SETTLE_MS)) ** 2;
       const lift = fl.lift * settle * (aIn ? zoom : 1);
       rollingMarble(
-        level.palette[fl.color],
+        level.palette[fl.travelColor],
         pose.x,
         pose.y,
         pose.size,

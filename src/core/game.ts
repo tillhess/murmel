@@ -61,6 +61,20 @@ export class Game {
     return new Game(level, newState(deal(level, rng), traySize));
   }
 
+  /** Ist minus Soll je Farbe. Freie Löcher und leere Mulden enthalten keine Murmel. */
+  colorBalance(): number[] {
+    const delta = new Array<number>(this.level.palette.length).fill(0);
+    for (const cell of this.level.cells) {
+      delta[this.level.target[cell]]--;
+      const color = this.state.cur[cell];
+      if (color !== EMPTY) delta[color] = (delta[color] ?? 0) + 1;
+    }
+    for (const color of this.state.tray) {
+      if (color !== EMPTY) delta[color] = (delta[color] ?? 0) + 1;
+    }
+    return delta;
+  }
+
   get solved(): boolean {
     return isSolved(this.level, this.state.cur);
   }
@@ -98,6 +112,28 @@ export class Game {
       // Nur ein ausdrücklich gewähltes Holzbrett darf die Quelle eines Zieltipps sein.
       const fromTray = this.trayActive ? selectColor(state, level.target[cell]) : null;
       if (fromTray) return this.roll('bild', fromTray, (s) => place(level, s, fromTray, cell), true);
+      if (this.trayActive) {
+        const slot = state.tray.findIndex((color) => color !== EMPTY);
+        // Mit einem einzigen freien Ziel und sonst richtigem Bild liegt die letzte Murmel auf dem Holz.
+        if (
+          slot >= 0 &&
+          state.tray.every((color, index) => index === slot || color === EMPTY) &&
+          level.cells.every((i) => i === cell || state.cur[i] === level.target[i])
+        ) {
+          const corrected: Selection = { source: 'tray', slots: [slot], color: level.target[cell] };
+          const original = state.tray[slot];
+          return this.roll(
+            'bild',
+            corrected,
+            (s) => {
+              const result = place(level, s, corrected, cell);
+              if (!result.ok) return result;
+              return { ...result, rolls: result.rolls.map((roll) => ({ ...roll, travelColor: original })) };
+            },
+            true,
+          );
+        }
+      }
       return { type: 'abgelehnt', reason: selection ? 'falsche-farbe' : 'nichts-gewählt' };
     }
     if (here === level.target[cell]) return { type: 'liegt-richtig', cell };
