@@ -246,3 +246,10 @@ während einer Überblendung bleibt gleich.
 Auch bei gewählter Gruppe oder gewähltem Holzbrett trifft ein Tipp auf fertige Bildfläche auch eine eindeutig benachbarte Gruppe von bis zu drei
 Murmeln. Eine Feldbreite in alle acht Richtungen zählt. Die Gruppe muss ringsum von fertigen Spielfeldern
 oder dem Bildrand umgeben sein. Direkte Treffer auf Murmeln oder freie Löcher behalten Vorrang.
+
+## Sauger zum Aufräumen (27.11.2026)
+
+Bei höchstens zehn Prozent falsch liegenden Murmeln auf dem Bild erscheint am Holzbrett ein kleiner
+ockerfarbener Knopf. Ein Tipp aktiviert ihn (grün mit Häkchen). Dann parkt ein Tipp auf eine Murmel
+ihre Gruppe direkt auf dem Holz. Die Ablage zählt für die Schwelle nicht mit. Freie Mulden begrenzen
+den Zug; der Rest bleibt gewählt. Rückgängig nimmt die ganze zuletzt ausgeführte Bewegung zurück.

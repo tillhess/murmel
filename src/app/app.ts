@@ -99,6 +99,7 @@ export function startApp(): void {
       canvas: el<HTMLCanvasElement>('board'),
       bar: el('bar'),
       back: el<HTMLButtonElement>('back'),
+      vacuum: el<HTMLButtonElement>('vacuum'),
       undo: el<HTMLButtonElement>('undo'),
       fit: el<HTMLButtonElement>('fit'),
       whisper: el('whisper'),

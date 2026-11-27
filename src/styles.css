@@ -830,3 +830,27 @@ html:not([data-texts]) [data-t] {
   text-align: center;
   overflow-wrap: anywhere;
 }
+
+#vacuum {
+  position: absolute;
+  left: var(--vacuum-x);
+  top: var(--vacuum-y);
+  transform: translateX(-50%);
+  height: 44px;
+  min-width: 60px;
+  padding: 0 8px;
+  border: 5px solid transparent;
+  border-radius: 12px;
+  background: #e6be79 padding-box;
+  color: #402e1c;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+#vacuum[aria-pressed="true"] {
+  background-color: #28583b;
+  color: white;
+}
+#vacuum[aria-pressed="true"]::before {
+  content: "✓ ";
+}

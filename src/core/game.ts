@@ -1,5 +1,5 @@
 import { deal } from './deal';
-import { isSolved } from './grid';
+import { isMisplaced, isSolved } from './grid';
 import { cloneState, EMPTY, type Level, newState, type State } from './level';
 import {
   hasFreeHole,
@@ -69,7 +69,16 @@ export class Game {
     return this.history.length > 0;
   }
 
-  tapCell(cell: number): Outcome {
+  get vacuumAvailable(): boolean {
+    let misplaced = 0;
+    for (const cell of this.level.cells) {
+      if (isMisplaced(this.level, this.state.cur, cell)) misplaced++;
+      if (misplaced * 10 > this.level.cells.length) return false;
+    }
+    return misplaced > 0;
+  }
+
+  tapCell(cell: number, vacuum = false): Outcome {
     const { level, state } = this;
     if (level.target[cell] === undefined || level.target[cell] < 0) return this.tapOutside();
     const here = state.cur[cell];
@@ -84,6 +93,10 @@ export class Game {
       return { type: 'abgelehnt', reason: selection ? 'falsche-farbe' : 'nichts-gewählt' };
     }
     if (here === level.target[cell]) return { type: 'liegt-richtig', cell };
+    if (vacuum && this.vacuumAvailable) {
+      this.select(selectCell(level, state, cell));
+      return this.tapTray(null);
+    }
     if (this.selection?.source === 'board' && this.selection.cells.includes(cell)) return this.deselect();
     return this.select(selectCell(level, state, cell));
   }

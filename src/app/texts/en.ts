@@ -2,6 +2,7 @@ import type { Texts } from './de';
 
 /** Englisch. Feste Begriffe: marble, wooden tray (Holzbrett), hollow (Mulde), hole (Loch), collection (Sammlung). */
 export const en: Texts = {
+  vacuum: 'Vacuum',
   meta_description: 'Glass marbles roll into place, and a picture appears. No points, no hurry.',
   lede: 'Marbles roll into place, and a picture appears.\nNo points, no hurry.',
   shelf_label: 'Collection of pictures',

@@ -2,6 +2,7 @@ import type { Texts } from './de';
 
 /** Spanisch. Feste Begriffe: canica, bandeja de madera (Holzbrett), hoyo (Mulde), hueco (Loch), colección (Sammlung). */
 export const es: Texts = {
+  vacuum: 'Aspirar',
   meta_description: 'Canicas de cristal ruedan a su sitio y aparece una imagen. Sin puntos, sin prisa.',
   lede: 'Las canicas ruedan a su sitio y aparece una imagen.\nSin puntos, sin prisa.',
   shelf_label: 'Colección de imágenes',
