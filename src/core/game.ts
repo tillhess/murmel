@@ -78,7 +78,15 @@ export class Game {
     return misplaced > 0;
   }
 
-  tapCell(cell: number, vacuum = false): Outcome {
+  vacuumTap(cell: number | null): Outcome | null {
+    if (cell === null || !this.vacuumAvailable || this.level.target[cell] < 0) return null;
+    const group = selectCell(this.level, this.state, cell);
+    if (group?.source !== 'board' || group.cells.length > 3) return null;
+    this.select(group);
+    return this.tapTray(null);
+  }
+
+  tapCell(cell: number): Outcome {
     const { level, state } = this;
     if (level.target[cell] === undefined || level.target[cell] < 0) return this.tapOutside();
     const here = state.cur[cell];
@@ -93,10 +101,6 @@ export class Game {
       return { type: 'abgelehnt', reason: selection ? 'falsche-farbe' : 'nichts-gewählt' };
     }
     if (here === level.target[cell]) return { type: 'liegt-richtig', cell };
-    if (vacuum && this.vacuumAvailable) {
-      this.select(selectCell(level, state, cell));
-      return this.tapTray(null);
-    }
     if (this.selection?.source === 'board' && this.selection.cells.includes(cell)) return this.deselect();
     return this.select(selectCell(level, state, cell));
   }

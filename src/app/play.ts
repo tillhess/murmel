@@ -308,12 +308,17 @@ export class PlayScreen {
     const game = this.game;
     if (!game || game.solved) return;
     const hit = this.view.hit(clientX, clientY);
+    if (this.vacuumOn) {
+      const outcome = game.vacuumTap(hit.type === 'cell' ? hit.cell : null);
+      if (outcome) this.respond(outcome);
+      else {
+        this.vacuumOn = false;
+        this.updateVacuum();
+      }
+      return;
+    }
     const outcome =
-      hit.type === 'cell'
-        ? game.tapCell(hit.cell, this.vacuumOn)
-        : hit.type === 'tray'
-          ? game.tapTray(hit.slot)
-          : game.tapOutside();
+      hit.type === 'cell' ? game.tapCell(hit.cell) : hit.type === 'tray' ? game.tapTray(hit.slot) : game.tapOutside();
     this.respond(outcome);
   }
 

@@ -253,3 +253,6 @@ Bei höchstens zehn Prozent falsch liegenden Murmeln auf dem Bild erscheint am H
 ockerfarbener Knopf. Ein Tipp aktiviert ihn (grün mit Häkchen). Dann parkt ein Tipp auf eine Murmel
 ihre Gruppe direkt auf dem Holz. Die Ablage zählt für die Schwelle nicht mit. Freie Mulden begrenzen
 den Zug; der Rest bleibt gewählt. Rückgängig nimmt die ganze zuletzt ausgeführte Bewegung zurück.
+
+Der Sauger nimmt Gruppen mit einer bis drei Murmeln auf. Ein Tipp auf Holz, ein anderes Feld oder eine größere
+Gruppe beendet den Modus ohne Zug. Der Schalter selbst kann ihn jederzeit wieder ausschalten.

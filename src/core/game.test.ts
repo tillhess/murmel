@@ -305,9 +305,18 @@ it('bietet den Sauger bei 20 von 200 falsch liegenden Murmeln an und zählt das 
   state.cur[20] = EMPTY;
   state.tray[0] = 1;
   expect(game.vacuumAvailable).toBe(true);
-  expect(game.tapCell(0, true)).toMatchObject({ type: 'gerollt', ziel: 'ablage' });
-  expect(game.selection?.source === 'board' && game.selection.cells.length).toBe(18);
-  expect(game.tapCell(2, true)).toMatchObject({ type: 'abgelehnt', reason: 'ablage-voll' });
+  expect(game.vacuumTap(0)).toBeNull();
+  expect(trayCount(game.state)).toBe(1);
+  state.cur.fill(0, 3, 20);
+  expect(game.vacuumTap(null)).toBeNull();
+  expect(game.vacuumTap(20)).toBeNull();
+  expect(game.vacuumTap(19)).toBeNull();
+  expect(game.vacuumTap(0)).toMatchObject({ type: 'gerollt', ziel: 'ablage' });
+  expect(game.selection?.source === 'board' && game.selection.cells.length).toBe(1);
+  expect(game.vacuumTap(game.selection?.source === 'board' ? game.selection.cells[0] : 0)).toMatchObject({
+    type: 'abgelehnt',
+    reason: 'ablage-voll',
+  });
   expect(game.undo()).toBe(true);
   expect(trayCount(game.state)).toBe(1);
 });
