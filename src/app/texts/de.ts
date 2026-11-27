@@ -5,6 +5,7 @@
  */
 export const de = {
   // ---------- Startseite ----------
+  vacuum: 'Sauger',
   meta_description: 'Glasmurmeln rollen an ihren Platz, und ein Bild entsteht. Ohne Punkte, ohne Eile.',
   lede: 'Murmeln rollen an ihren Platz, und ein Bild entsteht.\nOhne Punkte, ohne Eile.',
   shelf_label: 'Sammlung der Bilder',

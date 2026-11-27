@@ -460,7 +460,7 @@ export class BoardView {
     let cols: number;
     let rows: number;
     if (side) {
-      const perColumn = Math.max(5, Math.min(slots, Math.floor((H - top - bottom - 60) / slot)));
+      const perColumn = Math.max(5, Math.min(slots, Math.floor((H - top - bottom - 104) / slot)));
       cols = Math.ceil(slots / perColumn);
       rows = Math.ceil(slots / cols);
     } else {
@@ -468,8 +468,8 @@ export class BoardView {
       rows = Math.ceil(slots / perRow);
       cols = Math.ceil(slots / rows);
     }
-    const trayW = cols * slot + 26;
-    const trayH = rows * slot + 26;
+    const trayW = Math.max(82, cols * slot + 26);
+    const trayH = rows * slot + 26 + 44;
     // Platz für das Blatt
     const areaW = side ? W - trayW - 64 : W - 28;
     const areaH = side ? H - top - bottom - 22 : H - top - bottom - trayH - 44;
@@ -515,6 +515,9 @@ export class BoardView {
           rows,
           side,
         };
+    const trayStyle = this.canvas.parentElement?.style;
+    trayStyle?.setProperty('--vacuum-x', `${this.tray.x + this.tray.w / 2}px`);
+    trayStyle?.setProperty('--vacuum-y', `${this.tray.y + this.tray.h - 48}px`);
     // Der Bereich neben bzw. unter dem Blatt: Dort steht nach dem Abschluss, wie es weitergeht.
     this.zone = side
       ? { x: px + pw + 12, y: top, w: W - (px + pw + 12) - 8, h: H - top - bottom - 8 }

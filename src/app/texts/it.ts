@@ -2,6 +2,7 @@ import type { Texts } from './de';
 
 /** Italienisch. Feste Begriffe: biglia, vassoio di legno (Holzbrett), incavo (Mulde), foro (Loch), collezione (Sammlung). */
 export const it: Texts = {
+  vacuum: 'Aspira',
   meta_description: 'Biglie di vetro rotolano al loro posto e nasce un’immagine. Senza punti, senza fretta.',
   lede: 'Le biglie rotolano a posto e nasce un’immagine.\nSenza punti, senza fretta.',
   shelf_label: 'Collezione delle immagini',

@@ -295,3 +295,28 @@ describe('Spielsteuerung', () => {
     expect(game.solved).toBe(true);
   });
 });
+
+it('bietet den Sauger bei 100 von 200 falsch liegenden Murmeln an und zählt das Holz separat', () => {
+  const level = levelFromRows(Array(10).fill('A'.repeat(20)));
+  const state = newState(level.target.slice(), 3);
+  const game = new Game(level, state);
+  state.cur.fill(1, 0, 101);
+  expect(game.vacuumAvailable).toBe(false);
+  state.cur[100] = EMPTY;
+  state.tray[0] = 1;
+  expect(game.vacuumAvailable).toBe(true);
+  expect(game.vacuumTap(0)).toBeNull();
+  expect(trayCount(game.state)).toBe(1);
+  state.cur.fill(0, 3, 100);
+  expect(game.vacuumTap(null)).toBeNull();
+  expect(game.vacuumTap(100)).toBeNull();
+  expect(game.vacuumTap(19)).toBeNull();
+  expect(game.vacuumTap(0)).toMatchObject({ type: 'gerollt', ziel: 'ablage' });
+  expect(game.selection?.source === 'board' && game.selection.cells.length).toBe(1);
+  expect(game.vacuumTap(game.selection?.source === 'board' ? game.selection.cells[0] : 0)).toMatchObject({
+    type: 'abgelehnt',
+    reason: 'ablage-voll',
+  });
+  expect(game.undo()).toBe(true);
+  expect(trayCount(game.state)).toBe(1);
+});

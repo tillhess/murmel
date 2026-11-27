@@ -5,6 +5,7 @@ import type { Texts } from './de';
  * Vor Doppelpunkt, Fragezeichen und in den Anführungszeichen steht ein geschütztes Leerzeichen ( ).
  */
 export const fr: Texts = {
+  vacuum: 'Aspirer',
   meta_description: 'Des billes de verre roulent à leur place, et une image apparaît. Sans points, sans hâte.',
   lede: 'Les billes roulent à leur place, une image naît.\nSans points, sans hâte.',
   shelf_label: 'Collection des images',

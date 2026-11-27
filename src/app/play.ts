@@ -24,6 +24,7 @@ export interface PlayElements {
   bar: HTMLElement;
   back: HTMLButtonElement;
   undo: HTMLButtonElement;
+  vacuum: HTMLButtonElement;
   /** zeigt wieder das ganze Bild; nur sichtbar, solange es vergrößert ist */
   fit: HTMLButtonElement;
   whisper: HTMLElement;
@@ -43,6 +44,7 @@ export class PlayScreen {
   private readonly probe = document.createElement('div');
   private whisperTimer = 0;
   private finishTimer = 0;
+  private vacuumOn = false;
   private traySize = TRAY_DEFAULT;
 
   constructor(
@@ -74,6 +76,10 @@ export class PlayScreen {
     watchGestures(el.canvas, this.view, (x, y) => this.tap(x, y));
     el.fit.addEventListener('click', () => this.view.resetZoom());
     el.undo.addEventListener('click', () => this.undo());
+    this.el.vacuum.addEventListener('click', () => {
+      this.vacuumOn = !this.vacuumOn;
+      this.updateVacuum();
+    });
     el.back.addEventListener('click', () => this.close());
     el.onward.addEventListener('click', () => this.close());
     el.again.addEventListener('click', () => {
@@ -97,6 +103,7 @@ export class PlayScreen {
     const { level } = picture;
     clearTimeout(this.finishTimer);
     this.el.finish.hidden = true;
+    this.vacuumOn = false;
     this.picture = picture;
     const saved = fresh ? undefined : store.progress(picture.key);
     if (!fresh && store.isFinished(picture.key) && !saved) {
@@ -301,6 +308,15 @@ export class PlayScreen {
     const game = this.game;
     if (!game || game.solved) return;
     const hit = this.view.hit(clientX, clientY);
+    if (this.vacuumOn) {
+      const outcome = game.vacuumTap(hit.type === 'cell' ? hit.cell : null);
+      if (outcome) this.respond(outcome);
+      else {
+        this.vacuumOn = false;
+        this.updateVacuum();
+      }
+      return;
+    }
     const outcome =
       hit.type === 'cell' ? game.tapCell(hit.cell) : hit.type === 'tray' ? game.tapTray(hit.slot) : game.tapOutside();
     this.respond(outcome);
@@ -358,7 +374,14 @@ export class PlayScreen {
     this.updateUndo();
   }
 
+  private updateVacuum(): void {
+    this.el.vacuum.hidden = !this.game?.vacuumAvailable;
+    if (this.el.vacuum.hidden) this.vacuumOn = false;
+    this.el.vacuum.setAttribute('aria-pressed', String(this.vacuumOn));
+  }
+
   private updateUndo(): void {
+    this.updateVacuum();
     this.el.undo.disabled = !this.game?.canUndo || this.game.solved;
   }
 
