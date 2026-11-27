@@ -73,7 +73,7 @@ export class Game {
     let misplaced = 0;
     for (const cell of this.level.cells) {
       if (isMisplaced(this.level, this.state.cur, cell)) misplaced++;
-      if (misplaced * 10 > this.level.cells.length) return false;
+      if (misplaced * 2 > this.level.cells.length) return false;
     }
     return misplaced > 0;
   }

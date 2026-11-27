@@ -249,7 +249,7 @@ oder dem Bildrand umgeben sein. Direkte Treffer auf Murmeln oder freie Löcher b
 
 ## Sauger zum Aufräumen (27.11.2026)
 
-Bei höchstens zehn Prozent falsch liegenden Murmeln auf dem Bild erscheint am Holzbrett ein kleiner
+Bei höchstens fünfzig Prozent falsch liegenden Murmeln auf dem Bild erscheint am Holzbrett ein kleiner
 ockerfarbener Knopf. Ein Tipp aktiviert ihn (grün mit Häkchen). Dann parkt ein Tipp auf eine Murmel
 ihre Gruppe direkt auf dem Holz. Die Ablage zählt für die Schwelle nicht mit. Freie Mulden begrenzen
 den Zug; der Rest bleibt gewählt. Rückgängig nimmt die ganze zuletzt ausgeführte Bewegung zurück.
