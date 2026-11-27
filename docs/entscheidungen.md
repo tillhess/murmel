@@ -256,3 +256,10 @@ den Zug; der Rest bleibt gewählt. Rückgängig nimmt die ganze zuletzt ausgefü
 
 Der Sauger nimmt Gruppen mit einer bis drei Murmeln auf. Ein Tipp auf Holz, ein anderes Feld oder eine größere
 Gruppe beendet den Modus ohne Zug. Der Schalter selbst kann ihn jederzeit wieder ausschalten.
+
+## Farbbilanz und letzte Murmel (27.11.2026)
+
+Start, Laden und Züge prüfen die Anzahl je Farbe auf Bild und Holz gegen die Zielfelder.
+Nur wenn außer einem freien Loch alle Bildfelder stimmen und genau eine Murmel auf dem gewählten
+Holzbrett liegt, darf diese beim Einsetzen die Zielfarbe annehmen. Abweichungen und Abschlusskorrektur
+werden lokal mit Motivkennung, Zeitpunkt und Farbdifferenzen protokolliert (zuletzt 20 Ereignisse).

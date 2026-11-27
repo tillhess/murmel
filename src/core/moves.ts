@@ -6,6 +6,7 @@ export type Spot = { readonly cell: number } | { readonly slot: number };
 
 /** Der Weg einer einzelnen Murmel. `via` führt vom Einstieg (dem angetippten Loch bzw. der ersten Mulde) bis zum Ziel. */
 export interface Roll {
+  readonly travelColor?: number;
   readonly color: number;
   readonly from: Spot;
   readonly to: Spot;

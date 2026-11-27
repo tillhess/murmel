@@ -283,6 +283,8 @@ describe('Spielsteuerung', () => {
   it('lässt sich nur über Tipps vollständig durchspielen', () => {
     const level = patchLevel(14, 14, 5, 6);
     const game = Game.start(level, makeRng(12), 30);
+    const balanced = level.palette.map(() => 0);
+    expect(game.colorBalance()).toEqual(balanced);
     for (let step = 0; step < 2000 && !game.solved; step++) {
       game.tapOutside(); // ein Rest vom vorigen Zug ist noch gewählt: erst ablegen, dann neu wählen
       const s = suggest(level, game.state);
@@ -291,6 +293,7 @@ describe('Spielsteuerung', () => {
       expect(first.type).toBe('cell' in s.select ? 'gewählt' : 'ablage-gewählt');
       const second = s.target === 'ablage' ? game.tapTray(null) : game.tapCell(s.target.cell);
       expect(second.type).toBe('gerollt');
+      expect(game.colorBalance()).toEqual(balanced);
     }
     expect(game.solved).toBe(true);
   });
@@ -319,4 +322,35 @@ it('bietet den Sauger bei 100 von 200 falsch liegenden Murmeln an und zählt das
   });
   expect(game.undo()).toBe(true);
   expect(trayCount(game.state)).toBe(1);
+});
+
+describe('Letzte Murmel mit abweichender Farbe', () => {
+  const level = levelFromRows(['AAB']);
+  it('bewahrt die Abweichung beim Laden und korrigiert erst beim Einsetzen vom gewählten Holz', () => {
+    const game = new Game(level, { cur: Int16Array.of(0, 0, EMPTY), tray: Int16Array.of(EMPTY, 0) });
+    expect(game.colorBalance()).toEqual([1, -1]);
+    expect(game.tapCell(2).type).toBe('abgelehnt');
+    game.tapTray(null);
+    expect(game.tapCell(2)).toMatchObject({ type: 'gerollt', fertig: true, color: 1 });
+    expect(game.colorBalance()).toEqual([0, 0]);
+    expect(trayCount(game.state)).toBe(0);
+    expect(game.undo()).toBe(true);
+    expect(game.colorBalance()).toEqual([1, -1]);
+  });
+  it('verweigert den Farbwechsel bei weiteren Löchern, falsch liegenden oder zusätzlichen Murmeln', () => {
+    for (const [cur, tray] of [
+      [[EMPTY, 0, EMPTY], [0]],
+      [[1, 0, EMPTY], [0]],
+      [
+        [0, 0, EMPTY],
+        [0, 0],
+      ],
+    ]) {
+      const game = new Game(level, { cur: Int16Array.from(cur), tray: Int16Array.from(tray) });
+      game.tapTray(null);
+      expect(game.tapCell(2).type).toBe('abgelehnt');
+      expect(Array.from(game.state.cur)).toEqual(cur);
+      expect(Array.from(game.state.tray)).toEqual(tray);
+    }
+  });
 });

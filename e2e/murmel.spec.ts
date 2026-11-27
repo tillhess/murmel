@@ -1199,3 +1199,30 @@ test('Der Build-Stand bleibt beim Neuladen unverändert, auch mit einer anderen 
   await page.reload();
   await expect(label).toHaveText(first ?? '');
 });
+
+test('Ein alter Spielstand mit falscher letzter Murmel schließt regulär ab und behält die Diagnose', async ({
+  page,
+}) => {
+  const cur = Array.from(rasterize(SCENES[0]));
+  const hole = cur.indexOf(0);
+  cur[hole] = -1;
+  await page.addInitScript((cur) => {
+    localStorage.setItem('murmel.v1', JSON.stringify({ finished: [], progress: { mond: { cur, tray: [1] } } }));
+  }, cur);
+  await page.goto('/');
+  await page.evaluate(() => window.murmel.open('mond', false));
+  const wood = await page.evaluate(() => window.murmel.wood());
+  await page.mouse.click(wood.x, wood.y);
+  const dest = await page.evaluate((i) => window.murmel.cell(i), hole);
+  if (!dest) throw new Error('Letztes Loch fehlt');
+  await page.mouse.click(dest.x, dest.y);
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('murmel.v1') ?? '{}').finished))
+    .toContain('mond');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('murmel.v1') ?? '{}'));
+  expect(saved.progress.mond).toBeUndefined();
+  expect(saved.colorIssues.map((entry: { phase: string }) => entry.phase)).toEqual([
+    'Laden',
+    'Letzte Murmel eingesetzt',
+  ]);
+});
